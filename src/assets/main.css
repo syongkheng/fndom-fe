@@ -1,0 +1,37 @@
+@import './base.css';
+
+:root {
+  --hyperlink-hover: #2e856e;
+  --hyperlink-color: #1d4ed8;
+  --text-color: #333333;
+  --homepage-svg-icon: #333333;
+}
+
+#app {
+  margin: 0;
+  padding: 0;
+}
+
+main {
+  background-color: #f8f9fa;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.hc {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.hyperlink {
+  cursor: pointer;
+  color: var(--hyperlink-color);
+}
+
+.hyperlink:hover {
+  cursor: pointer;
+  color: var(--hyperlink-hover);
+}
