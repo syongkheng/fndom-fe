@@ -2,7 +2,7 @@
 import FooterNavigation from './components/navigations/FooterNavigation.vue'
 import TopNavigation from './components/navigations/TopNavigation.vue'
 import SideNavigation from './components/navigations/SideNavigation.vue'
-import LoginView from './views/LoginView.vue'
+import LoginView from './components/views/LoginView.vue'
 import { useRoute } from 'vue-router'
 import { watch } from 'vue'
 import { useLayoutStateStore } from './stores/layoutState'
@@ -40,7 +40,8 @@ watch(() => route.query.showLogin, (newVal) => {
 <style scoped>
 .wrapper {
   padding: 1em;
-  height: calc(100vh - 80px - 150px)
+  height: calc(100vh - 80px - 150px);
+  overflow: auto;
 }
 
 main {

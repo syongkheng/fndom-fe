@@ -1,5 +1,5 @@
+import { useRouteGuards } from '@/hooks/useRouteGuards'
 import { createRouter, createWebHistory } from 'vue-router'
-import UnauthorizedView from '@/views/UnauthorizedView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -7,13 +7,23 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: () => import('../views/HomeView.vue'),
+      component: () => import('../components/views/HomeView.vue'),
     },
-
+    {
+      path: '/schedule',
+      name: 'schedule',
+      component: () => import('../components/views/CalendarView.vue'),
+    },
+    {
+      path: '/dashboard',
+      name: 'dashboard',
+      component: () => import('../components/views/authenticated/DashboardView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
+    },
     {
       path: '/404',
       name: '404',
-      component: UnauthorizedView,
+      component: () => import('../components/views/UnauthorizedView.vue'),
     },
     // {
     //   path: '/profile',

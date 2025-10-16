@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { Bell, Operation, Search, Warning } from '@element-plus/icons-vue'
+import { Bell, HomeFilled, Operation, Warning } from '@element-plus/icons-vue'
 import { useLayoutStateStore } from '@/stores/layoutState'
 import { useNav } from '@/hooks/useNav'
 import { ElMessage } from 'element-plus';
@@ -21,10 +21,6 @@ const handleLogout = () => {
   ElMessage.success('Logout Successfully')
 }
 
-const handleMyItinerary = () => {
-  ElMessage.info("Page Coming Soon")
-}
-
 const handleSetting = () => {
   ElMessage.info("Page Coming Soon")
 }
@@ -38,25 +34,24 @@ onMounted(async () => {
 
 <template>
   <el-menu class="el-menu-vertical-demo" :collapse="!layoutStore.sideNav.isExpanded">
-
     <span @click="navigate.redirectToLanding()">
+      <el-menu-item index="1">
+        <el-icon>
+          <HomeFilled />
+        </el-icon>
+        <template #title>{{ 'Home' }}</template>
+      </el-menu-item>
+    </span>
+    <span @click="navigate.redirectToSchedule()">
       <el-menu-item index="2">
         <el-icon>
           <Bell />
         </el-icon>
-        <template #title>{{ 'Notices' }}</template>
+        <template #title>{{ 'Events' }}</template>
       </el-menu-item>
     </span>
     <el-divider />
     <span class="authenticated menu" v-if="isAuthenticated">
-      <span @click="handleMyItinerary">
-        <el-menu-item index="3">
-          <el-icon>
-            <Search />
-          </el-icon>
-          <template #title>{{ 'My Itinerary' }}</template>
-        </el-menu-item>
-      </span>
       <span @click="handleSetting">
         <el-menu-item index="4">
           <el-icon>
@@ -77,7 +72,7 @@ onMounted(async () => {
   </el-menu>
 </template>
 
-<style>
+<style scoped>
 .el-menu-vertical-demo {
   height: calc(100vh - 80px);
 }

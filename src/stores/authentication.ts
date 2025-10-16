@@ -10,12 +10,14 @@ import type { AxiosError } from 'axios'
 
 export const useAuthenticationStore = defineStore('authentication', () => {
   const isAuthenticated = ref(false)
-  const authenticationStep = ref<'email' | 'register' | 'login'>('email')
+  const authenticationStep = ref<'username' | 'register' | 'login'>('username')
   const formRef = ref<FormInstance>()
   const loading = ref(false)
   const registerError = ref('')
 
   const redirectAfterLogin = ref(true)
+
+  const userProfile = ref({ username: '', role: '' })
 
   const setRedirectAfterLogin = (value: boolean) => {
     redirectAfterLogin.value = value
@@ -61,9 +63,12 @@ export const useAuthenticationStore = defineStore('authentication', () => {
         return
       }
 
-      return await HttpClient.post(ApiRoute.AUTHENTICATE.AUTHENTICATE, { ...form })
+      return await HttpClient.post(ApiRoute.AUTHENTICATE.PREFLIGHT, {
+        username: form.identity,
+        system: 'fnd',
+      })
         .then((res) => {
-          return res.data.exist ?? false
+          return res.data.data ?? false
         })
         .catch(() => {
           ElMessage.error('Invalid Credentials.')
@@ -91,10 +96,12 @@ export const useAuthenticationStore = defineStore('authentication', () => {
       }
 
       const isLoginRequestSuccessful = await HttpClient.post(ApiRoute.AUTHENTICATE.LOGIN, {
-        ...form,
+        username: form.identity,
+        password: form.password,
+        system: 'fnd',
       })
         .then((res) => {
-          const token = res.data.token.replace(/^"|"$/g, '')
+          const token = res.data.data.token.replace(/^"|"$/g, '')
           StorageUtils.set(StorageKey.JWT, token, 'local')
           ElMessage.success('Login success')
           return !!token
@@ -116,18 +123,18 @@ export const useAuthenticationStore = defineStore('authentication', () => {
   }
 
   const isRegistrationFormValid = (): boolean => {
-    const emailRegex =
-      /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
+    // const emailRegex =
+    //   /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
 
     if (form.password.length < 8) {
       registerError.value = `Password length too short (Must be at least 8)`
       return false
     }
 
-    if (!emailRegex.test(form.identity)) {
-      registerError.value = `Invalid Email Address`
-      return false
-    }
+    // if (!emailRegex.test(form.identity)) {
+    //   registerError.value = `Invalid Email Address`
+    //   return false
+    // }
 
     return true
   }
@@ -142,8 +149,13 @@ export const useAuthenticationStore = defineStore('authentication', () => {
         return
       }
 
-      return await HttpClient.post(ApiRoute.AUTHENTICATE.REGISTER, { ...form }).then((res) => {
-        const token = res.data.token.replace(/^"|"$/g, '')
+      return await HttpClient.post(ApiRoute.AUTHENTICATE.REGISTER, {
+        username: form.identity,
+        password: form.password,
+        system: 'fnd',
+        role: 'R1',
+      }).then((res) => {
+        const token = res.data.data.token.replace(/^"|"$/g, '')
         StorageUtils.set(StorageKey.JWT, token, 'local')
         ElMessage.success('Login success')
         isAuthenticated.value = true
@@ -166,22 +178,6 @@ export const useAuthenticationStore = defineStore('authentication', () => {
     }
   }
 
-  const verifyToken = async (): Promise<boolean> => {
-    const token = StorageUtils.get(StorageKey.JWT, 'local')
-    if (!token) return false
-
-    try {
-      const response = await HttpClient.post(ApiRoute.AUTHENTICATE.TOKEN_VERIFICATION, { token })
-      if (response.data.valid) {
-        isAuthenticated.value = true
-        return true
-      }
-      return false
-    } catch {
-      return false
-    }
-  }
-
   const handleLogout = () => {
     StorageUtils.remove(StorageKey.JWT, 'local')
     isAuthenticated.value = false
@@ -189,6 +185,7 @@ export const useAuthenticationStore = defineStore('authentication', () => {
 
   return {
     isAuthenticated,
+    userProfile,
     authenticationStep,
     formRef,
     form,
@@ -198,7 +195,6 @@ export const useAuthenticationStore = defineStore('authentication', () => {
     handleLogin,
     handleRegister,
     handleLogout,
-    verifyToken,
     registerError,
     loading,
     setRedirectAfterLogin,

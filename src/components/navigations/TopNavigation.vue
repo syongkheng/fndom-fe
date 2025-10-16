@@ -7,7 +7,7 @@
             <Grid />
           </el-icon>
         </div>
-        <div class="logo-env clickable" @click="isAuthenticated ? redirectToLanding() : redirectToLanding()">
+        <div class="logo-env clickable" @click="isAuthenticated ? redirectToDashboard() : redirectToLanding()">
           <div>
             <img src="../../../public/icon-dark.png" width="50px" />
           </div>
@@ -38,7 +38,7 @@ import { useAuthenticationStore } from '@/stores/authentication'
 import { storeToRefs } from 'pinia'
 
 
-const { redirectToLanding } = useNav()
+const { redirectToDashboard, redirectToLanding } = useNav()
 
 const layoutStore = useLayoutStateStore()
 const authStore = useAuthenticationStore()

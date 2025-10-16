@@ -71,6 +71,14 @@ export function useNav() {
     redirectTo('/')
   }
 
+  const redirectToDashboard = () => {
+    redirectTo('/dashboard')
+  }
+
+  const redirectToSchedule = () => {
+    redirectTo('/schedule')
+  }
+
   const redirectToUnauthorized = () => {
     redirectTo('/404')
   }
@@ -81,6 +89,8 @@ export function useNav() {
     redirectToRegister,
     redirectToLogin,
     redirectToLanding,
+    redirectToDashboard,
+    redirectToSchedule,
     redirectToUnauthorized,
   }
 }

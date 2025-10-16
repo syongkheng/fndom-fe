@@ -22,8 +22,10 @@ export const useTokenVerification = () => {
     try {
       const response = await HttpClient.post(ApiRoute.AUTHENTICATE.TOKEN_VERIFICATION, { token })
 
-      if (response.data.valid) {
+      if (response.data.data.exist) {
         authStore.isAuthenticated = true
+        authStore.userProfile.role = response.data.data.role
+        authStore.userProfile.username = response.data.data.username
         return true
       } else {
         StorageUtils.remove(StorageKey.JWT, 'local')

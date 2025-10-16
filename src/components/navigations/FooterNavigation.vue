@@ -1,7 +1,14 @@
 <script lang="ts" setup>
+import { Breakpoint } from '@/constants/Breakpoint';
+import { useBreakpointManager } from '@/hooks/useBreakpointManager';
 import { useNav } from '@/hooks/useNav'
 
 const { redirectTo } = useNav()
+
+const { isScreensizeBelow } = useBreakpointManager();
+
+const flexFooterNavLinksColumn = isScreensizeBelow(Breakpoint.S);
+
 </script>
 <template>
   <footer class="footer">
@@ -12,23 +19,21 @@ const { redirectTo } = useNav()
             <img src="../../../public/icon-dark.png" width="50px" />
           </div>
           <div>
-            {{ 'Made by Awense' }}
+            {{ 'Awense©' }}
           </div>
           <div>
             {{ '2025' }}
           </div>
         </el-aside>
-        <el-main>
-          <div>{{ 'Links' }}</div>
-          <ul>
-            <el-link @click="redirectTo('/')" type="primary">{{ 'Home' }}</el-link>
-          </ul>
-        </el-main>
-        <el-aside class="side">
-          <div>
-            {{ '[236] Finderium' }}
-          </div>
-        </el-aside>
+        <div v-if="flexFooterNavLinksColumn" style="display: flex; flex-direction: column; width: 100%;">
+
+          <el-main>
+            <div>{{ 'Links' }}</div>
+            <ul>
+              <el-link @click="redirectTo('/')" type="primary">{{ 'Home' }}</el-link>
+            </ul>
+          </el-main>
+        </div>
       </el-container>
     </div>
   </footer>
@@ -53,10 +58,6 @@ const { redirectTo } = useNav()
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.side {
-  width: 20%;
 }
 
 main {

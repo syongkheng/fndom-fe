@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 
-// import { useNav } from '@/hooks/useNav'
+import { useNav } from '@/hooks/useNav'
 import { useAuthenticationStore } from '@/stores/authentication'
 import { useLayoutStateStore } from '@/stores/layoutState'
 import { User, Lock } from '@element-plus/icons-vue'
@@ -8,14 +8,14 @@ import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 
 const stepTitles = {
-  email: 'Login / Register',
+  username: 'Login / Register',
   register: 'Create new account',
   login: 'Login'
 }
 
 const buttonText = computed(() => {
   return {
-    email: loading.value ? 'Loading...' : 'Log in / Register',
+    username: loading.value ? 'Loading...' : 'Log in / Register',
     register: loading.value ? 'Registering' : 'Register and log in',
     login: loading.value ? 'Authenticating' : 'Log in'
   }[authenticationStep.value]
@@ -23,7 +23,7 @@ const buttonText = computed(() => {
 
 const termsMessage = computed(() => {
   return {
-    email: "By logging in / registering, you are deemed to have read and agreed to the following",
+    username: "By logging in / registering, you are deemed to have read and agreed to the following",
     register: "By registering, you are deemed to have read and agreed to the following ",
     login: "By logging in, you are deemed to have read and agreed to the following ",
   }[authenticationStep.value]
@@ -31,7 +31,7 @@ const termsMessage = computed(() => {
 )
 const layoutStore = useLayoutStateStore()
 const authStore = useAuthenticationStore()
-// const navigate = useNav()
+const navigate = useNav()
 
 const {
   authenticationStep,
@@ -63,7 +63,7 @@ const _handleLogin = async () => {
   if (isLoginSuccessful) {
     handleOnClose()
     if (redirectToDashboard) {
-      // return navigate.redirectToDashboard()
+      return navigate.redirectToDashboard()
     }
   }
   return
@@ -74,13 +74,13 @@ const _handleRegister = async () => {
 
   if (token) {
     handleOnClose()
-    // return navigate.redirectToDashboard()
+    return navigate.redirectToDashboard()
   }
 }
 
 const handleSubmit = () => {
   const handlers = {
-    email: _handleAuthenticate,
+    username: _handleAuthenticate,
     register: _handleRegister,
     login: _handleLogin
   }
@@ -91,7 +91,7 @@ const handleSubmit = () => {
 const handleOnClose = async () => {
   layoutStore.loginDialog.toggle()
   resetForm()
-  authenticationStep.value = 'email'
+  authenticationStep.value = 'username'
 }
 </script>
 
@@ -107,8 +107,8 @@ const handleOnClose = async () => {
       <!-- Main Form Content -->
       <el-form :model="form" :rules="rules" @submit.prevent="handleSubmit" class="register-form" ref="formRef">
         <!-- Email Field -->
-        <el-form-item v-if="authenticationStep === 'email'" prop="identity" size="large">
-          <el-input v-model="form.identity" placeholder="Email Address" :prefix-icon="User" clearable
+        <el-form-item v-if="authenticationStep === 'username'" prop="identity" size="large">
+          <el-input v-model="form.identity" placeholder="Username" :prefix-icon="User" clearable
             autocomplete="username" />
         </el-form-item>
 
