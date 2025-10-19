@@ -1,17 +1,10 @@
 <script setup lang="ts">
 import NoticeCard from '@/components/cards/NoticeCard.vue';
 import { useNav } from '@/hooks/useNav';
-import { useNoticeManager } from '@/hooks/useNoticeManager';
 import { Bell } from '@element-plus/icons-vue'
-import { onMounted } from 'vue';
 
 const { redirectToSchedule } = useNav();
 
-const noticeManager = useNoticeManager();
-
-onMounted(async () => {
-  noticeManager.retrieveAllNotices()
-})
 </script>
 
 <template>
@@ -23,10 +16,7 @@ onMounted(async () => {
     <div class="announcements">
       <h2>Announcements</h2>
       <div>
-
-        <NoticeCard v-for="notice in noticeManager.notices.value" :key="notice.id" :type="notice.type"
-          :title="notice.title" :content="notice.content" :date="notice.created_dt!" :created-by="notice.created_by"
-          :editable="false" :deletable="false" />
+        <NoticeCard :display-cards-only="true" />
       </div>
     </div>
     <div class="events">
@@ -49,7 +39,7 @@ main {
 }
 
 .announcements {
-  width: 90%;
+  width: 50%;
   color: #333333;
 }
 

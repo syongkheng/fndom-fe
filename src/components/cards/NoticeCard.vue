@@ -1,50 +1,132 @@
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import { Edit, Delete } from '@element-plus/icons-vue'
+import { ElButton, ElIcon } from 'element-plus'
 
-const emit = defineEmits<{
-  (e: 'edit'): void
-  (e: 'delete'): void
-}>()
+import ManageNoticeDialog from '@/components/dialogs/ManageNoticeDialog.vue'
+import { useLayoutStateStore } from '@/stores/layoutState'
+import { useNoticeManager } from '@/hooks/useNoticeManager'
+import { useAuthenticationStore } from '@/stores/authentication'
+import { useNav } from '@/hooks/useNav'
+import type { FndManageNotice } from '@/interfaces/forms/FndManageNotice.model'
+import { DateUtils } from '@/utilities/DateUtils'
 
-defineProps<{
-  type: string
-  title: string
-  content: string
-  date: number
-  createdBy?: string
-  editable?: boolean
-  deletable?: boolean
-}>()
+defineProps({
+  displayCardsOnly: {
+    type: Boolean,
+    default: false
+  }
+})
+
+// Stores & hooks
+const { userProfile } = useAuthenticationStore()
+const layoutStore = useLayoutStateStore()
+const noticeManager = useNoticeManager()
+const navigate = useNav()
+
+// State
+const selectedNotice = ref<FndManageNotice | null>(null)
+
+// Lifecycle
+onMounted(async () => {
+  await noticeManager.retrieveAllNotices()
+})
+
+// Handlers
+const handleAddNotice = () => {
+  selectedNotice.value = null
+  layoutStore.fndNoticeDialog.setTrue()
+}
+
+const handleEditNotice = (notice: FndManageNotice) => {
+  selectedNotice.value = notice
+  layoutStore.fndNoticeDialog.setTrue()
+}
+
+const handleDeleteNotice = (notice: FndManageNotice) => {
+  noticeManager.deleteNotice(notice)
+  navigate.refreshPage()
+}
+
+const handleSubmitNotice = (notice: FndManageNotice) => {
+  if (selectedNotice.value) {
+    noticeManager.updateNotice(notice, selectedNotice.value.id!)
+  } else {
+    noticeManager.createNotice(notice)
+  }
+
+  selectedNotice.value = null
+  navigate.refreshPage()
+}
 </script>
 
 <template>
-  <div class="notice-card" :class="type.toLowerCase()">
-    <div class="header">
-      <span class="badge">{{ type }}</span>
+  <div class="notice-section">
+    <!-- Header -->
+    <div class="notice-header" v-if="displayCardsOnly === false">
+      <h2>Notices</h2>
+      <el-button v-if="userProfile.role === 'R4'" type="primary" size="small" @click="handleAddNotice">
+        + Add Notice
+      </el-button>
+    </div>
 
-      <div class="actions">
-        <el-icon v-if="editable" class="icon edit" @click="emit('edit')">
-          <Edit />
-        </el-icon>
-        <el-icon v-if="deletable" class="icon delete" @click="emit('delete')">
-          <Delete />
-        </el-icon>
+    <!-- List of Notices -->
+    <div v-if="noticeManager.notices.value.length > 0">
+
+      <div v-for="notice in noticeManager.notices.value" :key="notice.id" class="notice-card"
+        :class="notice.type.toLowerCase()">
+        <div class="header">
+          <span class="badge-wrapper">
+            <span class="badge">{{ notice.type }}</span>
+            <span class="created-dt">{{ DateUtils.toDateTimeString(new Date(notice.created_dt!)) }}</span>
+          </span>
+
+          <div class="actions">
+            <el-icon v-if="userProfile.role === 'R4'" class="icon edit" @click="handleEditNotice(notice)">
+              <Edit />
+            </el-icon>
+            <el-icon v-if="userProfile.role === 'R4'" class="icon delete" @click="handleDeleteNotice(notice)">
+              <Delete />
+            </el-icon>
+          </div>
+        </div>
+
+        <div class="audit">
+
+          <span>{{ notice.created_by || 'UNKNOWN' }}</span>
+        </div>
+
+        <div class="body">
+          <h3>{{ notice.title }}</h3>
+          <p>{{ notice.content }}</p>
+        </div>
       </div>
     </div>
-
-    <div class="audit">
-      <span>{{ date }}</span>
-      <span>{{ createdBy || 'UNKNOWN' }}</span>
+    <div v-else>
+      <el-empty description="No notices yet" style="height: 250px;" />
     </div>
 
-    <div class="body">
-      <h3>{{ title }}</h3>
-      <p>{{ content }}</p>
-    </div>
+    <!-- Modal -->
+    <ManageNoticeDialog :notice="selectedNotice || undefined" @submit="handleSubmitNotice" />
   </div>
 </template>
 
 <style scoped>
+.notice-section {
+  flex: 1;
+  background-color: #fafafa;
+  border-radius: 1rem;
+  padding: 1rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.notice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
 .notice-card {
   background: #fff;
   border: 1px solid #ddd;
@@ -70,6 +152,13 @@ defineProps<{
   align-items: center;
 }
 
+.badge-wrapper {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+}
+
 .badge {
   font-size: 0.8rem;
   font-weight: bold;
@@ -77,6 +166,10 @@ defineProps<{
   border-radius: 5px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.created-dt {
+  font-size: 0.7rem;
 }
 
 .audit {
@@ -117,12 +210,10 @@ defineProps<{
 
 .icon.edit:hover {
   color: #409EFF;
-  /* Element Plus primary color */
 }
 
 .icon.delete:hover {
   color: #F56C6C;
-  /* Danger color */
 }
 
 /* Type Styles */

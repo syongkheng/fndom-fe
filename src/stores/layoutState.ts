@@ -30,5 +30,11 @@ export const useLayoutStateStore = defineStore('layoutStateStore', () => {
     toggle: () => (fndNoticeDialog.isVisible = !fndNoticeDialog.isVisible),
   })
 
-  return { fndNoticeDialog, collabDialog, loginDialog, sideNav }
+  const fndEventDialog = reactive({
+    isVisible: false,
+    setTrue: () => (fndEventDialog.isVisible = true),
+    setFalse: () => (fndEventDialog.isVisible = false),
+    toggle: () => (fndEventDialog.isVisible = !fndEventDialog.isVisible),
+  })
+  return { fndNoticeDialog, fndEventDialog, collabDialog, loginDialog, sideNav }
 })

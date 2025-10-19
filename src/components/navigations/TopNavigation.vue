@@ -1,3 +1,21 @@
+<script lang="ts" setup>
+import { Star, User } from '@element-plus/icons-vue'
+import { useNav } from '@/hooks/useNav'
+import { Grid } from '@element-plus/icons-vue'
+import { useLayoutStateStore } from '@/stores/layoutState'
+import { useAuthenticationStore } from '@/stores/authentication'
+import { storeToRefs } from 'pinia'
+import UtcClock from '../clocks/UtcClock.vue'
+
+
+const { redirectToDashboard, redirectToLanding } = useNav()
+
+const layoutStore = useLayoutStateStore()
+const authStore = useAuthenticationStore()
+const { isAuthenticated } = storeToRefs(authStore) // Preserves reactivity
+
+</script>
+
 <template>
   <header class="header">
     <nav class="nav-container">
@@ -15,36 +33,26 @@
             <RouterLink to="/">{{ 'Finderium' }}</RouterLink>
           </div>
         </div>
-
+        <div class="clock">
+          <UtcClock />
+        </div>
       </div>
 
       <ul class="nav-links">
-        <span>
-          <el-button v-if="!isAuthenticated" @click="layoutStore.loginDialog.toggle" type="primary" :icon="Star">
+        <span v-if="!isAuthenticated">
+          <el-button @click="layoutStore.loginDialog.toggle" type="primary" :icon="Star">
             {{ 'Login' }}
+          </el-button>
+        </span>
+        <span v-else>
+          <el-button @click="layoutStore.loginDialog.toggle" type="primary" :icon="User">
+            {{ 'Profile' }}
           </el-button>
         </span>
       </ul>
     </nav>
   </header>
 </template>
-
-<script lang="ts" setup>
-import { Star } from '@element-plus/icons-vue'
-import { useNav } from '@/hooks/useNav'
-import { Grid } from '@element-plus/icons-vue'
-import { useLayoutStateStore } from '@/stores/layoutState'
-import { useAuthenticationStore } from '@/stores/authentication'
-import { storeToRefs } from 'pinia'
-
-
-const { redirectToDashboard, redirectToLanding } = useNav()
-
-const layoutStore = useLayoutStateStore()
-const authStore = useAuthenticationStore()
-const { isAuthenticated } = storeToRefs(authStore) // Preserves reactivity
-
-</script>
 
 <style scoped>
 .header {
@@ -63,6 +71,13 @@ const { isAuthenticated } = storeToRefs(authStore) // Preserves reactivity
   background-color: var(--header-bg);
   border-bottom: 1px solid var(--border-color);
   height: 80px;
+}
+
+.clock {
+  font-size: 0.65rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 0.1rem;
+  background-color: #fff;
 }
 
 .nav-container {

@@ -36,7 +36,7 @@ watch(
       noticeForm.type = newNotice.type
       noticeForm.title = newNotice.title
       noticeForm.content = newNotice.content
-      noticeForm.classification = newNotice.classification?.[0] || 'OPEN'
+      noticeForm.classification = newNotice.classification || 'OPEN'
       noticeForm.created_by = newNotice.created_by || 'UNKNOWN'
     } else {
       // Reset form for new notice

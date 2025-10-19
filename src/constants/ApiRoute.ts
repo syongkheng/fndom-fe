@@ -11,4 +11,10 @@ export const ApiRoute = {
     UPDATE: `/api/fnd/notices/update`,
     DELETE: `/api/fnd/notices/delete`,
   },
+  EVENT: {
+    RETRIEVE: `/api/fnd/events`,
+    ADD: `/api/fnd/events/create`,
+    UPDATE: `/api/fnd/events/update`,
+    DELETE: `/api/fnd/events/delete`,
+  },
 }
