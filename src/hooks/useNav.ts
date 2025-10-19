@@ -83,6 +83,10 @@ export function useNav() {
     redirectTo('/404')
   }
 
+  const redirectToProfile = () => {
+    redirectTo('/profile')
+  }
+
   return {
     refreshPage,
     redirectTo,
@@ -92,5 +96,6 @@ export function useNav() {
     redirectToDashboard,
     redirectToSchedule,
     redirectToUnauthorized,
+    redirectToProfile,
   }
 }

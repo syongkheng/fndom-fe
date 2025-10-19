@@ -25,12 +25,12 @@ const router = createRouter({
       name: '404',
       component: () => import('../components/views/UnauthorizedView.vue'),
     },
-    // {
-    //   path: '/profile',
-    //   name: 'profile',
-    //   component: ProfileView,
-    //   beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
-    // },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('../components/views/authenticated/ProfileView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
+    },
   ],
 })
 

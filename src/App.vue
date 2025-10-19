@@ -2,6 +2,7 @@
 import FooterNavigation from './components/navigations/FooterNavigation.vue'
 import TopNavigation from './components/navigations/TopNavigation.vue'
 import SideNavigation from './components/navigations/SideNavigation.vue'
+import MobileNavigation from './components/navigations/MobileNavigation.vue'
 import LoginView from './components/views/LoginView.vue'
 import { useRoute } from 'vue-router'
 import { watch } from 'vue'
@@ -24,6 +25,7 @@ watch(() => route.query.showLogin, (newVal) => {
     <TopNavigation />
     <div style="display: flex">
       <SideNavigation />
+      <MobileNavigation />
       <main>
         <div class="wrapper">
           <RouterView />

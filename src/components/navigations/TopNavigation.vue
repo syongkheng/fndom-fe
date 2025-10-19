@@ -6,13 +6,27 @@ import { useLayoutStateStore } from '@/stores/layoutState'
 import { useAuthenticationStore } from '@/stores/authentication'
 import { storeToRefs } from 'pinia'
 import UtcClock from '../clocks/UtcClock.vue'
+import { useBreakpointManager } from '@/hooks/useBreakpointManager'
+import { Breakpoint } from '@/constants/Breakpoint'
+import { computed } from 'vue'
 
 
-const { redirectToDashboard, redirectToLanding } = useNav()
+const { redirectToDashboard, redirectToLanding, redirectToProfile } = useNav()
 
 const layoutStore = useLayoutStateStore()
 const authStore = useAuthenticationStore()
 const { isAuthenticated } = storeToRefs(authStore) // Preserves reactivity
+const { isScreensizeBelow } = useBreakpointManager()
+const mobileDropdownMenu = computed(() => isScreensizeBelow(Breakpoint.M))
+
+const handleMenuExpansion = () => {
+  if (!mobileDropdownMenu.value) {
+    layoutStore.sideNav.toggle()
+  } else {
+    layoutStore.mobileNavMenu.toggle()
+    console.log("2 > ", layoutStore.mobileNavMenu.isVisible)
+  }
+}
 
 </script>
 
@@ -20,7 +34,7 @@ const { isAuthenticated } = storeToRefs(authStore) // Preserves reactivity
   <header class="header">
     <nav class="nav-container">
       <div class="engagement-container">
-        <div class="clickable toggle-menu-expansion" @click="layoutStore.sideNav.toggle">
+        <div class="clickable toggle-menu-expansion" @click="handleMenuExpansion">
           <el-icon :size="25">
             <Grid />
           </el-icon>
@@ -29,15 +43,17 @@ const { isAuthenticated } = storeToRefs(authStore) // Preserves reactivity
           <div>
             <img src="../../../public/icon-dark.png" width="50px" />
           </div>
-          <div>
-            <RouterLink to="/">{{ 'Finderium' }}</RouterLink>
+          <div class="clock-wrapper">
+
+            <div>
+              <RouterLink to="/">{{ 'Finderium' }}</RouterLink>
+            </div>
+            <div class="clock">
+              <UtcClock />
+            </div>
           </div>
         </div>
-        <div class="clock">
-          <UtcClock />
-        </div>
       </div>
-
       <ul class="nav-links">
         <span v-if="!isAuthenticated">
           <el-button @click="layoutStore.loginDialog.toggle" type="primary" :icon="Star">
@@ -45,7 +61,7 @@ const { isAuthenticated } = storeToRefs(authStore) // Preserves reactivity
           </el-button>
         </span>
         <span v-else>
-          <el-button @click="layoutStore.loginDialog.toggle" type="primary" :icon="User">
+          <el-button @click="redirectToProfile()" type="primary" :icon="User">
             {{ 'Profile' }}
           </el-button>
         </span>
@@ -71,6 +87,12 @@ const { isAuthenticated } = storeToRefs(authStore) // Preserves reactivity
   background-color: var(--header-bg);
   border-bottom: 1px solid var(--border-color);
   height: 80px;
+  flex: 1;
+}
+
+.clock-wrapper {
+  display: flex;
+  flex-direction: column;
 }
 
 .clock {

@@ -9,6 +9,7 @@ const { userProfile } = useAuthenticationStore()
 
 <template>
   <main>
+    <p>{{ "Dashboard" }}</p>
     <div class="intro">
       <h1>{{ userProfile.username }}</h1>
     </div>
@@ -16,8 +17,6 @@ const { userProfile } = useAuthenticationStore()
     <div class="notices-and-events">
       <!-- Events Section -->
       <EventCard />
-
-
       <!-- Notices Section -->
       <NoticeCard />
     </div>

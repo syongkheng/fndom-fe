@@ -41,6 +41,10 @@ main {
 .announcements {
   width: 50%;
   color: #333333;
+
+  @media (max-width: 768px) {
+    width: 100%;
+  }
 }
 
 .events {
