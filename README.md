@@ -26,7 +26,8 @@
 
 ## Profile
 
-- Upload DP
-- Location
+- Upload DP [Done]
+- Location [Done]
+- Change PW [Done]
 
 ## Chatroom

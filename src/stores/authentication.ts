@@ -68,7 +68,8 @@ export const useAuthenticationStore = defineStore('authentication', () => {
         system: 'fnd',
       })
         .then((res) => {
-          return res.data.data ?? false
+          console.log('>>> Preflight Response:', res.data.data.exist)
+          return res.data.data.exist ?? false
         })
         .catch(() => {
           ElMessage.error('Invalid Credentials.')

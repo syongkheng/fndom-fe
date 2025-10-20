@@ -4,66 +4,107 @@ import EventCard from '@/components/cards/EventCard.vue'
 import NoticeCard from '@/components/cards/NoticeCard.vue'
 
 const { userProfile } = useAuthenticationStore()
-
 </script>
 
 <template>
-  <main>
-    <p>{{ "Dashboard" }}</p>
-    <div class="intro">
-      <h1>{{ userProfile.username }}</h1>
-    </div>
+  <main class="dashboard">
+    <!-- Header Section -->
+    <header class="dashboard-header">
+      <h1 class="dashboard-title">Welcome back, {{ userProfile.username }} 👋</h1>
+      <p class="dashboard-subtitle">Here’s what’s happening today</p>
+    </header>
 
-    <div class="notices-and-events">
+    <!-- Content Section -->
+    <section class="dashboard-content">
       <!-- Events Section -->
-      <EventCard />
+      <div class="dashboard-section">
+        <h2 class="section-title">Your Upcoming Events</h2>
+        <EventCard />
+      </div>
+
       <!-- Notices Section -->
-      <NoticeCard />
-    </div>
+      <div class="dashboard-section">
+        <h2 class="section-title">Important Notices</h2>
+        <NoticeCard />
+      </div>
+    </section>
   </main>
 </template>
 
 <style scoped>
-main {
-  color: #333;
-  padding: 1rem;
+/* Layout Base */
+.dashboard {
+  color: #2c2c2c;
+  padding: 2rem 1.5rem;
+  background: #f8f9fb;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
 }
 
-.intro {
-  margin-bottom: 1rem;
+/* Header */
+.dashboard-header {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
+.dashboard-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1f2937;
+  letter-spacing: -0.5px;
+}
 
-.notices-and-events {
+.dashboard-subtitle {
+  font-size: 1rem;
+  color: #6b7280;
+}
+
+/* Content Layout */
+.dashboard-content {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  gap: 1.5rem;
+  gap: 2rem;
 }
 
-.events {
+.dashboard-section {
   flex: 1;
-  background-color: #fafafa;
+  background-color: #ffffff;
   border-radius: 1rem;
-  padding: 1rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-.notice-header {
+  padding: 1.5rem;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
+  flex-direction: column;
+  gap: 1rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.notice-header h2 {
-  font-size: 1.2rem;
-  margin: 0;
+.dashboard-section:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
 }
 
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #374151;
+  border-left: 4px solid var(--el-color-primary, #409eff);
+  padding-left: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Responsive Design */
 @media (max-width: 1000px) {
-  .notices-and-events {
+  .dashboard-content {
     flex-direction: column;
+  }
+
+  .dashboard {
+    padding: 1.5rem 1rem;
   }
 }
 </style>

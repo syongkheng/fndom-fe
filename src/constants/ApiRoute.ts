@@ -17,4 +17,12 @@ export const ApiRoute = {
     UPDATE: `/api/fnd/events/update`,
     DELETE: `/api/fnd/events/delete`,
   },
+  PROFILE: {
+    GET_COUNTRY: `/api/pfp/user/country`,
+    UPDATE_COUNTRY: `/api/pfp/user/country`,
+    UPLOAD_PHOTO: `/api/pfp/user/photo`,
+    GET_PHOTO: `/api/pfp/user/photo`,
+    VALIDATE_PASSWORD: `/api/auth/password/validate`,
+    UPDATE_PASSWORD: `/api/auth/password/update`,
+  },
 }

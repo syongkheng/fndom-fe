@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ElDialog, ElDivider, ElIcon, ElMessage } from 'element-plus'
-import { HomeFilled, Bell, Operation, MoonNight, Notification, User } from '@element-plus/icons-vue'
+import { HomeFilled, Bell, Operation, MoonNight, Notification, User, Star } from '@element-plus/icons-vue'
 import { useLayoutStateStore } from '@/stores/layoutState'
 import { useNav } from '@/hooks/useNav'
 import { useAuthenticationStore } from '@/stores/authentication'
@@ -32,6 +32,12 @@ const handleSetting = () => {
 <template>
   <el-dialog v-model="layoutStore.mobileNavMenu.isVisible" width="280px" align-center class="mobile-menu-dialog">
     <div class="menu-container">
+      <span class="menu-item" @click="handleMenuClick(() => layoutStore.loginDialog.toggle())" v-if="!isAuthenticated">
+        <el-icon>
+          <Star />
+        </el-icon>
+        <span class="menu-label">Login</span>
+      </span>
       <span class="menu-item" @click="handleMenuClick(() => navigate.redirectToLanding())">
         <el-icon>
           <HomeFilled />

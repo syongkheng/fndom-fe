@@ -24,7 +24,6 @@ const handleMenuExpansion = () => {
     layoutStore.sideNav.toggle()
   } else {
     layoutStore.mobileNavMenu.toggle()
-    console.log("2 > ", layoutStore.mobileNavMenu.isVisible)
   }
 }
 
