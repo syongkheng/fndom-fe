@@ -191,7 +191,7 @@ onMounted(async () => {
         <h2 class="section-title">Change Password</h2>
 
         <!-- Current password + validate -->
-        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; margin-top: 1.25rem;">
           <el-input v-model="passwordForm.currentPassword" placeholder="Current Password" show-password
             :prefix-icon="Lock" />
           <el-button type="success" :loading="isValidating" :disabled="isPasswordValidated"

@@ -2,8 +2,15 @@
 import { useAuthenticationStore } from '@/stores/authentication'
 import EventCard from '@/components/cards/EventCard.vue'
 import NoticeCard from '@/components/cards/NoticeCard.vue'
+import { useNoticeManagerStore } from '@/stores/notice'
+import ManageNoticeDialog from '@/components/dialogs/ManageNoticeDialog.vue'
+import ManageEventDialog from '@/components/dialogs/ManageEventDialog.vue'
+import { useEventManagerStore } from '@/stores/event'
 
 const { userProfile } = useAuthenticationStore()
+const noticeManager = useNoticeManagerStore()
+const eventManager = useEventManagerStore()
+
 </script>
 
 <template>
@@ -11,7 +18,7 @@ const { userProfile } = useAuthenticationStore()
     <!-- Header Section -->
     <header class="dashboard-header">
       <h1 class="dashboard-title">Welcome back, {{ userProfile.username }} 👋</h1>
-      <p class="dashboard-subtitle">Here’s what’s happening today</p>
+      <p class="dashboard-subtitle">Here are what you should know</p>
     </header>
 
     <!-- Content Section -->
@@ -28,6 +35,9 @@ const { userProfile } = useAuthenticationStore()
         <NoticeCard />
       </div>
     </section>
+
+    <ManageNoticeDialog :notice="noticeManager.selectedNotice || undefined" :view-only="false" />
+    <ManageEventDialog :event="eventManager.selectedEvent || undefined" />
   </main>
 </template>
 

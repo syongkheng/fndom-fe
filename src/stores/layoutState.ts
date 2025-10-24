@@ -23,11 +23,18 @@ export const useLayoutStateStore = defineStore('layoutStateStore', () => {
     toggle: () => (collabDialog.isVisible = !collabDialog.isVisible),
   })
 
-  const fndNoticeDialog = reactive({
+  const fndManageNoticeDialog = reactive({
     isVisible: false,
-    setTrue: () => (fndNoticeDialog.isVisible = true),
-    setFalse: () => (fndNoticeDialog.isVisible = false),
-    toggle: () => (fndNoticeDialog.isVisible = !fndNoticeDialog.isVisible),
+    setTrue: () => (fndManageNoticeDialog.isVisible = true),
+    setFalse: () => (fndManageNoticeDialog.isVisible = false),
+    toggle: () => (fndManageNoticeDialog.isVisible = !fndManageNoticeDialog.isVisible),
+  })
+
+  const fndViewNoticeDialog = reactive({
+    isVisible: false,
+    setTrue: () => (fndViewNoticeDialog.isVisible = true),
+    setFalse: () => (fndViewNoticeDialog.isVisible = false),
+    toggle: () => (fndViewNoticeDialog.isVisible = !fndViewNoticeDialog.isVisible),
   })
 
   const fndEventDialog = reactive({
@@ -45,7 +52,8 @@ export const useLayoutStateStore = defineStore('layoutStateStore', () => {
   })
   return {
     mobileNavMenu,
-    fndNoticeDialog,
+    fndViewNoticeDialog,
+    fndManageNoticeDialog,
     fndEventDialog,
     collabDialog,
     loginDialog,

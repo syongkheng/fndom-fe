@@ -10,12 +10,14 @@ export const ApiRoute = {
     ADD: `/api/fnd/notices/create`,
     UPDATE: `/api/fnd/notices/update`,
     DELETE: `/api/fnd/notices/delete`,
+    VIEW: `/api/fnd/notices/view`,
   },
   EVENT: {
     RETRIEVE: `/api/fnd/events`,
     ADD: `/api/fnd/events/create`,
     UPDATE: `/api/fnd/events/update`,
     DELETE: `/api/fnd/events/delete`,
+    VIEW: `/api/fnd/events/view`,
   },
   PROFILE: {
     GET_COUNTRY: `/api/pfp/user/country`,

@@ -13,7 +13,7 @@
 - Read [Done]
 - Update [Done]
 - Delete [Done]
-- View Count
+- View Count [Done]
 - Poll
 
 ## Event
@@ -22,7 +22,7 @@
 - Read [Done]
 - Update [Done]
 - Delete [Done]
-- View Count
+- View Count [Done]
 
 ## Profile
 

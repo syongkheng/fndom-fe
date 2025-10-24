@@ -1,20 +1,18 @@
 <script setup lang="ts">
-import { reactive, watch } from 'vue'
-import { ElDialog, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElRadioGroup, ElRadio, ElButton, ElMessage } from 'element-plus'
+import { computed, reactive, watch } from 'vue'
+import { ElDialog, ElForm, ElFormItem, ElInput, ElRadioGroup, ElRadio, ElButton, ElMessage } from 'element-plus'
 import type { FndManageNotice } from '@/interfaces/forms/FndManageNotice.model'
 import { useBreakpointManager } from '@/hooks/useBreakpointManager'
 import { Breakpoint } from '@/constants/Breakpoint'
 import { useLayoutStateStore } from '@/stores/layoutState'
+import { useNoticeManagerStore } from '@/stores/notice'
 
-const props = defineProps<{
-  notice?: FndManageNotice
-}>()
-
-const emit = defineEmits<{
-  (e: 'submit', notice: FndManageNotice): void
-}>()
+const props = defineProps({
+  notice: Object as () => FndManageNotice | undefined,
+})
 
 const layoutStore = useLayoutStateStore()
+const noticeManager = useNoticeManagerStore()
 
 // --- Reactive Form ---
 const noticeForm = reactive<FndManageNotice>({
@@ -22,6 +20,7 @@ const noticeForm = reactive<FndManageNotice>({
   title: '',
   content: '',
   classification: 'OPEN',
+  view_count: 0,
   created_by: '',
 })
 
@@ -47,12 +46,12 @@ watch(
       noticeForm.created_by = ''
     }
   },
-  { immediate: true }
+  { immediate: true, deep: true }
 )
 
 // --- Close modal ---
 const closeModal = () => {
-  layoutStore.fndNoticeDialog.setFalse()
+  layoutStore.fndManageNoticeDialog.setFalse()
 }
 
 // --- Submit form ---
@@ -62,36 +61,43 @@ const submitForm = () => {
     return
   }
 
-  emit('submit', { ...noticeForm, classification: noticeForm.classification })
+  if (props.notice?.id !== undefined) {
+    noticeManager.updateNotice(noticeForm, props.notice.id!)
+  } else {
+    noticeManager.createNotice(noticeForm)
+  }
   closeModal()
 }
 
 // --- Responsive ---
 const { isScreensizeBelow } = useBreakpointManager()
-const smallWidth = isScreensizeBelow(Breakpoint.M)
+const smallWidth = computed(() => isScreensizeBelow(Breakpoint.M))
 </script>
 
 <template>
-  <el-dialog v-model="layoutStore.fndNoticeDialog.isVisible" :title="props.notice ? 'Edit Notice' : 'Add New Notice'"
-    :width="smallWidth ? '90%' : '500px'" :before-close="closeModal">
+  <el-dialog v-model="layoutStore.fndManageNoticeDialog.isVisible" :title="props.notice
+    ? (noticeManager.viewOnly ? 'View Notice' : 'Edit Notice')
+    : 'Add New Notice'" :width="smallWidth ? '90%' : '500px'" :before-close="closeModal">
     <el-form label-position="top" class="notice-form">
-      <el-form-item label="Type">
-        <el-select v-model="noticeForm.type" placeholder="Select Type">
+      <!-- <el-form-item label="Type">
+        <el-select v-model="noticeForm.type" placeholder="Select Type" :disabled="noticeManager.viewOnly">
           <el-option label="Notice" value="Notice" />
           <el-option label="Poll" value="Poll" />
         </el-select>
-      </el-form-item>
+      </el-form-item> -->
 
       <el-form-item label="Title">
-        <el-input v-model="noticeForm.title" placeholder="Enter title" />
+        <el-input v-model="noticeForm.title" placeholder="Enter title" :disabled="noticeManager.viewOnly" />
       </el-form-item>
 
       <el-form-item label="Content">
-        <el-input type="textarea" v-model="noticeForm.content" placeholder="Enter content" :rows="4" />
+        <el-input type="textarea" v-model="noticeForm.content" placeholder="Enter content" :rows="4"
+          :disabled="noticeManager.viewOnly" />
       </el-form-item>
 
       <el-form-item label="Classification">
-        <el-radio-group v-model="noticeForm.classification" class="classification-radio-group">
+        <el-radio-group v-model="noticeForm.classification" class="classification-radio-group"
+          :disabled="noticeManager.viewOnly">
           <el-radio v-for="option in classificationOptions" :key="option" :label="option">
             {{ option }}
           </el-radio>
@@ -99,7 +105,7 @@ const smallWidth = isScreensizeBelow(Breakpoint.M)
       </el-form-item>
     </el-form>
 
-    <template #footer>
+    <template #footer v-if="!noticeManager.viewOnly">
       <el-button @click="closeModal" class="cancel-btn">Cancel</el-button>
       <el-button type="primary" @click="submitForm" class="submit-btn">
         {{ props.notice ? 'Save' : 'Submit' }}

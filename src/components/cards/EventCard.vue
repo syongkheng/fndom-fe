@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { Edit, Delete } from '@element-plus/icons-vue'
+import { onMounted } from 'vue'
+import { Edit, Delete, View } from '@element-plus/icons-vue'
 import { ElButton, ElIcon, ElEmpty } from 'element-plus'
 
-import ManageEventDialog from '@/components/dialogs/ManageEventDialog.vue'
 import { useLayoutStateStore } from '@/stores/layoutState'
-import { useEventManager } from '@/hooks/useEventManager'
+import { useEventManagerStore } from '@/stores/event'
 import { useAuthenticationStore } from '@/stores/authentication'
 import { useNav } from '@/hooks/useNav'
 import type { FndManageEvent } from '@/interfaces/forms/FndManageEvent.model'
@@ -21,11 +20,8 @@ defineProps({
 // Stores & hooks
 const { userProfile } = useAuthenticationStore()
 const layoutStore = useLayoutStateStore()
-const eventManager = useEventManager()
+const eventManager = useEventManagerStore()
 const navigate = useNav()
-
-// State
-const selectedEvent = ref<FndManageEvent | null>(null)
 
 // Lifecycle
 onMounted(async () => {
@@ -34,12 +30,14 @@ onMounted(async () => {
 
 // Handlers
 const handleAddEvent = () => {
-  selectedEvent.value = null
+  eventManager.selectedEvent = null
+  eventManager.viewOnly = false
   layoutStore.fndEventDialog.setTrue()
 }
 
 const handleEditEvent = (event: FndManageEvent) => {
-  selectedEvent.value = event
+  eventManager.selectedEvent = event
+  eventManager.viewOnly = false
   layoutStore.fndEventDialog.setTrue()
 }
 
@@ -48,15 +46,11 @@ const handleDeleteEvent = async (event: FndManageEvent) => {
   navigate.refreshPage()
 }
 
-const handleSubmitEvent = async (event: FndManageEvent) => {
-  if (selectedEvent.value && selectedEvent.value.id) {
-    await eventManager.updateEvent(event, selectedEvent.value.id)
-  } else {
-    await eventManager.createEvent(event)
-  }
-
-  selectedEvent.value = null
-  navigate.refreshPage()
+const handleViewNotice = async (event: FndManageEvent) => {
+  eventManager.selectedEvent = { ...event }
+  eventManager.viewOnly = true
+  layoutStore.fndEventDialog.setTrue()
+  await eventManager.viewEvent(event.id!)
 }
 </script>
 
@@ -71,17 +65,17 @@ const handleSubmitEvent = async (event: FndManageEvent) => {
     </div>
 
     <!-- Event Timeline -->
-    <div v-if="eventManager.events.value.length > 0" class="event-timeline">
-      <div v-for="(event, index) in eventManager.events.value" :key="event.id" class="event-card">
+    <div v-if="eventManager.events.length > 0" class="event-timeline">
+      <div v-for="(event, index) in eventManager.events" :key="event.id" class="event-card">
         <!-- Timeline Dot -->
         <div class="timeline-dot"></div>
         <!-- Connecting Line -->
-        <div v-if="index < eventManager.events.value.length - 1" class="timeline-line"></div>
+        <div v-if="index < eventManager.events.length - 1" class="timeline-line"></div>
 
         <div class="content">
           <div class="header">
             <div class="datetime">
-              {{ new Date(event.event_dt).toLocaleString() }}
+              {{ new Date(event.event_dt * 1000).toUTCString().replace('GMT', 'UTC') }}
             </div>
 
             <div class="actions" v-if="userProfile.role === 'R4'">
@@ -103,6 +97,12 @@ const handleSubmitEvent = async (event: FndManageEvent) => {
             <span class="created-by">
               Created by {{ event.created_by || 'UNKNOWN' }}
             </span>
+            <div class="view-section" @click="handleViewNotice(event)">
+              <el-icon class="icon view">
+                <View />
+              </el-icon>
+              <span class="view-count">{{ event.view_count }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -113,8 +113,6 @@ const handleSubmitEvent = async (event: FndManageEvent) => {
       <el-empty description="No events yet" style="height: 250px;" />
     </div>
 
-    <!-- Modal -->
-    <ManageEventDialog :event="selectedEvent || undefined" @submit="handleSubmitEvent" />
   </div>
 </template>
 
@@ -224,6 +222,27 @@ const handleSubmitEvent = async (event: FndManageEvent) => {
   margin-top: 0.5rem;
   font-size: 0.75rem;
   color: #888;
+}
+
+.view-section {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+.view-section .icon.view {
+  color: #888;
+}
+
+.view-section:hover .icon.view {
+  color: #409EFF;
+}
+
+.view-count {
+  font-size: 0.85rem;
+  color: #555;
 }
 
 /* Action Icons */

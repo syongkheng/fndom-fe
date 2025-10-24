@@ -1,31 +1,26 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { Edit, Delete } from '@element-plus/icons-vue'
+import { onMounted } from 'vue'
+import { Edit, Delete, View } from '@element-plus/icons-vue'
 import { ElButton, ElIcon } from 'element-plus'
 
-import ManageNoticeDialog from '@/components/dialogs/ManageNoticeDialog.vue'
 import { useLayoutStateStore } from '@/stores/layoutState'
-import { useNoticeManager } from '@/hooks/useNoticeManager'
+import { useNoticeManagerStore } from '@/stores/notice'
 import { useAuthenticationStore } from '@/stores/authentication'
 import { useNav } from '@/hooks/useNav'
 import type { FndManageNotice } from '@/interfaces/forms/FndManageNotice.model'
-import { DateUtils } from '@/utilities/DateUtils'
 
 defineProps({
   displayCardsOnly: {
     type: Boolean,
     default: false
-  }
+  },
 })
 
 // Stores & hooks
 const { userProfile } = useAuthenticationStore()
 const layoutStore = useLayoutStateStore()
-const noticeManager = useNoticeManager()
+const noticeManager = useNoticeManagerStore()
 const navigate = useNav()
-
-// State
-const selectedNotice = ref<FndManageNotice | null>(null)
 
 // Lifecycle
 onMounted(async () => {
@@ -34,13 +29,15 @@ onMounted(async () => {
 
 // Handlers
 const handleAddNotice = () => {
-  selectedNotice.value = null
-  layoutStore.fndNoticeDialog.setTrue()
+  noticeManager.selectedNotice = null
+  noticeManager.viewOnly = false
+  layoutStore.fndManageNoticeDialog.setTrue()
 }
 
 const handleEditNotice = (notice: FndManageNotice) => {
-  selectedNotice.value = notice
-  layoutStore.fndNoticeDialog.setTrue()
+  noticeManager.selectedNotice = { ...notice }
+  noticeManager.viewOnly = false
+  layoutStore.fndManageNoticeDialog.setTrue()
 }
 
 const handleDeleteNotice = (notice: FndManageNotice) => {
@@ -48,15 +45,11 @@ const handleDeleteNotice = (notice: FndManageNotice) => {
   navigate.refreshPage()
 }
 
-const handleSubmitNotice = (notice: FndManageNotice) => {
-  if (selectedNotice.value) {
-    noticeManager.updateNotice(notice, selectedNotice.value.id!)
-  } else {
-    noticeManager.createNotice(notice)
-  }
-
-  selectedNotice.value = null
-  navigate.refreshPage()
+const handleViewNotice = (notice: FndManageNotice) => {
+  noticeManager.selectedNotice = { ...notice }
+  noticeManager.viewOnly = true
+  layoutStore.fndManageNoticeDialog.setTrue()
+  noticeManager.viewNotice(notice.id!)
 }
 </script>
 
@@ -71,14 +64,14 @@ const handleSubmitNotice = (notice: FndManageNotice) => {
     </div>
 
     <!-- List of Notices -->
-    <div v-if="noticeManager.notices.value.length > 0">
+    <div v-if="noticeManager.notices.length > 0">
 
-      <div v-for="notice in noticeManager.notices.value" :key="notice.id" class="notice-card"
+      <div v-for="notice in noticeManager.notices" :key="notice.id" class="notice-card"
         :class="notice.type.toLowerCase()">
         <div class="header">
           <span class="badge-wrapper">
             <span class="badge">{{ notice.type }}</span>
-            <span class="created-dt">{{ DateUtils.toDateTimeString(new Date(notice.created_dt!)) }}</span>
+            <span class="created-dt">{{ new Date(notice.created_dt!).toUTCString().replace("GMT", "UTC") }}</span>
           </span>
 
           <div class="actions">
@@ -92,7 +85,6 @@ const handleSubmitNotice = (notice: FndManageNotice) => {
         </div>
 
         <div class="audit">
-
           <span>{{ notice.created_by || 'UNKNOWN' }}</span>
         </div>
 
@@ -100,14 +92,20 @@ const handleSubmitNotice = (notice: FndManageNotice) => {
           <h3>{{ notice.title }}</h3>
           <p>{{ notice.content }}</p>
         </div>
+
+        <!-- View count section -->
+        <div class="view-section" @click="handleViewNotice(notice)">
+          <el-icon class="icon view">
+            <View />
+          </el-icon>
+          <span class="view-count">{{ notice.view_count }}</span>
+        </div>
       </div>
     </div>
     <div v-else>
       <el-empty description="No notices yet" style="height: 250px;" />
     </div>
 
-    <!-- Modal -->
-    <ManageNoticeDialog :notice="selectedNotice || undefined" @submit="handleSubmitNotice" />
   </div>
 </template>
 
@@ -136,8 +134,7 @@ const handleSubmitNotice = (notice: FndManageNotice) => {
   margin: 1rem 0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  height: 165px;
-  overflow: auto;
+  height: auto;
   position: relative;
 }
 
@@ -189,6 +186,27 @@ const handleSubmitNotice = (notice: FndManageNotice) => {
   font-size: 0.9rem;
   color: #444;
   line-height: 1.4;
+}
+
+.view-section {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+.view-section .icon.view {
+  color: #888;
+}
+
+.view-section:hover .icon.view {
+  color: #409EFF;
+}
+
+.view-count {
+  font-size: 0.85rem;
+  color: #555;
 }
 
 /* --- Icon Actions --- */
