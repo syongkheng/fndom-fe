@@ -68,7 +68,6 @@ export const useAuthenticationStore = defineStore('authentication', () => {
         system: 'fnd',
       })
         .then((res) => {
-          console.log('>>> Preflight Response:', res.data.data.exist)
           return res.data.data.exist ?? false
         })
         .catch(() => {
@@ -174,7 +173,6 @@ export const useAuthenticationStore = defineStore('authentication', () => {
 
       registerError.value = 'Registration failed. Please try again.'
     } finally {
-      console.log('Loading: false')
       loading.value = false
     }
   }

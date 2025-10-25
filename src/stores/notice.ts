@@ -21,7 +21,6 @@ export const useNoticeManagerStore = defineStore('noticeManager', {
     async createNotice(notice: FndManageNotice) {
       try {
         const res = await HttpClient.post(ApiRoute.NOTICE.ADD, notice)
-        console.log('Create notice result:', res.data)
         await this.retrieveAllNotices()
       } catch (err) {
         console.error('Something went wrong creating notice:', err)
@@ -30,7 +29,6 @@ export const useNoticeManagerStore = defineStore('noticeManager', {
     async updateNotice(notice: FndManageNotice, id: number) {
       try {
         const res = await HttpClient.post(ApiRoute.NOTICE.UPDATE, { ...notice, id })
-        console.log('Update notice result:', res.data)
         await this.retrieveAllNotices()
       } catch (err) {
         console.error('Something went wrong updating notice:', err)
@@ -39,7 +37,6 @@ export const useNoticeManagerStore = defineStore('noticeManager', {
     async deleteNotice(notice: FndManageNotice) {
       try {
         const res = await HttpClient.post(ApiRoute.NOTICE.DELETE, { id: notice.id })
-        console.log('Delete notice result:', res.data)
         await this.retrieveAllNotices()
       } catch (err) {
         console.error('Something went wrong deleting notice:', err)

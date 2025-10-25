@@ -37,14 +37,14 @@ const handleSetting = () => {
         <template #title>{{ 'Home' }}</template>
       </el-menu-item>
     </span>
-    <span @click="navigate.redirectToSchedule()">
+    <!-- <span @click="navigate.redirectToSchedule()">
       <el-menu-item index="2">
         <el-icon>
           <Bell />
         </el-icon>
         <template #title>{{ 'Events' }}</template>
       </el-menu-item>
-    </span>
+    </span> -->
     <el-divider />
     <span class="authenticated menu" v-if="isAuthenticated">
       <span @click="navigate.redirectToDashboard()">

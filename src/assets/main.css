@@ -5,6 +5,8 @@
   --hyperlink-color: #1d4ed8;
   --text-color: #333333;
   --homepage-svg-icon: #333333;
+  --icon-text-color: #666666;
+  --icon-text-size: 12px;
 }
 
 #app {

@@ -37,6 +37,7 @@ const handleMenuExpansion = () => {
           <el-icon :size="25">
             <Grid />
           </el-icon>
+          <span>Menu</span>
         </div>
         <div class="logo-env clickable" @click="isAuthenticated ? redirectToDashboard() : redirectToLanding()">
           <div>
@@ -106,7 +107,6 @@ const handleMenuExpansion = () => {
   justify-content: space-between;
   align-items: center;
   margin: 0 auto;
-  padding: 0 1em 0 0.5em;
 }
 
 /* Logo & Menu Toggle */
@@ -154,6 +154,8 @@ const handleMenuExpansion = () => {
 
 .toggle-menu-expansion {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   color: var(--icon-color);
 }
 
@@ -184,10 +186,10 @@ const handleMenuExpansion = () => {
 /* Responsive Behavior */
 @media (max-width: 800px) {
 
-  .engagement-container>*:not(.toggle-menu-expansion):not(.logo-env),
+  /* .engagement-container>*:not(.toggle-menu-expansion):not(.logo-env),
   .nav-links>*:not(:has(.el-button--success)) {
     display: none;
-  }
+  } */
 
   .el-button--success {
     display: inline-flex;

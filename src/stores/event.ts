@@ -15,7 +15,6 @@ export const useEventManagerStore = defineStore('eventManager', {
     async retrieveAllEvents() {
       try {
         const res = await HttpClient.get(ApiRoute.EVENT.RETRIEVE)
-        console.log('Response from retrieveAllEvents:', res.data.data)
         this.events = res.data.data
       } catch (err) {
         console.error('Something went wrong retrieving events:', err)
@@ -26,7 +25,6 @@ export const useEventManagerStore = defineStore('eventManager', {
     async createEvent(event: FndManageEvent) {
       try {
         const res = await HttpClient.post(ApiRoute.EVENT.ADD, event)
-        console.log('Create event result:', res.data)
         await this.retrieveAllEvents()
       } catch (err) {
         console.error('Something went wrong creating event:', err)
@@ -37,7 +35,6 @@ export const useEventManagerStore = defineStore('eventManager', {
     async updateEvent(event: FndManageEvent, id: number) {
       try {
         const res = await HttpClient.post(ApiRoute.EVENT.UPDATE, { ...event, id })
-        console.log('Update event result:', res.data)
         await this.retrieveAllEvents()
       } catch (err) {
         console.error('Something went wrong updating event:', err)
@@ -48,7 +45,6 @@ export const useEventManagerStore = defineStore('eventManager', {
     async deleteEvent(event: FndManageEvent) {
       try {
         const res = await HttpClient.post(ApiRoute.EVENT.DELETE, { id: event.id })
-        console.log('Delete event result:', res.data)
         await this.retrieveAllEvents()
       } catch (err) {
         console.error('Something went wrong deleting event:', err)

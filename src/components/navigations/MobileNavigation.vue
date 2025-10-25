@@ -45,12 +45,12 @@ const handleSetting = () => {
         <span class="menu-label">Home</span>
       </span>
 
-      <span class="menu-item" @click="handleMenuClick(() => navigate.redirectToSchedule())">
+      <!-- <span class="menu-item" @click="handleMenuClick(() => navigate.redirectToSchedule())">
         <el-icon>
           <Bell />
         </el-icon>
         <span class="menu-label">Events</span>
-      </span>
+      </span> -->
 
       <el-divider class="menu-divider" />
 

@@ -55,7 +55,6 @@ const uploadProfilePhoto = async (file: File) => {
   try {
     const response = await updateUserPhoto({ blobString, mimeType, sizeInBytes, fileName })
     ElMessage.success('Profile photo uploaded successfully!')
-    console.log('Upload response:', response.data)
   } catch (error) {
     console.error('Upload failed:', error)
     ElMessage.error('Failed to upload photo.')

@@ -23,16 +23,13 @@ const eventManager = useEventManagerStore()
 
     <!-- Content Section -->
     <section class="dashboard-content">
-      <!-- Events Section -->
-      <div class="dashboard-section">
-        <h2 class="section-title">Your Upcoming Events</h2>
-        <EventCard />
-      </div>
-
       <!-- Notices Section -->
       <div class="dashboard-section">
-        <h2 class="section-title">Important Notices</h2>
         <NoticeCard />
+      </div>
+      <!-- Events Section -->
+      <div class="dashboard-section">
+        <EventCard />
       </div>
     </section>
 
@@ -45,7 +42,6 @@ const eventManager = useEventManagerStore()
 /* Layout Base */
 .dashboard {
   color: #2c2c2c;
-  padding: 2rem 1.5rem;
   background: #f8f9fb;
   min-height: 100vh;
   display: flex;
@@ -85,7 +81,7 @@ const eventManager = useEventManagerStore()
   flex: 1;
   background-color: #ffffff;
   border-radius: 1rem;
-  padding: 1.5rem;
+  padding: 1rem;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
@@ -111,10 +107,6 @@ const eventManager = useEventManagerStore()
 @media (max-width: 1000px) {
   .dashboard-content {
     flex-direction: column;
-  }
-
-  .dashboard {
-    padding: 1.5rem 1rem;
   }
 }
 </style>

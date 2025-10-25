@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import NoticeCard from '@/components/cards/NoticeCard.vue';
-import { useNav } from '@/hooks/useNav';
-import { Bell } from '@element-plus/icons-vue'
+// import { Bell } from '@element-plus/icons-vue'
+// import { useNav } from '@/hooks/useNav';
+import ManageNoticeDialog from '@/components/dialogs/ManageNoticeDialog.vue'
+import { useNoticeManagerStore } from '@/stores/notice';
 
-const { redirectToSchedule } = useNav();
+const noticeManager = useNoticeManagerStore();
+
+// const { redirectToSchedule } = useNav();
+
 
 </script>
 
@@ -19,7 +24,7 @@ const { redirectToSchedule } = useNav();
         <NoticeCard :display-cards-only="true" />
       </div>
     </div>
-    <div class="events">
+    <!-- <div class="events">
       <h2>View Upcoming Events</h2>
       <div>
         <span>Checkout upcoming battles, events!</span>
@@ -27,8 +32,10 @@ const { redirectToSchedule } = useNav();
       <div>
         <el-button type="primary" :icon="Bell" @click="redirectToSchedule">{{ "View Schedule" }}</el-button>
       </div>
-    </div>
+    </div> -->
   </main>
+  <ManageNoticeDialog :notice="noticeManager.selectedNotice || undefined" :view-only="true" />
+
 </template>
 
 <style scoped>
@@ -39,6 +46,7 @@ main {
 }
 
 .announcements {
+  margin-top: 1rem;
   width: 50%;
   color: #333333;
 
