@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ElDialog, ElDivider, ElIcon, ElMessage } from 'element-plus'
-import { HomeFilled, Bell, Operation, MoonNight, Notification, User, Star } from '@element-plus/icons-vue'
+import { HomeFilled, Bell, Operation, MoonNight, Notification, User, Star, House } from '@element-plus/icons-vue'
 import { useLayoutStateStore } from '@/stores/layoutState'
 import { useNav } from '@/hooks/useNav'
 import { useAuthenticationStore } from '@/stores/authentication'
@@ -40,9 +40,16 @@ const handleSetting = () => {
       </span> -->
       <span class="menu-item" @click="handleMenuClick(() => navigate.redirectToLanding())">
         <el-icon>
-          <HomeFilled />
+          <House />
         </el-icon>
         <span class="menu-label">Home</span>
+      </span>
+
+      <span class="menu-item" @click="handleMenuClick(() => navigate.redirectToPphs())">
+        <el-icon>
+          <HomeFilled />
+        </el-icon>
+        <span class="menu-label">PPHS</span>
       </span>
 
       <!-- <span class="menu-item" @click="handleMenuClick(() => navigate.redirectToSchedule())">

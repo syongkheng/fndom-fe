@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ApiRoute } from '@/constants/ApiRoute';
 import HttpClient from '@/interceptors/HttpClient';
+import type { BusRouteInformation } from '@/interfaces/BusRouteInformation.model';
 import type { BusstopInformation } from '@/interfaces/BusstopInformation.model';
 import type { PphsRecord } from '@/interfaces/PphsRecord.model';
 import { Location, Timer, Link } from '@element-plus/icons-vue'
@@ -8,6 +9,8 @@ import { computed, ref } from 'vue';
 
 const proximityInMeters = ref<number>(0);
 const busstopRecords = ref<BusstopInformation[]>([])
+const busServicesByBusstop = ref<Record<string, BusRouteInformation[]>>({});
+const busstopCounts = ref<number>(0);
 
 const props = defineProps<{
   record: PphsRecord
@@ -15,6 +18,7 @@ const props = defineProps<{
 
 const remapSourceLabel = {
   "database": "Marked",
+  "website": "Marked",
   "error": "Not on Map"
 }
 
@@ -31,16 +35,42 @@ const retrieveBusstopsWithinProximityToPphs = async (pphs: PphsRecord) => {
       lng: pphs.lng,
       radius: proximityInMeters.value,
     }).then((res) => {
-      return res.data.data as BusstopInformation[]
+      return res.data.data as {
+        rows: BusstopInformation[],
+        count: number
+      }
     })
 
-    busstopRecords.value = response
+    busstopRecords.value = response.rows
+    busstopCounts.value = response.count
+
+    await retrieveBusServicesParallel()
+    console.log(">> ", busServicesByBusstop.value["06049"])
 
   } catch (error) {
     console.error("Something went wrong.", error)
   }
-
 }
+
+const retrieveBusServicesParallel = async () => {
+  try {
+    const requests = busstopRecords.value.map(busstop =>
+      HttpClient.post(ApiRoute.LTA.GET_BUS_SVC_BY_BUSSTOP_CODE, {
+        busStopCode: busstop.busstop_code
+      })
+        .then(res => ({ code: busstop.busstop_code, data: res.data.data }))
+        .catch(() => ({ code: busstop.busstop_code, data: [] }))
+    );
+
+    const results = await Promise.all(requests);
+
+    results.forEach(r => {
+      busServicesByBusstop.value[r.code] = r.data.rows;
+    });
+  } catch (error) {
+    console.error("Error fetching bus services", error);
+  }
+};
 
 const openFormedUrl = () => {
   window.open(props.record.formedUrl, '_blank')
@@ -53,7 +83,7 @@ const openFormedUrl = () => {
     <div class="card-header">
       <div class="town">{{ record.town }}</div>
       <el-tag :type="record.source === 'database' ? 'primary' : 'danger'" size="small">
-        {{ remapSourceLabel[record.source] }}
+        {{ remapSourceLabel[record.source] ?? "Unknown" }}
       </el-tag>
     </div>
 
@@ -90,7 +120,7 @@ const openFormedUrl = () => {
       <el-collapse-item title="More information" name="1">
         <div v-if="record.source.toString() !== 'error'" class="busstop-proximity">
           <div class="proximity-label">
-            Busstops within <strong>{{ formattedProximity }}</strong> : <strong>{{ busstopRecords.length }}</strong>
+            Busstops within <strong>{{ formattedProximity }}</strong> : <strong>{{ busstopCounts }}</strong>
           </div>
           <div class="slider-wrapper">
             <el-slider v-model="proximityInMeters" :step="500" :min="0" :max="2000" show-stops :show-tooltip="false"
@@ -104,6 +134,27 @@ const openFormedUrl = () => {
               <span>2 km</span>
             </div>
           </div>
+          <div>Busstop Information (Nearest {{ busstopRecords.length }})</div>
+          <div v-for="value in busstopRecords" :key="value.busstop_code" class="busstop-card">
+            <div class="busstop-line">
+              <span class="busstop-code">{{ value.busstop_code }}</span>
+              <span class="busstop-road">{{ value.road_name }}</span>
+              <span class="busstop-distance">~ {{ Number(value.distance_m).toFixed(0) }} m</span>
+            </div>
+            <div class="busstop-desc">{{ value.desc }}</div>
+            <div v-if="busServicesByBusstop[value.busstop_code]?.length" class="bus-services-wrapper">
+              <div class="bus-services-label">
+                Available Bus Services: {{ busServicesByBusstop[value.busstop_code].length }}
+              </div>
+              <div class="bus-services-grid">
+                <el-tag v-for="service in busServicesByBusstop[value.busstop_code]" :key="service.service_no"
+                  type="info" size="small">
+                  {{ service.service_no }}
+                </el-tag>
+              </div>
+            </div>
+          </div>
+
         </div>
         <div v-else>
           Something went wrong retrieving coordinates, unable to show more information.
@@ -114,6 +165,64 @@ const openFormedUrl = () => {
 </template>
 
 <style scoped>
+.busstop-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background-color: #fafafa;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.busstop-card:hover {
+  background-color: #f0f6ff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.busstop-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 8px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.busstop-code {
+  flex-shrink: 0;
+  color: #409EFF;
+  font-weight: 600;
+  min-width: 60px;
+}
+
+.busstop-road {
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #333;
+}
+
+.busstop-distance {
+  flex-shrink: 0;
+  font-size: 0.9rem;
+  color: #606266;
+  min-width: 70px;
+  text-align: right;
+}
+
+.busstop-desc {
+  font-size: 0.85rem;
+  color: #909399;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .slider-wrapper {
   width: 80%;
   padding-left: 1rem
@@ -215,5 +324,28 @@ const openFormedUrl = () => {
 .coords {
   font-size: 0.8rem;
   color: #a0a0a0;
+}
+
+.bus-services-wrapper {
+  margin-top: 4px;
+}
+
+.bus-services-label {
+  font-weight: 500;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+  color: #606266;
+}
+
+.bus-services-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+
+@media (max-width: 768px) {
+  .bus-services-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 </style>
