@@ -9,14 +9,29 @@ import "leaflet/dist/leaflet.css";
 import type { PphsRecord } from "@/interfaces/PphsRecord.model";
 import { useLayoutStateStore } from "@/stores/layoutState";
 
+// ✅ Import your own marker icon
+import markerIconUrl from "@/assets/marker-icon.png";
+import markerShadowUrl from "leaflet/dist/images/marker-shadow.png";
+
 const props = defineProps<{ records: PphsRecord[] }>();
 const layoutStore = useLayoutStateStore();
 
-const map = ref<LeafletMap>(); // ✅ explicitly LeafletMap
+const map = ref<LeafletMap>();
 let markerGroup: FeatureGroup | null = null;
+
+// ✅ Define a reusable custom icon
+const customIcon = L.icon({
+  iconUrl: markerIconUrl,
+  shadowUrl: markerShadowUrl,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
 
 onMounted(() => {
   layoutStore.loadingDialog.setTrue();
+
   const leafletMap = L.map("map").setView([1.3521, 103.8198], 12);
   map.value = leafletMap;
 
@@ -49,10 +64,11 @@ watch(
     );
 
     validRecords.forEach((record) => {
-      const marker: Marker = L.marker([
-        parseFloat(record.lat),
-        parseFloat(record.lng),
-      ]);
+      const marker: Marker = L.marker(
+        [parseFloat(record.lat), parseFloat(record.lng)],
+        { icon: customIcon } // ✅ Use custom marker
+      );
+
       marker.bindPopup(`
         <strong>${record.town}</strong><br>
         ${record.address}<br>
@@ -65,16 +81,18 @@ watch(
           : ""
         }
       `);
+
       marker.addTo(markerGroup!);
     });
 
-    // 🔹 Add new group to map
+    // 🔹 Add group to map
     markerGroup.addTo(map.value);
 
-    // 🔹 Fit bounds if there are valid records
+    // 🔹 Fit bounds
     if (validRecords.length > 0) {
       map.value.fitBounds(markerGroup.getBounds(), { padding: [50, 50] });
     }
+
     layoutStore.loadingDialog.setFalse();
   },
   { immediate: true, deep: true }
