@@ -1,13 +1,5 @@
 <script setup lang="ts">
-import NoticeCard from '@/components/cards/NoticeCard.vue';
-// import { Bell } from '@element-plus/icons-vue'
-// import { useNav } from '@/hooks/useNav';
-import ManageNoticeDialog from '@/components/dialogs/ManageNoticeDialog.vue'
-import { useNoticeManagerStore } from '@/stores/notice';
-
-const noticeManager = useNoticeManagerStore();
-
-// const { redirectToSchedule } = useNav();
+import HomeStageAccordion from '../accordions/HomeStageAccordion.vue';
 
 
 </script>
@@ -15,27 +7,18 @@ const noticeManager = useNoticeManagerStore();
 <template>
   <main>
     <div class="intro">
-      <h1>Finderium</h1>
-      <p>An alliance from Kingshot's server 236.</p>
+      <h1>Adulting</h1>
+      <p>Virtual adulting companion to help you navigate life in Singapore.</p>
     </div>
-    <div class="announcements">
-      <h2>Announcements</h2>
+    <div class="features">
+      <h2>
+        How can we help?
+      </h2>
       <div>
-        <NoticeCard :display-cards-only="true" />
+        <HomeStageAccordion />
       </div>
     </div>
-    <!-- <div class="events">
-      <h2>View Upcoming Events</h2>
-      <div>
-        <span>Checkout upcoming battles, events!</span>
-      </div>
-      <div>
-        <el-button type="primary" :icon="Bell" @click="redirectToSchedule">{{ "View Schedule" }}</el-button>
-      </div>
-    </div> -->
   </main>
-  <ManageNoticeDialog :notice="noticeManager.selectedNotice || undefined" :view-only="true" />
-
 </template>
 
 <style scoped>
@@ -45,8 +28,7 @@ main {
   color: #333333;
 }
 
-.announcements {
-  margin-top: 1rem;
+.features {
   width: 50%;
   color: #333333;
 

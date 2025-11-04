@@ -13,15 +13,16 @@ const flexFooterNavLinksColumn = isScreensizeBelow(Breakpoint.S)
   <footer class="footer">
     <div class="footer-container">
       <div class="footer-brand">
-        <img src="../../../public/icon-dark.png" alt="Finderium Logo" width="50" />
-        <span class="brand-name">Finderium</span>
+        <!-- <img src="../../../public/icon-dark.png" alt="Finderium Logo" width="50" /> -->
+        <span class="brand-name">Awense©</span>
+        <span class="brand-name">Beta</span>
       </div>
 
       <div class="footer-links" :class="{ column: flexFooterNavLinksColumn }">
         <el-link type="primary" @click="redirectTo('/')">Home</el-link>
-        <el-link type="primary" href="https://discord.gg/erGgT42W" target="_blank" rel="noopener noreferrer">
+        <!-- <el-link type="primary" href="https://discord.gg/erGgT42W" target="_blank" rel="noopener noreferrer">
           Discord
-        </el-link>
+        </el-link> -->
       </div>
     </div>
   </footer>
@@ -33,6 +34,7 @@ const flexFooterNavLinksColumn = isScreensizeBelow(Breakpoint.S)
   border-top: 1px solid #e9ecef;
   padding: 1rem 2rem;
   color: #333;
+  height: 170px;
 }
 
 .footer-container {

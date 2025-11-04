@@ -27,4 +27,8 @@ export const ApiRoute = {
     VALIDATE_PASSWORD: `/api/auth/password/validate`,
     UPDATE_PASSWORD: `/api/auth/password/update`,
   },
+  PPHS: {
+    GET_PPHS_DATA: `/api/hdb/pphs`,
+    GET_NEAREST_BUSSTOPS: `/api/hdb/pphs/busstops`,
+  },
 }

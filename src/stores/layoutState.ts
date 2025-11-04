@@ -2,6 +2,13 @@ import { reactive } from 'vue'
 import { defineStore } from 'pinia'
 
 export const useLayoutStateStore = defineStore('layoutStateStore', () => {
+  const loadingDialog = reactive({
+    isVisible: false,
+    setTrue: () => (loadingDialog.isVisible = true),
+    setFalse: () => (loadingDialog.isVisible = false),
+    toggle: () => (loadingDialog.isVisible = !loadingDialog.isVisible),
+  })
+
   const sideNav = reactive({
     isExpanded: true,
     setTrue: () => (sideNav.isExpanded = true),
@@ -51,6 +58,7 @@ export const useLayoutStateStore = defineStore('layoutStateStore', () => {
     toggle: () => (mobileNavMenu.isVisible = !mobileNavMenu.isVisible),
   })
   return {
+    loadingDialog,
     mobileNavMenu,
     fndViewNoticeDialog,
     fndManageNoticeDialog,

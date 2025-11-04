@@ -5,7 +5,6 @@ import { Grid } from '@element-plus/icons-vue'
 import { useLayoutStateStore } from '@/stores/layoutState'
 import { useAuthenticationStore } from '@/stores/authentication'
 import { storeToRefs } from 'pinia'
-import UtcClock from '../clocks/UtcClock.vue'
 import { useBreakpointManager } from '@/hooks/useBreakpointManager'
 import { Breakpoint } from '@/constants/Breakpoint'
 import { computed } from 'vue'
@@ -40,17 +39,17 @@ const handleMenuExpansion = () => {
           <span>Menu</span>
         </div>
         <div class="logo-env clickable" @click="isAuthenticated ? redirectToDashboard() : redirectToLanding()">
-          <div>
+          <!-- <div>
             <img src="../../../public/icon-dark.png" width="50px" />
-          </div>
+          </div> -->
           <div class="clock-wrapper">
 
             <div>
-              <RouterLink to="/">{{ 'Finderium' }}</RouterLink>
+              <RouterLink to="/">{{ 'Awense' }}</RouterLink>
             </div>
-            <div class="clock">
+            <!-- <div class="clock">
               <UtcClock />
-            </div>
+            </div> -->
           </div>
         </div>
       </div>
@@ -82,7 +81,7 @@ const handleMenuExpansion = () => {
 
   position: sticky;
   top: 0;
-  z-index: 999;
+  z-index: 9099;
   padding: 1em;
   background-color: var(--header-bg);
   border-bottom: 1px solid var(--border-color);
@@ -124,7 +123,7 @@ const handleMenuExpansion = () => {
 
 /* Navigation Links */
 .nav-links {
-  display: flex;
+  display: none;
   gap: 2em;
   margin: 0;
   padding: 0;

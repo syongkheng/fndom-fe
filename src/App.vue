@@ -8,6 +8,7 @@ import { useRoute } from 'vue-router'
 import { watch } from 'vue'
 import { useLayoutStateStore } from './stores/layoutState'
 import AppInitializer from './AppInitializer.vue'
+import LoadingDialog from './components/dialogs/LoadingDialog.vue'
 
 const route = useRoute()
 const layoutStore = useLayoutStateStore()
@@ -36,19 +37,39 @@ watch(() => route.query.showLogin, (newVal) => {
       </main>
     </div>
     <LoginView />
+    <LoadingDialog :is-open="layoutStore.loadingDialog.isVisible" />
   </AppInitializer>
 </template>
 
 <style scoped>
 .wrapper {
   padding: 1em;
-  height: calc(100vh - 80px - 150px);
-  overflow: auto;
+  flex: 1;
+  /* fill available space in main */
+  overflow-y: auto;
+  /* enable vertical scrolling if content exceeds height */
+  overflow-x: hidden;
+  /* prevent horizontal overflow */
+  box-sizing: border-box;
+  min-height: calc(100vh - 80px - 170px);
 }
 
 main {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  flex: 1;
+  min-height: 0;
+  /* important to allow children to scroll properly */
+}
+
+footer {
+  flex-shrink: 0;
+  /* prevent footer from shrinking */
+}
+
+@media (max-width: 800px) {
+  .wrapper {
+    padding: 0.5em;
+  }
 }
 </style>

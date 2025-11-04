@@ -87,6 +87,10 @@ export function useNav() {
     redirectTo('/profile')
   }
 
+  const redirectToPphs = () => {
+    redirectTo('/pphs')
+  }
+
   return {
     refreshPage,
     redirectTo,
@@ -97,5 +101,6 @@ export function useNav() {
     redirectToSchedule,
     redirectToUnauthorized,
     redirectToProfile,
+    redirectToPphs,
   }
 }

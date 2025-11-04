@@ -31,6 +31,12 @@ const router = createRouter({
       component: () => import('../components/views/authenticated/ProfileView.vue'),
       beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
     },
+    {
+      path: '/pphs',
+      name: 'pphs',
+      component: () => import('../components/views/hdb/HomeView.vue'),
+      // beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
+    },
   ],
 })
 
