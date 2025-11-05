@@ -30,6 +30,7 @@ export const ApiRoute = {
   PPHS: {
     GET_PPHS_DATA: `/api/hdb/pphs`,
     GET_NEAREST_BUSSTOPS: `/api/hdb/pphs/busstops`,
+    GET_NEAREST_MRT_STATIONS: `/api/hdb/pphs/mrt`,
   },
   LTA: {
     GET_BUS_SVC_BY_BUSSTOP_CODE: `/api/lta/bus/services`,

@@ -3,12 +3,14 @@ import { ApiRoute } from '@/constants/ApiRoute';
 import HttpClient from '@/interceptors/HttpClient';
 import type { BusRouteInformation } from '@/interfaces/BusRouteInformation.model';
 import type { BusstopInformation } from '@/interfaces/BusstopInformation.model';
+import type { MrtStationInformation } from '@/interfaces/MrtStationInformation.model';
 import type { PphsRecord } from '@/interfaces/PphsRecord.model';
 import { Location, Timer, Link } from '@element-plus/icons-vue'
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 const proximityInMeters = ref<number>(0);
 const busstopRecords = ref<BusstopInformation[]>([])
+const mrtStationRecords = ref<MrtStationInformation[]>([])
 const busServicesByBusstop = ref<Record<string, BusRouteInformation[]>>({});
 const busstopCounts = ref<number>(0);
 
@@ -45,7 +47,6 @@ const retrieveBusstopsWithinProximityToPphs = async (pphs: PphsRecord) => {
     busstopCounts.value = response.count
 
     await retrieveBusServicesParallel()
-    console.log(">> ", busServicesByBusstop.value["06049"])
 
   } catch (error) {
     console.error("Something went wrong.", error)
@@ -72,9 +73,30 @@ const retrieveBusServicesParallel = async () => {
   }
 };
 
+const retrieveMrtStopsParallel = async (pphs: PphsRecord) => {
+  try {
+    const response = HttpClient.post(ApiRoute.PPHS.GET_NEAREST_MRT_STATIONS, {
+      lat: pphs.lat,
+      lng: pphs.lng,
+      limit: 3
+    }).then((res) => {
+      console.log(">", res.data.data.rows)
+      return res.data.data.rows
+    })
+    return response
+
+  } catch (error) {
+    console.error("Error fetching bus services", error);
+  }
+}
+
 const openFormedUrl = () => {
   window.open(props.record.formedUrl, '_blank')
 }
+
+onMounted(async () => {
+  mrtStationRecords.value = await retrieveMrtStopsParallel(props.record)
+})
 </script>
 
 <template>
@@ -119,42 +141,53 @@ const openFormedUrl = () => {
     <el-collapse expand-icon-position="left">
       <el-collapse-item title="More information" name="1">
         <div v-if="record.source.toString() !== 'error'" class="busstop-proximity">
-          <div class="proximity-label">
-            Busstops within <strong>{{ formattedProximity }}</strong> : <strong>{{ busstopCounts }}</strong>
+          <div class="mrt-station-information-wrapper">
+            <div>Nearest 3 MRT/LRT Stations:</div>
+            <div class="mrt-station-tags">
+              <el-tag v-for="station in mrtStationRecords" :key="station.station" type="info" size="small"
+                class="mrt-station-tag">
+                <span class="station-name">{{ station.station }}</span>
+                <span class="station-distance">&nbsp;|&nbsp;~{{ Number(station.distance_m).toFixed(0) }} m</span>
+              </el-tag>
+            </div>
           </div>
-          <div class="slider-wrapper">
-            <el-slider v-model="proximityInMeters" :step="500" :min="0" :max="2000" show-stops :show-tooltip="false"
-              @change="retrieveBusstopsWithinProximityToPphs(record)" />
-            <div class="slider-scale">
-              <span>0 m</span>
-              <!-- <span style="display: flex; flex-direction: column; align-items: center;">
+          <div class="busstop-information-wrapper">
+            <div class="proximity-label">
+              Busstops within <strong>{{ formattedProximity }}</strong> : <strong>{{ busstopCounts }}</strong>
+            </div>
+            <div class="slider-wrapper">
+              <el-slider v-model="proximityInMeters" :step="500" :min="0" :max="2000" show-stops :show-tooltip="false"
+                @change="retrieveBusstopsWithinProximityToPphs(record)" />
+              <div class="slider-scale">
+                <span>0 m</span>
+                <!-- <span style="display: flex; flex-direction: column; align-items: center;">
                 <span>For proximity >2KM</span>
                 <span>Please login</span>
               </span> -->
-              <span>2 km</span>
-            </div>
-          </div>
-          <div>Busstop Information (Nearest {{ busstopRecords.length }})</div>
-          <div v-for="value in busstopRecords" :key="value.busstop_code" class="busstop-card">
-            <div class="busstop-line">
-              <span class="busstop-code">{{ value.busstop_code }}</span>
-              <span class="busstop-road">{{ value.road_name }}</span>
-              <span class="busstop-distance">~ {{ Number(value.distance_m).toFixed(0) }} m</span>
-            </div>
-            <div class="busstop-desc">{{ value.desc }}</div>
-            <div v-if="busServicesByBusstop[value.busstop_code]?.length" class="bus-services-wrapper">
-              <div class="bus-services-label">
-                Available Bus Services: {{ busServicesByBusstop[value.busstop_code].length }}
-              </div>
-              <div class="bus-services-grid">
-                <el-tag v-for="service in busServicesByBusstop[value.busstop_code]" :key="service.service_no"
-                  type="info" size="small">
-                  {{ service.service_no }}
-                </el-tag>
+                <span>2 km</span>
               </div>
             </div>
+            <div>Busstop Information (Nearest {{ busstopRecords.length }})</div>
+            <div v-for="value in busstopRecords" :key="value.busstop_code" class="busstop-card">
+              <div class="busstop-line">
+                <span class="busstop-code">{{ value.busstop_code }}</span>
+                <span class="busstop-road">{{ value.road_name }}</span>
+                <span class="busstop-distance">~ {{ Number(value.distance_m).toFixed(0) }} m</span>
+              </div>
+              <div class="busstop-desc">{{ value.desc }}</div>
+              <div v-if="busServicesByBusstop[value.busstop_code]?.length" class="bus-services-wrapper">
+                <div class="bus-services-label">
+                  Available Bus Services: {{ busServicesByBusstop[value.busstop_code].length }}
+                </div>
+                <div class="bus-services-grid">
+                  <el-tag v-for="service in busServicesByBusstop[value.busstop_code]" :key="service.service_no"
+                    type="info" size="small">
+                    {{ service.service_no }}
+                  </el-tag>
+                </div>
+              </div>
+            </div>
           </div>
-
         </div>
         <div v-else>
           Something went wrong retrieving coordinates, unable to show more information.
