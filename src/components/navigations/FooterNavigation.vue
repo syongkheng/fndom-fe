@@ -34,7 +34,7 @@ const flexFooterNavLinksColumn = isScreensizeBelow(Breakpoint.S)
   border-top: 1px solid #e9ecef;
   padding: 1rem 2rem;
   color: #333;
-  height: 170px;
+  height: 100px;
 }
 
 .footer-container {

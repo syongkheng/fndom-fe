@@ -51,7 +51,7 @@ watch(() => route.query.showLogin, (newVal) => {
   overflow-x: hidden;
   /* prevent horizontal overflow */
   box-sizing: border-box;
-  min-height: calc(100vh - 80px - 170px);
+  min-height: calc(100vh - 80px - 100px);
 }
 
 main {

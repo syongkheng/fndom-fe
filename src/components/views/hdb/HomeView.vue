@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { usePphsStore } from "@/stores/pphs";
 import MapComponent from "@/components/map/MapComponent.vue";
 import { ArrowRight } from '@element-plus/icons-vue'
-import PphsRecordCard from "@/components/cards/PphsRecordCard.vue";
+import PphsRecordCard from "@/components/cards/pphs/PphsRecordCard.vue";
 
 const pphsStore = usePphsStore();
 
@@ -68,6 +68,9 @@ onMounted(async () => {
 <style scoped>
 .map-form-wrapper {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .summary-wrapper {
@@ -91,16 +94,17 @@ p {
   flex-direction: row;
   gap: 1rem;
 
-  @media (min-width: 801px) {
-    max-height: calc(100svh - 80px - 170px - 2rem);
-  }
+  height: calc(100vh - 80px - 100px - 2rem);
+
 }
 
 .map-container-wrapper {
+  flex: 1;
+  /* <-- This is the key: fill remaining space */
   width: 500px;
-  height: 500px;
-
   border-radius: 1rem;
+  overflow: hidden;
+  /* optional, if the map overflows */
 }
 
 .batch-selection-wrapper {
@@ -110,13 +114,29 @@ p {
 @media (max-width: 800px) {
   .page-wrapper {
     flex-direction: column;
+    height: auto;
+    /* let it grow naturally */
+    min-height: 100vh;
+  }
+
+  .map-form-wrapper {
+    width: 100%;
+    height: auto;
   }
 
   .map-container-wrapper {
     width: 90%;
     margin: 0 auto;
-
     border-radius: 1rem;
+    flex: none;
+    /* disable flex shrinking/growing */
+    height: 60vh;
+    /* give it a proper visible height */
+  }
+
+  .summary-wrapper {
+    max-height: none;
+    overflow: visible;
   }
 }
 </style>
