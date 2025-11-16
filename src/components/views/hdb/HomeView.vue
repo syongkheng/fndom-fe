@@ -16,8 +16,9 @@ const pphsBatch = [
 
 const selectedBatchValue = ref<string>(pphsBatch[0].value);
 
-const sortedRecords = computed(() =>
-  [...pphsStore.pphsRecords].sort((a, b) => a.town.localeCompare(b.town))
+const sortedRecords = computed(() => {
+  return [...pphsStore.pphsRecords].sort((a, b) => a.town.localeCompare(b.town))
+}
 );
 
 onMounted(async () => {

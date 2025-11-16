@@ -30,7 +30,7 @@ const customIcon = L.icon({
 });
 
 onMounted(() => {
-  layoutStore.loadingDialog.setTrue();
+  // layoutStore.loadingDialog.setTrue();
 
   const leafletMap = L.map("map").setView([1.3521, 103.8198], 12);
   map.value = leafletMap;
@@ -93,7 +93,7 @@ watch(
       map.value.fitBounds(markerGroup.getBounds(), { padding: [50, 50] });
     }
 
-    layoutStore.loadingDialog.setFalse();
+    // layoutStore.loadingDialog.setFalse();
   },
   { immediate: true, deep: true }
 );

@@ -96,6 +96,7 @@ const openFormedUrl = () => {
 }
 
 onMounted(async () => {
+  console.log("x")
   mrtStationRecords.value = await retrieveMrtStopsParallel(props.record)
 })
 </script>
