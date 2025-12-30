@@ -25,7 +25,7 @@ watch(() => route.query.showLogin, (newVal) => {
   <AppInitializer>
     <TopNavigation />
     <div style="display: flex">
-      <SideNavigation />
+      <!-- <SideNavigation /> -->
       <MobileNavigation />
       <main>
         <div class="wrapper">

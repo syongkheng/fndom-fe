@@ -75,9 +75,9 @@ const smallWidth = computed(() => isScreensizeBelow(Breakpoint.M))
 </script>
 
 <template>
-  <el-dialog v-model="layoutStore.fndManageNoticeDialog.isVisible" :title="props.notice
-    ? (noticeManager.viewOnly ? 'View Notice' : 'Edit Notice')
-    : 'Add New Notice'" :width="smallWidth ? '90%' : '500px'" :before-close="closeModal">
+  <el-dialog v-model="layoutStore.fndManageNoticeDialog.isVisible"
+    :title="props.notice ? (noticeManager.viewOnly ? 'View Notice' : 'Edit Notice') : 'Add New Notice'"
+    :width="smallWidth ? '90%' : '500px'" :before-close="closeModal">
     <el-form label-position="top" class="notice-form">
       <!-- <el-form-item label="Type">
         <el-select v-model="noticeForm.type" placeholder="Select Type" :disabled="noticeManager.viewOnly">

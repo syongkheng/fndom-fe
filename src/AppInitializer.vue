@@ -1,12 +1,24 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import { useTokenVerification } from './hooks/useTokenVerification'
+
+import { StorageUtils } from './utilities/StorageUtils'
+import { startHeartbeat } from './utilities/HeartbeatUtils'
 
 const { verifyToken, isVerifying } = useTokenVerification()
 
+let stopHeartbeat: (() => void) | null = null
+
 onMounted(async () => {
-  console.log("AppInitializer")
+  const visitorSessionId = StorageUtils.getVisitorSessionId()
+
   await verifyToken()
+
+  stopHeartbeat = startHeartbeat(visitorSessionId)
+})
+
+onUnmounted(() => {
+  stopHeartbeat?.()
 })
 </script>
 
@@ -15,7 +27,8 @@ onMounted(async () => {
     <div class="loading-spinner"></div>
     <p>Verifying session...</p>
   </div>
-  <slot v-else></slot>
+
+  <slot v-else />
 </template>
 
 <style scoped>

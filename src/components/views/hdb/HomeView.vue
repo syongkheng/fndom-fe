@@ -1,28 +1,36 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
+import { storeToRefs } from "pinia";
 import { usePphsStore } from "@/stores/pphs";
+
 import MapComponent from "@/components/map/MapComponent.vue";
-import { ArrowRight } from '@element-plus/icons-vue'
+import { ArrowRight } from "@element-plus/icons-vue";
 import PphsRecordCard from "@/components/cards/pphs/PphsRecordCard.vue";
+import ManagePphsDialog from "@/components/dialogs/ManagePphsDialog.vue";
 
 const pphsStore = usePphsStore();
+const { pphsRecords, selectedRecord } = storeToRefs(pphsStore);
 
 const pphsBatch = [
-  {
-    value: "202510",
-    label: "October 2025",
-  }
-]
+  { value: "202512", label: "December 2025" },
+  { value: "202510", label: "October 2025" },
+];
 
-const selectedBatchValue = ref<string>(pphsBatch[0].value);
+const selectedBatchValue = ref(pphsBatch[0].value);
 
-const sortedRecords = computed(() => {
-  return [...pphsStore.pphsRecords].sort((a, b) => a.town.localeCompare(b.town))
-}
+/** Always derive UI from store refs */
+const sortedRecords = computed(() =>
+  [...pphsRecords.value].sort((a, b) => a.town.localeCompare(b.town))
 );
 
-onMounted(async () => {
-  await pphsStore.retrieveAllPphsbByBatch(selectedBatchValue.value);
+/** Fetch on mount */
+onMounted(() => {
+  pphsStore.retrieveAllPphsbByBatch(selectedBatchValue.value);
+});
+
+/** Optional: auto refetch when batch changes */
+watch(selectedBatchValue, (batch) => {
+  pphsStore.retrieveAllPphsbByBatch(batch);
 });
 </script>
 
@@ -33,36 +41,42 @@ onMounted(async () => {
         <h1>PPHS</h1>
         <p>Take a look at the different available locations and see which one suits you best!</p>
       </div>
+
       <div class="batch-selection-wrapper">
-        <div style="display: flex; flex-direction: row; gap: 1rem;">
+        <div style="display: flex; gap: 1rem;">
           <el-select v-model="selectedBatchValue" placeholder="Select a batch" style="width: 240px">
             <el-option v-for="item in pphsBatch" :key="item.value" :label="item.label" :value="item.value" />
             <template #footer>
               <p class="subtitle">For more records, contact [[ email ]].</p>
             </template>
           </el-select>
-          <el-button type="primary" @click="pphsStore.retrieveAllPphsbByBatch(selectedBatchValue)"> Retrieve
+
+          <!-- 🔥 pass value, not ref -->
+          <el-button type="primary" @click="pphsStore.retrieveAllPphsbByBatch(selectedBatchValue)">
+            Retrieve
             <el-icon class="el-icon--right">
               <ArrowRight />
             </el-icon>
           </el-button>
         </div>
+
         <p class="subtitle">*Only past three releases are shown.</p>
       </div>
+
       <div class="map-container-wrapper">
-        <MapComponent :records="pphsStore.pphsRecords" />
+        <MapComponent :records="pphsRecords" />
       </div>
     </div>
+
     <div class="summary-wrapper">
-      <h2>
-        Summary
-      </h2>
-      <div>
-        <div v-for="value in sortedRecords" :key="value.formedUrl">
-          <PphsRecordCard :record="value" />
-        </div>
+      <h2>Summary</h2>
+
+      <div v-for="record in sortedRecords" :key="`${record.town}-${record.address}`">
+        <PphsRecordCard :record="record" />
       </div>
     </div>
+
+    <ManagePphsDialog :record="selectedRecord" />
   </div>
 </template>
 

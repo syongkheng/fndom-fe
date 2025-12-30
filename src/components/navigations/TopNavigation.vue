@@ -7,7 +7,7 @@ import { useAuthenticationStore } from '@/stores/authentication'
 import { storeToRefs } from 'pinia'
 import { useBreakpointManager } from '@/hooks/useBreakpointManager'
 import { Breakpoint } from '@/constants/Breakpoint'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 
 const { redirectToDashboard, redirectToLanding, redirectToProfile } = useNav()
@@ -18,6 +18,15 @@ const { isAuthenticated } = storeToRefs(authStore) // Preserves reactivity
 const { isScreensizeBelow } = useBreakpointManager()
 const mobileDropdownMenu = computed(() => isScreensizeBelow(Breakpoint.M))
 
+const isAdminViewEnabled = computed({
+  get() {
+    return !authStore.turnOffAdminFeatures
+  },
+  set(value: boolean) {
+    authStore.turnOffAdminFeatures = !value
+  }
+})
+
 const handleMenuExpansion = () => {
   if (!mobileDropdownMenu.value) {
     layoutStore.sideNav.toggle()
@@ -26,6 +35,8 @@ const handleMenuExpansion = () => {
   }
 }
 
+
+
 </script>
 
 <template>
@@ -33,10 +44,10 @@ const handleMenuExpansion = () => {
     <nav class="nav-container">
       <div class="engagement-container">
         <div class="clickable toggle-menu-expansion" @click="handleMenuExpansion">
-          <el-icon :size="25">
+          <!-- <el-icon :size="25">
             <Grid />
           </el-icon>
-          <span>Menu</span>
+          <span>Menu</span> -->
         </div>
         <div class="logo-env clickable" @click="isAuthenticated ? redirectToDashboard() : redirectToLanding()">
           <!-- <div>
@@ -53,18 +64,26 @@ const handleMenuExpansion = () => {
           </div>
         </div>
       </div>
-      <ul class="nav-links">
-        <span v-if="!isAuthenticated">
-          <el-button @click="layoutStore.loginDialog.toggle" type="primary" :icon="Star">
-            {{ 'Login' }}
-          </el-button>
-        </span>
-        <span v-else>
-          <el-button @click="redirectToProfile()" type="primary" :icon="User">
-            {{ 'Profile' }}
-          </el-button>
-        </span>
-      </ul>
+      <div class="nav-links">
+        <div>
+          <span v-if="isAuthenticated && (authStore.userProfile.role === 'R4' || authStore.userProfile.role === 'R5')">
+            <el-switch v-model="isAdminViewEnabled" active-text="Admin View On" inactive-text="Admin View Off"
+              inline-prompt />
+          </span>
+        </div>
+        <div style="width: 100px">
+          <span v-if="!isAuthenticated">
+            <el-button @click="layoutStore.loginDialog.toggle" type="primary" :icon="Star">
+              {{ 'Login' }}
+            </el-button>
+          </span>
+          <span v-else>
+            <el-button @click="redirectToProfile()" type="primary" :icon="User">
+              {{ 'Profile' }}
+            </el-button>
+          </span>
+        </div>
+      </div>
     </nav>
   </header>
 </template>
@@ -81,12 +100,16 @@ const handleMenuExpansion = () => {
 
   position: sticky;
   top: 0;
-  z-index: 9099;
+  z-index: 99;
   padding: 1em;
   background-color: var(--header-bg);
   border-bottom: 1px solid var(--border-color);
   height: 80px;
+  display: flex;
+  flex-direction: row;
   flex: 1;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .clock-wrapper {
@@ -106,6 +129,7 @@ const handleMenuExpansion = () => {
   justify-content: space-between;
   align-items: center;
   margin: 0 auto;
+  flex: 1;
 }
 
 /* Logo & Menu Toggle */
@@ -123,11 +147,13 @@ const handleMenuExpansion = () => {
 
 /* Navigation Links */
 .nav-links {
-  display: none;
   gap: 2em;
   margin: 0;
   padding: 0;
   list-style: none;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
 
   a {
     color: var(--text-color);

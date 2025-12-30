@@ -29,6 +29,7 @@ export const ApiRoute = {
   },
   PPHS: {
     GET_PPHS_DATA: `/api/hdb/pphs`,
+    UPDATE_PPHS_COORDINATES: `/api/hdb/pphs/update`,
     GET_NEAREST_BUSSTOPS: `/api/hdb/pphs/busstops`,
     GET_NEAREST_MRT_STATIONS: `/api/hdb/pphs/mrt`,
   },

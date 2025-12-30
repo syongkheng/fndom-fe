@@ -25,11 +25,6 @@ const eventManager = useEventManagerStore()
     <section class="dashboard-content">
       <!-- Notices Section -->
       <div class="dashboard-section">
-        <NoticeCard />
-      </div>
-      <!-- Events Section -->
-      <div class="dashboard-section">
-        <EventCard />
       </div>
     </section>
 

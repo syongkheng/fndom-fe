@@ -5,15 +5,22 @@ import type { BusRouteInformation } from '@/interfaces/BusRouteInformation.model
 import type { BusstopInformation } from '@/interfaces/BusstopInformation.model';
 import type { MrtStationInformation } from '@/interfaces/MrtStationInformation.model';
 import type { PphsRecord } from '@/interfaces/PphsRecord.model';
-import { Location, Timer, Link } from '@element-plus/icons-vue'
-import { computed, onMounted, ref } from 'vue';
+import { Location, Timer, Link, Compass, EditPen } from '@element-plus/icons-vue'
+import { computed, onMounted, ref, watch } from 'vue';
 import BusstopInformationComponent from './BusstopInformationComponent.vue';
+import { useAuthenticationStore } from '@/stores/authentication';
+import { useLayoutStateStore } from '@/stores/layoutState';
+import { usePphsStore } from '@/stores/pphs';
+import RoleGuard from '@/components/wrappers/RoleGuard.vue';
 
+const { userProfile } = useAuthenticationStore()
 const proximityInMeters = ref<number>(0);
 const busstopRecords = ref<BusstopInformation[]>([])
 const mrtStationRecords = ref<MrtStationInformation[]>([])
 const busServicesByBusstop = ref<Record<string, BusRouteInformation[]>>({});
 const busstopCounts = ref<number>(0);
+const layoutStore = useLayoutStateStore();
+const pphsStore = usePphsStore();
 
 const props = defineProps<{
   record: PphsRecord
@@ -22,7 +29,10 @@ const props = defineProps<{
 const remapSourceLabel = {
   "database": "Marked",
   "website": "Marked",
-  "error": "Not on Map"
+  "google": "Marked",
+  "unparseable": "Not on Map",
+  "error": "Not on Map",
+  "": "Not on Map"
 }
 
 const formattedProximity = computed(() => {
@@ -81,7 +91,6 @@ const retrieveMrtStopsParallel = async (pphs: PphsRecord) => {
       lng: pphs.lng,
       limit: 3
     }).then((res) => {
-      console.log(">", res.data.data.rows)
       return res.data.data.rows
     })
     return response
@@ -95,29 +104,64 @@ const openFormedUrl = () => {
   window.open(props.record.formedUrl, '_blank')
 }
 
+
+const hasAdminPrevileges = computed(() => {
+  return userProfile.role === 'R4' || userProfile.role === 'R5'
+})
+
+const onClickAdminEditRecord = (record: PphsRecord) => {
+  if (!hasAdminPrevileges.value) {
+    return
+  }
+  pphsStore.selectedRecord = record
+  layoutStore.hdbManagePphsDialog.setTrue()
+}
+
 onMounted(async () => {
-  console.log("x")
   mrtStationRecords.value = await retrieveMrtStopsParallel(props.record)
 })
+
 </script>
 
 <template>
   <el-card shadow="hover" class="pphs-card">
+    <!-- Admin Panel -->
+    <RoleGuard :roles="['R4', 'R5']">
+      <div class="admin-panel">
+        <div class="town">Admin Panel</div>
+        <div class="admin-panel-action">
+          <el-button type="primary" :icon="EditPen" circle @click="onClickAdminEditRecord(record)" />
+        </div>
+      </div>
+    </RoleGuard>
     <!-- Header: Town and Source -->
     <div class="card-header">
       <div class="town">{{ record.town }}</div>
       <el-tag :type="record.source === 'database' ? 'primary' : 'danger'" size="small">
-        {{ remapSourceLabel[record.source] ?? "Unknown" }}
+        {{ remapSourceLabel[record.source] }}
       </el-tag>
     </div>
 
     <!-- Address -->
     <div class="address">
       <div>
-        <el-icon>
-          <Location />
-        </el-icon>
-        <span>{{ record.address }}</span>
+        <div>
+          <el-icon>
+            <Location />
+          </el-icon>
+          <span>{{ record.address }}</span>
+        </div>
+        <div>
+          <el-icon>
+            <Compass />
+          </el-icon>
+          <span v-if="record.source === 'database'">
+            {{ record.lat }}, {{ record.lng }}
+          </span>
+          <span v-else>
+            Coordinates unavailable
+          </span>
+        </div>
       </div>
       <el-button type="primary" size="small" :icon="Link" @click="openFormedUrl">
         Map
@@ -125,12 +169,12 @@ onMounted(async () => {
     </div>
 
     <!-- Flat Type Information -->
-    <div class="flat-type-grid">
-      <div v-for="(count, type) in record.flatType" :key="type" class="flat-type-item">
+    <!-- <div class="flat-type-grid">
+      <div v-for="(count, type) in record.flatTypes" :key="type" class="flat-type-item">
         <div class="type">{{ type }}</div>
         <div class="count">{{ count }}</div>
       </div>
-    </div>
+    </div> -->
 
     <!-- Site Expiry -->
     <div class="expiry">
@@ -140,6 +184,9 @@ onMounted(async () => {
       <span>Site expiry:&nbsp;</span>
       <strong>{{ record.siteExpiry }}</strong>
     </div>
+
+
+
     <el-collapse expand-icon-position="left">
       <el-collapse-item title="More information" name="1">
         <div v-if="record.source.toString() !== 'error'" class="busstop-proximity">
@@ -179,9 +226,28 @@ onMounted(async () => {
       </el-collapse-item>
     </el-collapse>
   </el-card>
+
 </template>
 
 <style scoped>
+.admin-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-weight: 600;
+  background-color: #60626620;
+  padding: 1rem;
+  border-radius: 1rem;
+  gap: 0.5rem;
+}
+
+.admin-panel-action {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+}
+
 .slider-wrapper {
   width: 80%;
   padding-left: 1rem

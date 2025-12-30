@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { ElMessage, ElInput, ElButton, ElSelect, ElOption, ElCard, ElTag, ElIcon } from 'element-plus'
+import { ElMessage, ElInput, ElButton, ElSelect, ElOption, ElCard, ElTag, ElIcon, ElMessageBox } from 'element-plus'
 import { Location, User, Lock, Check } from '@element-plus/icons-vue'
 import { useAuthenticationStore } from '@/stores/authentication'
 import { CountryList } from '@/constants/Country'
 import useProfileManager from '@/hooks/useProfileManager'
 import { FileUtils } from '@/utilities/FileUtils'
+import { useNav } from '@/hooks/useNav'
 
 // Store setup
 const { userProfile } = useAuthenticationStore()
@@ -27,6 +28,8 @@ const passwordForm = ref({
 // Password validation state
 const isPasswordValidated = ref(false)
 const isValidating = ref(false)
+
+const navigate = useNav();
 
 // File selection
 const selectedFile = ref<File | null>(null)
@@ -115,6 +118,30 @@ const handleUpdateCountry = async () => {
     ElMessage.success(`Country updated to ${profile.value.country}`)
   } else {
     ElMessage.error('Failed to update country.')
+  }
+}
+
+const handleLogout = async () => {
+
+  try {
+    await ElMessageBox.confirm(
+      'Are you sure you want to log out?',
+      'Confirm Logout',
+      {
+        confirmButtonText: 'Logout',
+        cancelButtonText: 'Cancel',
+        type: 'warning',
+      }
+    )
+
+    const authStore = useAuthenticationStore()
+    await authStore.handleLogout()
+
+    navigate.redirectToLanding()
+
+  } catch {
+    // user cancelled
+    console.log("Logout cancelled")
   }
 }
 
@@ -214,6 +241,12 @@ onMounted(async () => {
           style="width: 100%; margin-top: 1rem">
           Update Password
         </el-button>
+        <el-divider />
+        <div class="logout-wrapper">
+          <el-button type="danger" plain style="width: 150px; margin-top: 0.5rem" @click="handleLogout">
+            Logout
+          </el-button>
+        </div>
       </el-card>
     </section>
   </main>
@@ -343,6 +376,11 @@ onMounted(async () => {
 
 .password-section .el-input {
   margin-bottom: 0.75rem;
+}
+
+.logout-wrapper {
+  display: flex;
+  justify-content: center;
 }
 
 @media (max-width: 900px) {

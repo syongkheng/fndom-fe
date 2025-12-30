@@ -37,6 +37,11 @@ const router = createRouter({
       component: () => import('../components/views/hdb/HomeView.vue'),
       // beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
     },
+    // {
+    //   path: '/debug/pphs',
+    //   name: 'debug-pphs',
+    //   component: () => import('../components/views/hdb/DebugView.vue'),
+    // },
   ],
 })
 

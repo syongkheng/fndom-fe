@@ -39,4 +39,15 @@ export class StorageUtils {
   public static clear(type: StorageType = 'local'): void {
     this.getStorage(type).clear()
   }
+
+  public static getVisitorSessionId(): string {
+    let id = sessionStorage.getItem('visitor_session_id')
+
+    if (!id) {
+      id = crypto.randomUUID()
+      sessionStorage.setItem('visitor_session_id', id)
+    }
+
+    return id
+  }
 }

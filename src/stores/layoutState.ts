@@ -51,18 +51,27 @@ export const useLayoutStateStore = defineStore('layoutStateStore', () => {
     toggle: () => (fndEventDialog.isVisible = !fndEventDialog.isVisible),
   })
 
+  const hdbManagePphsDialog = reactive({
+    isVisible: false,
+    setTrue: () => (hdbManagePphsDialog.isVisible = true),
+    setFalse: () => (hdbManagePphsDialog.isVisible = false),
+    toggle: () => (hdbManagePphsDialog.isVisible = !hdbManagePphsDialog.isVisible),
+  })
+
   const mobileNavMenu = reactive({
     isVisible: false,
     setTrue: () => (mobileNavMenu.isVisible = true),
     setFalse: () => (mobileNavMenu.isVisible = false),
     toggle: () => (mobileNavMenu.isVisible = !mobileNavMenu.isVisible),
   })
+
   return {
     loadingDialog,
     mobileNavMenu,
     fndViewNoticeDialog,
     fndManageNoticeDialog,
     fndEventDialog,
+    hdbManagePphsDialog,
     collabDialog,
     loginDialog,
     sideNav,

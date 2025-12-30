@@ -10,6 +10,7 @@ import type { AxiosError } from 'axios'
 
 export const useAuthenticationStore = defineStore('authentication', () => {
   const isAuthenticated = ref(false)
+  const turnOffAdminFeatures = ref(false)
   const authenticationStep = ref<'username' | 'register' | 'login'>('username')
   const formRef = ref<FormInstance>()
   const loading = ref(false)
@@ -180,11 +181,14 @@ export const useAuthenticationStore = defineStore('authentication', () => {
   const handleLogout = () => {
     StorageUtils.remove(StorageKey.JWT, 'local')
     isAuthenticated.value = false
+    userProfile.value = { username: '', role: '' }
+    ElMessage.success('Logged out successfully.')
   }
 
   return {
     isAuthenticated,
     userProfile,
+    turnOffAdminFeatures,
     authenticationStep,
     formRef,
     form,
