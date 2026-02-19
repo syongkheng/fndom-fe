@@ -65,9 +65,17 @@ export const useLayoutStateStore = defineStore('layoutStateStore', () => {
     toggle: () => (mobileNavMenu.isVisible = !mobileNavMenu.isVisible),
   })
 
+  const travelPlanningInitialDialog = reactive({
+    isVisible: false,
+    setTrue: () => (travelPlanningInitialDialog.isVisible = true),
+    setFalse: () => (travelPlanningInitialDialog.isVisible = false),
+    toggle: () => (travelPlanningInitialDialog.isVisible = !travelPlanningInitialDialog.isVisible),
+  })
+
   return {
     loadingDialog,
     mobileNavMenu,
+    travelPlanningInitialDialog,
     fndViewNoticeDialog,
     fndManageNoticeDialog,
     fndEventDialog,

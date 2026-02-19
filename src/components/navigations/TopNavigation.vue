@@ -50,21 +50,21 @@ const handleMenuExpansion = () => {
           <span>Menu</span> -->
         </div>
         <div class="logo-env clickable" @click="isAuthenticated ? redirectToDashboard() : redirectToLanding()">
-          <!-- <div>
-            <img src="../../../public/icon-dark.png" width="50px" />
-          </div> -->
+          <div>
+            <img src="../../../public/awense-logo.png" width="50px" />
+          </div>
           <div class="clock-wrapper">
 
-            <div>
+            <!-- <div>
               <RouterLink to="/">{{ 'Awense' }}</RouterLink>
-            </div>
+            </div> -->
             <!-- <div class="clock">
               <UtcClock />
             </div> -->
           </div>
         </div>
       </div>
-      <div class="nav-links">
+      <!-- <div class="nav-links">
         <div>
           <span v-if="isAuthenticated && (authStore.userProfile.role === 'R4' || authStore.userProfile.role === 'R5')">
             <el-switch v-model="isAdminViewEnabled" active-text="Admin View On" inactive-text="Admin View Off"
@@ -83,7 +83,7 @@ const handleMenuExpansion = () => {
             </el-button>
           </span>
         </div>
-      </div>
+      </div> -->
     </nav>
   </header>
 </template>
@@ -110,6 +110,7 @@ const handleMenuExpansion = () => {
   flex: 1;
   align-items: center;
   justify-content: space-between;
+  width: 100vw;
 }
 
 .clock-wrapper {
@@ -130,6 +131,7 @@ const handleMenuExpansion = () => {
   align-items: center;
   margin: 0 auto;
   flex: 1;
+  max-width: 1200px;
 }
 
 /* Logo & Menu Toggle */

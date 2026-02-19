@@ -1,5 +1,26 @@
 <script setup lang="ts">
-import HomeStageAccordion from "../accordions/HomeStageAccordion.vue";
+import { useNav } from '@/hooks/useNav';
+
+const nav = useNav();
+
+const handleTravelPlanningClick = () => {
+  nav.redirectToTravel();
+};
+
+
+const handleHabitTrackingClick = () => {
+  nav.redirectToHabit();
+};
+
+const handleScheduleManagementClick = () => {
+  nav.redirectToSchedule();
+};
+
+const handleFlatAnalysisClick = () => {
+  nav.redirectToPphs();
+};
+
+
 </script>
 
 <template>
@@ -7,47 +28,38 @@ import HomeStageAccordion from "../accordions/HomeStageAccordion.vue";
     <!-- Hero Section -->
     <section class="hero">
       <div class="hero-content">
-        <h1>Adult with Confidence</h1>
-        <p>Your virtual companion for navigating HDB, PPHS, and life in Singapore.</p>
-        <button class="primary-btn">Start Your Journey</button>
+        <h1>Workspace</h1>
+        <p>Your virtual workspace for your daily life.</p>
+        <!-- <button class="primary-btn">Start Your Journey</button> -->
       </div>
       <div class="hero-bg-icon"></div>
     </section>
 
     <!-- Features -->
     <section class="features">
-      <h2>How Awense Helps</h2>
+      <h2>I want to work on</h2>
       <div class="feature-grid">
         <div class="feature-card">
-          <h3>Housing Basics</h3>
-          <p>Understand HDB types, grants, timelines, and eligibility.</p>
+          <h3>Travel Planning</h3>
+          <p>I want to travel and have an organised overview of my trip.</p>
+          <el-button type="primary" @click="handleTravelPlanningClick">Start Planning</el-button>
         </div>
         <div class="feature-card">
-          <h3>PPHS Navigation</h3>
-          <p>Learn the process, availability, and whether you qualify.</p>
+          <h3>Habit Tracking</h3>
+          <p>Track your daily habits and build positive routines.</p>
+          <el-button type="primary" @click="handleHabitTrackingClick">Start Tracking</el-button>
         </div>
         <div class="feature-card">
-          <h3>Financial Planning</h3>
-          <p>Estimate costs, compare scenarios, and avoid surprises.</p>
+          <h3>Schedule Management</h3>
+          <p>Organize your time, set reminders, and manage your daily tasks.</p>
+          <el-button type="primary" @click="handleScheduleManagementClick">Start Planning</el-button>
         </div>
         <div class="feature-card">
-          <h3>Milestones & Guides</h3>
-          <p>Step-by-step breakdowns of what to do next.</p>
+          <h3>Flat Analysis</h3>
+          <p>Search what is within the vicinity of a location, including the recent PPHS exercise.</p>
+          <el-button type="primary" @click="handleFlatAnalysisClick">Start Analysis</el-button>
         </div>
       </div>
-    </section>
-
-    <!-- Adulting Stages Accordion -->
-    <section class="accordion-section">
-      <h2>Adulting Stages</h2>
-      <p class="accordion-subtitle">From PPHS to buying a home — understand each step clearly.</p>
-      <HomeStageAccordion />
-    </section>
-
-    <!-- CTA -->
-    <section class="cta">
-      <h2>Ready to take the next step?</h2>
-      <button class="primary-btn">Start Exploring</button>
     </section>
   </main>
 </template>
@@ -134,10 +146,24 @@ import HomeStageAccordion from "../accordions/HomeStageAccordion.vue";
   text-align: left;
   background: white;
   transition: box-shadow 0.2s ease;
+  height: 200px;
+
+  p {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  button {
+    display: none
+  }
 }
 
 .feature-card:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+
+  button {
+    display: flex
+  }
 }
 
 .feature-card h3 {

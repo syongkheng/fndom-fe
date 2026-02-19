@@ -91,6 +91,14 @@ export function useNav() {
     redirectTo('/pphs')
   }
 
+  const redirectToHabit = () => {
+    redirectTo('/habit')
+  }
+
+  const redirectToTravel = () => {
+    redirectTo('/travel')
+  }
+
   return {
     refreshPage,
     redirectTo,
@@ -102,5 +110,7 @@ export function useNav() {
     redirectToUnauthorized,
     redirectToProfile,
     redirectToPphs,
+    redirectToTravel,
+    redirectToHabit,
   }
 }

@@ -5,20 +5,6 @@ export const ApiRoute = {
     LOGIN: `/api/auth/login`,
     TOKEN_VERIFICATION: `/api/auth/verification`,
   },
-  NOTICE: {
-    RETRIEVE: `/api/fnd/notices`,
-    ADD: `/api/fnd/notices/create`,
-    UPDATE: `/api/fnd/notices/update`,
-    DELETE: `/api/fnd/notices/delete`,
-    VIEW: `/api/fnd/notices/view`,
-  },
-  EVENT: {
-    RETRIEVE: `/api/fnd/events`,
-    ADD: `/api/fnd/events/create`,
-    UPDATE: `/api/fnd/events/update`,
-    DELETE: `/api/fnd/events/delete`,
-    VIEW: `/api/fnd/events/view`,
-  },
   PROFILE: {
     GET_COUNTRY: `/api/pfp/user/country`,
     UPDATE_COUNTRY: `/api/pfp/user/country`,
@@ -35,5 +21,16 @@ export const ApiRoute = {
   },
   LTA: {
     GET_BUS_SVC_BY_BUSSTOP_CODE: `/api/lta/bus/services`,
+  },
+  ITINERARY: {
+    RETRIEVE_BY_ID: (sessionId: string | undefined) => `/api/itinerary/${sessionId}`,
+    CREATE: `/api/itinerary`,
+    MODIFY: `/api/itinerary/edit`,
+    CHECK_PERMISSION: `/api/itinerary/challenge`,
+    ADD_COLLABORATOR: `/api/itinerary/add-collaborator`,
+  },
+  FILE: {
+    CREATE: `/api/file`,
+    DELETE: `/api/file/delete`,
   },
 }

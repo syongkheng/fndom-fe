@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { useAuthenticationStore } from '@/stores/authentication'
-import EventCard from '@/components/cards/EventCard.vue'
-import NoticeCard from '@/components/cards/NoticeCard.vue'
-import { useNoticeManagerStore } from '@/stores/notice'
-import ManageNoticeDialog from '@/components/dialogs/ManageNoticeDialog.vue'
-import ManageEventDialog from '@/components/dialogs/ManageEventDialog.vue'
-import { useEventManagerStore } from '@/stores/event'
+// import EventCard from '@/components/cards/EventCard.vue'
+// import NoticeCard from '@/components/cards/NoticeCard.vue'
+// import { useNoticeManagerStore } from '@/stores/notice'
+// import ManageNoticeDialog from '@/components/dialogs/ManageNoticeDialog.vue'
+// import ManageEventDialog from '@/components/dialogs/ManageEventDialog.vue'
+// import { useEventManagerStore } from '@/stores/event'
 
 const { userProfile } = useAuthenticationStore()
-const noticeManager = useNoticeManagerStore()
-const eventManager = useEventManagerStore()
+// const noticeManager = useNoticeManagerStore()
+// const eventManager = useEventManagerStore()
 
 </script>
 
@@ -28,8 +28,8 @@ const eventManager = useEventManagerStore()
       </div>
     </section>
 
-    <ManageNoticeDialog :notice="noticeManager.selectedNotice || undefined" :view-only="false" />
-    <ManageEventDialog :event="eventManager.selectedEvent || undefined" />
+    <!-- <ManageNoticeDialog :notice="noticeManager.selectedNotice || undefined" :view-only="false" /> -->
+    <!-- <ManageEventDialog :event="eventManager.selectedEvent || undefined" /> -->
   </main>
 </template>
 

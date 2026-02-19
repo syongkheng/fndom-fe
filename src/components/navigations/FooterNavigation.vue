@@ -3,7 +3,7 @@ import { Breakpoint } from '@/constants/Breakpoint'
 import { useBreakpointManager } from '@/hooks/useBreakpointManager'
 import { useNav } from '@/hooks/useNav'
 
-const { redirectTo } = useNav()
+const { redirectTo, redirectToHabit, redirectToSchedule, redirectToPphs, redirectToTravel } = useNav()
 const { isScreensizeBelow } = useBreakpointManager()
 
 const flexFooterNavLinksColumn = isScreensizeBelow(Breakpoint.S)
@@ -20,6 +20,10 @@ const flexFooterNavLinksColumn = isScreensizeBelow(Breakpoint.S)
 
       <div class="footer-links" :class="{ column: flexFooterNavLinksColumn }">
         <el-link type="primary" @click="redirectTo('/')">Home</el-link>
+        <!-- <el-link type="primary" @click="redirectToHabit()">Habit</el-link>
+        <el-link type="primary" @click="redirectToSchedule()">Schedule</el-link>
+        <el-link type="primary" @click="redirectToPphs()">PPHS</el-link>
+        <el-link type="primary" @click="redirectToTravel()">Travel</el-link> -->
         <!-- <el-link type="primary" href="https://discord.gg/erGgT42W" target="_blank" rel="noopener noreferrer">
           Discord
         </el-link> -->

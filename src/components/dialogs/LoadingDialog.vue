@@ -1,29 +1,19 @@
 <script setup lang="ts">
-import { defineProps } from "vue";
 import { ElIcon } from "element-plus";
 import { Loading } from "@element-plus/icons-vue";
+import { useLayoutStateStore } from "@/stores/layoutState";
 
-const props = defineProps({
-  isOpen: {
-    type: Boolean,
-    required: true,
-  },
-  loadingText: {
-    type: String,
-    required: false,
-    default: "Loading...",
-  },
-});
+const layoutStore = useLayoutStateStore();
 </script>
 
 <template>
-  <el-dialog :model-value="isOpen" align-center width="320px" :show-close="false" :close-on-click-modal="false"
+  <el-dialog :model-value="layoutStore.loadingDialog.isVisible" align-center width="320px"
+    style="background: #ffffff00; box-shadow: none;" :show-close="false" :close-on-click-modal="false"
     :close-on-press-escape="false" class="loading-dialog">
     <div class="loading-container">
       <ElIcon class="spinner" size="48">
         <Loading />
       </ElIcon>
-      <p class="loading-text">{{ loadingText }}</p>
     </div>
   </el-dialog>
 </template>
@@ -34,6 +24,7 @@ const props = defineProps({
   display: flex;
   justify-content: center;
   align-items: center;
+  background: #ffffff80;
 }
 
 .loading-container {

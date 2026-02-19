@@ -73,7 +73,7 @@ watch(
         <strong>${record.town}</strong><br>
         ${record.address}<br>
         <em>Expiry:</em> ${record.siteExpiry}<br>
-        ${Object.entries(record.flatType || {})
+        ${Object.entries(record.flatTypes || {})
           .map(([type, count]) => `${type}: ${count}`)
           .join(", ")}<br>
         ${record.formedUrl

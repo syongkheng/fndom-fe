@@ -203,7 +203,7 @@ onMounted(async () => {
           </el-icon>
           <span class="country-select">
             <el-select v-model="profile.country" placeholder="Select Country" filterable>
-              <el-option v-for="country in CountryList" :key="country" :label="country" :value="country" />
+              <el-option v-for="country in CountryList" :key="country.value" :label="country.label" :value="country" />
             </el-select>
             <el-button type="primary" style="margin-left: 0.5rem;" @click="handleUpdateCountry">
               Update

@@ -1,6 +1,7 @@
 // Define an enum for storage keys
 export enum StorageKey {
   EXISTING_SESSION = 'sessionId',
+  ITINERARY_IDEMPOTENCY_KEY = 'itineraryIdempotencyKey',
   JWT = 'token',
 }
 

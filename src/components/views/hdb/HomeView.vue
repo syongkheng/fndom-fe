@@ -108,6 +108,8 @@ p {
   justify-content: center;
   flex-direction: row;
   gap: 1rem;
+  width: 1200px;
+  justify-self: center;
 
   height: calc(100vh - 80px - 100px - 2rem);
 
