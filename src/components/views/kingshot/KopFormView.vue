@@ -201,10 +201,14 @@ const handleSubmitForm = async () => {
 
 <style scoped>
 .form-card {
-  width: 95vw;
+  max-width: 1200px;
   border-radius: 16px;
   padding: 20px;
   color: #e5e7eb;
+
+  @media (max-width: 1200px) {
+    width: 95vw;
+  }
 }
 
 .page-title {
