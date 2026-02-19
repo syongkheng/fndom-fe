@@ -25,7 +25,8 @@ const form = ref({
   governorName: '',
   alliance: '',
   appointment: [] as string[],
-  appointmentTiming: [] as string[]
+  appointmentTiming: [] as string[],
+  remarks: '',
 })
 
 const governorIdErrorMessage = ref('')
@@ -172,8 +173,13 @@ const handleSubmitForm = async () => {
         </div>
       </section>
 
-      <div style="width: 100%">
+      <div>
+        <label class="label">Any remarks (Optional)</label>
+        <el-input v-model="form.remarks" style="width: 100%" :rows="4" type="textarea"
+          placeholder="Any comments (Optional)" />
+      </div>
 
+      <div style="width: 100%; margin-top: 1rem;">
         <el-button submit type="primary" :disabled="disableSubmitButton" @click="handleSubmitForm"
           style="width: 100%">Submit</el-button>
         <p v-if="formErrorMessage" class="error">
