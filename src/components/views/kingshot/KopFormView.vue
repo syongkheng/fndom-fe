@@ -119,7 +119,7 @@ const handleSubmitForm = async () => {
 <template>
   <div class="page-container">
     <form class="form-card">
-      <h1 class="page-title">KoP Appointment Registration</h1>
+      <h1 class="page-title">KoP Appointment Booking</h1>
       <a href="https://docs.google.com/spreadsheets/d/1NFMWxbwj5REfT9EOTL3CXErvEyrqnLIpuAiDW9d4urg/edit?usp=sharing"
         target="_blank" rel="noopener noreferrer">
         {{ "View Responses" }}
@@ -160,7 +160,9 @@ const handleSubmitForm = async () => {
       <section class="section">
         <h2>Appointment Selection</h2>
 
-        <label class="label">I want to apply for</label>
+        <label class="label">If you want to apply for different timeslots for different days, please resubmit a new
+          application.</label>
+        <label class="label">I want to apply for: (Multi-selection)</label>
         <el-checkbox-group v-model="form.appointment" class="grid-2">
           <el-checkbox v-for="slot in appointmentOptions" :key="slot.value" :label="slot.label" />
         </el-checkbox-group>
@@ -199,8 +201,7 @@ const handleSubmitForm = async () => {
 
 <style scoped>
 .form-card {
-  width: 100%;
-  max-width: 520px;
+  width: 95vw;
   border-radius: 16px;
   padding: 20px;
   color: #e5e7eb;
