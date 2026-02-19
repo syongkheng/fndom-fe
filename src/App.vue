@@ -43,6 +43,7 @@ watch(() => route.query.showLogin, (newVal) => {
 
 <style scoped>
 .wrapper {
+  display: flex;
   padding: 1em;
   flex: 1;
   /* fill available space in main */
@@ -52,6 +53,7 @@ watch(() => route.query.showLogin, (newVal) => {
   /* prevent horizontal overflow */
   box-sizing: border-box;
   min-height: calc(100vh - 80px - 100px);
+  justify-content: center;
 }
 
 main {
