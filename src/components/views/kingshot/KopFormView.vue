@@ -117,7 +117,7 @@ const handleSubmitForm = async () => {
 </script>
 
 <template>
-  <div class="page-container" style="max-width: 90vw;">
+  <div class="page-container">
     <form class="form-card">
       <h1 class="page-title">KoP Appointment Registration</h1>
       <a href="https://docs.google.com/spreadsheets/d/1NFMWxbwj5REfT9EOTL3CXErvEyrqnLIpuAiDW9d4urg/edit?usp=sharing"
