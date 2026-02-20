@@ -2,24 +2,24 @@
 import { onMounted, onUnmounted } from 'vue'
 import { useTokenVerification } from './hooks/useTokenVerification'
 
-import { StorageUtils } from './utilities/StorageUtils'
-import { startHeartbeat } from './utilities/HeartbeatUtils'
+// import { StorageUtils } from './utilities/StorageUtils'
+// import { startHeartbeat } from './utilities/HeartbeatUtils'
 
 const { verifyToken, isVerifying } = useTokenVerification()
 
-let stopHeartbeat: (() => void) | null = null
+// let stopHeartbeat: (() => void) | null = null
 
 onMounted(async () => {
-  const visitorSessionId = StorageUtils.getVisitorSessionId()
+  // const visitorSessionId = StorageUtils.getVisitorSessionId()
 
   await verifyToken()
 
-  stopHeartbeat = startHeartbeat(visitorSessionId)
+  // stopHeartbeat = startHeartbeat(visitorSessionId)
 })
 
-onUnmounted(() => {
-  stopHeartbeat?.()
-})
+// onUnmounted(() => {
+//   stopHeartbeat?.()
+// })
 </script>
 
 <template>
