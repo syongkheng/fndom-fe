@@ -64,26 +64,22 @@ const handleMenuExpansion = () => {
           </div>
         </div>
       </div>
-      <!-- <div class="nav-links">
-        <div>
-          <span v-if="isAuthenticated && (authStore.userProfile.role === 'R4' || authStore.userProfile.role === 'R5')">
-            <el-switch v-model="isAdminViewEnabled" active-text="Admin View On" inactive-text="Admin View Off"
-              inline-prompt />
-          </span>
-        </div>
-        <div style="width: 100px">
-          <span v-if="!isAuthenticated">
-            <el-button @click="layoutStore.loginDialog.toggle" type="primary" :icon="Star">
-              {{ 'Login' }}
-            </el-button>
-          </span>
-          <span v-else>
-            <el-button @click="redirectToProfile()" type="primary" :icon="User">
-              {{ 'Profile' }}
-            </el-button>
-          </span>
-        </div>
-      </div> -->
+      <div class="nav-links">
+        <!-- <span v-if="isAuthenticated && (authStore.userProfile.role === 'R4' || authStore.userProfile.role === 'R5')">
+          <el-switch v-model="isAdminViewEnabled" active-text="Admin View On" inactive-text="Admin View Off"
+            inline-prompt />
+        </span> -->
+        <span v-if="!isAuthenticated">
+          <el-button @click="layoutStore.loginDialog.toggle()" type="primary" :icon="Star" size="small">
+            Login
+          </el-button>
+        </span>
+        <span v-else>
+          <el-button @click="redirectToProfile()" type="primary" :icon="User" size="small">
+            Profile
+          </el-button>
+        </span>
+      </div>
     </nav>
   </header>
 </template>

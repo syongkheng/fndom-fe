@@ -15,6 +15,7 @@ interface Itinerary {
   endDate?: number
   unknownDate: boolean
   durationInDays: number
+  challenge?: string
   agendaItems: AgendaItem[]
   _agendaIdsToDelete?: string[]
   _agendaIdsToUpdate?: string[]

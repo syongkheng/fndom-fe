@@ -24,7 +24,7 @@ export const useTokenVerification = () => {
 
       if (response.data.data.exist) {
         authStore.isAuthenticated = true
-        authStore.userProfile.role = response.data.data.role
+        authStore.userProfile.roles = response.data.data.roles ?? []
         authStore.userProfile.username = response.data.data.username
         return true
       } else {

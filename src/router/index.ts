@@ -7,7 +7,17 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
+      component: () => import('../components/views/WorkbenchView.vue'),
+    },
+    {
+      path: '/ks',
+      name: 'kingshot',
       component: () => import('../components/views/kingshot/HomeView.vue'),
+    },
+    {
+      path: '/ks/agreement',
+      name: 'ks-agreement',
+      component: () => import('../components/views/kingshot/AgreementView.vue'),
     },
     {
       path: '/ks/kop',
@@ -22,50 +32,55 @@ const router = createRouter({
     // {
     //   path: '/schedule',
     //   name: 'schedule',
-    //   component: () => import('../components/views/CalendarView.vue'),
-    // },
-    // {
-    //   path: '/dashboard',
-    //   name: 'dashboard',
-    //   component: () => import('../components/views/authenticated/DashboardView.vue'),
-    //   beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
-    // },
-    // {
-    //   path: '/404',
-    //   name: '404',
-    //   component: () => import('../components/views/UnauthorizedView.vue'),
-    // },
-    // {
-    //   path: '/profile',
-    //   name: 'profile',
-    //   component: () => import('../components/views/authenticated/ProfileView.vue'),
-    //   beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
-    // },
-    // {
-    //   path: '/pphs',
-    //   name: 'pphs',
-    //   component: () => import('../components/views/hdb/HomeView.vue'),
-    //   // beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
-    // },
-    // {
-    //   path: '/travel',
-    //   name: 'travel',
-    //   component: () => import('../components/views/travel/TravelHomeView.vue'),
-    // },
-    // {
-    //   path: '/schedule',
-    //   name: 'schedule',
     //   component: () => import('../components/views/schedule/ScheduleHomeView.vue'),
     // },
+    {
+      path: '/dashboard',
+      name: 'dashboard',
+      component: () => import('../components/views/authenticated/DashboardView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
+    },
+    {
+      path: '/404',
+      name: '404',
+      component: () => import('../components/views/UnauthorizedView.vue'),
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('../components/views/authenticated/ProfileView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
+    },
+    {
+      path: '/pphs',
+      name: 'pphs',
+      component: () => import('../components/views/hdb/HomeView.vue'),
+    },
+    {
+      path: '/travel',
+      name: 'travel',
+      component: () => import('../components/views/travel/TravelListView.vue'),
+    },
+    {
+      path: '/travel/v/:shortCode',
+      name: 'travel-viewer',
+      component: () => import('../components/views/travel/TravelViewerView.vue'),
+    },
+    {
+      path: '/travel/:sessionId',
+      name: 'travel-planner',
+      component: () => import('../components/views/travel/TravelPlannerView.vue'),
+    },
+    {
+      path: '/admin/users',
+      name: 'admin-users',
+      component: () => import('../components/views/admin/UserManagementView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
+    },
     // {
     //   path: '/habit',
     //   name: 'habit',
     //   component: () => import('../components/views/habit/HabitHomeView.vue'),
-    // },
-    // {
-    //   path: '/debug/pphs',
-    //   name: 'debug-pphs',
-    //   component: () => import('../components/views/hdb/DebugView.vue'),
     // },
   ],
 })

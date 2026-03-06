@@ -16,6 +16,9 @@ import markerShadowUrl from "leaflet/dist/images/marker-shadow.png";
 const props = defineProps<{ records: PphsRecord[] }>();
 const layoutStore = useLayoutStateStore();
 
+const getCardId = (town: string, address: string) =>
+  `pphs-card-${(town + '-' + address).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}`;
+
 const map = ref<LeafletMap>();
 let markerGroup: FeatureGroup | null = null;
 
@@ -69,17 +72,15 @@ watch(
         { icon: customIcon } // ✅ Use custom marker
       );
 
+      const cardId = getCardId(record.town, record.address);
       marker.bindPopup(`
-        <strong>${record.town}</strong><br>
-        ${record.address}<br>
-        <em>Expiry:</em> ${record.siteExpiry}<br>
-        ${Object.entries(record.flatTypes || {})
-          .map(([type, count]) => `${type}: ${count}`)
-          .join(", ")}<br>
-        ${record.formedUrl
-          ? `<a href="${record.formedUrl}" target="_blank">View on Google Maps</a>`
-          : ""
-        }
+        <strong style="font-size:0.95rem">${record.town}</strong><br>
+        <span style="font-size:0.82rem;color:#555">${record.address}</span><br>
+        <span style="font-size:0.78rem;color:#888">Expiry: ${record.siteExpiry}</span><br>
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+          ${record.formedUrl ? `<a href="${record.formedUrl}" target="_blank" style="font-size:0.8rem">Google Maps ↗</a>` : ''}
+          <a href="javascript:void(0)" onclick="window.__pphsScrollToCard('${cardId}')" style="font-size:0.8rem">View card ↓</a>
+        </div>
       `);
 
       marker.addTo(markerGroup!);

@@ -32,12 +32,12 @@ const handleSetting = () => {
 <template>
   <el-dialog v-model="layoutStore.mobileNavMenu.isVisible" width="280px" align-center class="mobile-menu-dialog">
     <div class="menu-container">
-      <!-- <span class="menu-item" @click="handleMenuClick(() => layoutStore.loginDialog.toggle())" v-if="!isAuthenticated">
+      <span class="menu-item" @click="handleMenuClick(() => layoutStore.loginDialog.toggle())" v-if="!isAuthenticated">
         <el-icon>
           <Star />
         </el-icon>
         <span class="menu-label">Login</span>
-      </span> -->
+      </span>
       <span class="menu-item" @click="handleMenuClick(() => navigate.redirectToLanding())">
         <el-icon>
           <House />

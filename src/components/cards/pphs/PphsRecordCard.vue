@@ -5,15 +5,15 @@ import type { BusRouteInformation } from '@/interfaces/BusRouteInformation.model
 import type { BusstopInformation } from '@/interfaces/BusstopInformation.model';
 import type { MrtStationInformation } from '@/interfaces/MrtStationInformation.model';
 import type { PphsRecord } from '@/interfaces/PphsRecord.model';
-import { Location, Timer, Link, Compass, EditPen } from '@element-plus/icons-vue'
-import { computed, onMounted, ref, watch } from 'vue';
+import { EditPen } from '@element-plus/icons-vue'
+import { computed, onMounted, ref } from 'vue';
 import BusstopInformationComponent from './BusstopInformationComponent.vue';
-import { useAuthenticationStore } from '@/stores/authentication';
 import { useLayoutStateStore } from '@/stores/layoutState';
 import { usePphsStore } from '@/stores/pphs';
+import { usePermission } from '@/composables/usePermission';
 import RoleGuard from '@/components/wrappers/RoleGuard.vue';
 
-const { userProfile } = useAuthenticationStore()
+const { hasModuleAccess } = usePermission()
 const proximityInMeters = ref<number>(0);
 const busstopRecords = ref<BusstopInformation[]>([])
 const mrtStationRecords = ref<MrtStationInformation[]>([])
@@ -26,14 +26,7 @@ const props = defineProps<{
   record: PphsRecord
 }>()
 
-const remapSourceLabel = {
-  "database": "Marked",
-  "website": "Marked",
-  "google": "Marked",
-  "unparseable": "Not on Map",
-  "error": "Not on Map",
-  "": "Not on Map"
-}
+const isMapped = computed(() => props.record.source === 'database')
 
 const formattedProximity = computed(() => {
   return proximityInMeters.value >= 1000
@@ -47,18 +40,11 @@ const retrieveBusstopsWithinProximityToPphs = async (pphs: PphsRecord) => {
       lat: pphs.lat,
       lng: pphs.lng,
       radius: proximityInMeters.value,
-    }).then((res) => {
-      return res.data.data as {
-        rows: BusstopInformation[],
-        count: number
-      }
-    })
+    }).then((res) => res.data.data as { rows: BusstopInformation[], count: number })
 
     busstopRecords.value = response.rows
     busstopCounts.value = response.count
-
     await retrieveBusServicesParallel()
-
   } catch (error) {
     console.error("Something went wrong.", error)
   }
@@ -67,36 +53,27 @@ const retrieveBusstopsWithinProximityToPphs = async (pphs: PphsRecord) => {
 const retrieveBusServicesParallel = async () => {
   try {
     const requests = busstopRecords.value.map(busstop =>
-      HttpClient.post(ApiRoute.LTA.GET_BUS_SVC_BY_BUSSTOP_CODE, {
-        busStopCode: busstop.busstop_code
-      })
+      HttpClient.post(ApiRoute.LTA.GET_BUS_SVC_BY_BUSSTOP_CODE, { busStopCode: busstop.busstop_code })
         .then(res => ({ code: busstop.busstop_code, data: res.data.data }))
         .catch(() => ({ code: busstop.busstop_code, data: [] }))
     );
-
     const results = await Promise.all(requests);
-
-    results.forEach(r => {
-      busServicesByBusstop.value[r.code] = r.data.rows;
-    });
+    results.forEach(r => { busServicesByBusstop.value[r.code] = r.data.rows; });
   } catch (error) {
     console.error("Error fetching bus services", error);
   }
 };
 
-const retrieveMrtStopsParallel = async (pphs: PphsRecord) => {
+const retrieveMrtStops = async (pphs: PphsRecord) => {
   try {
-    const response = HttpClient.post(ApiRoute.PPHS.GET_NEAREST_MRT_STATIONS, {
+    const response = await HttpClient.post(ApiRoute.PPHS.GET_NEAREST_MRT_STATIONS, {
       lat: pphs.lat,
       lng: pphs.lng,
       limit: 3
-    }).then((res) => {
-      return res.data.data.rows
-    })
+    }).then((res) => res.data.data.rows)
     return response
-
   } catch (error) {
-    console.error("Error fetching bus services", error);
+    console.error("Error fetching MRT stations", error);
   }
 }
 
@@ -104,254 +81,324 @@ const openFormedUrl = () => {
   window.open(props.record.formedUrl, '_blank')
 }
 
-
-const hasAdminPrevileges = computed(() => {
-  return userProfile.role === 'R4' || userProfile.role === 'R5'
-})
-
 const onClickAdminEditRecord = (record: PphsRecord) => {
-  if (!hasAdminPrevileges.value) {
-    return
-  }
+  if (!hasModuleAccess('PPHS', 5)) return
   pphsStore.selectedRecord = record
   layoutStore.hdbManagePphsDialog.setTrue()
 }
 
 onMounted(async () => {
-  mrtStationRecords.value = await retrieveMrtStopsParallel(props.record)
+  mrtStationRecords.value = await retrieveMrtStops(props.record)
 })
-
 </script>
 
 <template>
-  <el-card shadow="hover" class="pphs-card">
-    <!-- Admin Panel -->
-    <RoleGuard :roles="['R4', 'R5']">
-      <div class="admin-panel">
-        <div class="town">Admin Panel</div>
-        <div class="admin-panel-action">
-          <el-button type="primary" :icon="EditPen" circle @click="onClickAdminEditRecord(record)" />
-        </div>
+  <div class="pphs-card">
+
+    <!-- Admin bar -->
+    <RoleGuard module="PPHS" :min-level="5">
+      <div class="admin-bar">
+        <span class="admin-label">Admin</span>
+        <el-button type="primary" :icon="EditPen" circle size="small" @click="onClickAdminEditRecord(record)" />
       </div>
     </RoleGuard>
-    <!-- Header: Town and Source -->
-    <div class="card-header">
-      <div class="town">{{ record.town }}</div>
-      <el-tag :type="record.source === 'database' ? 'primary' : 'danger'" size="small">
-        {{ remapSourceLabel[record.source] }}
-      </el-tag>
-    </div>
 
-    <!-- Address -->
-    <div class="address">
-      <div>
-        <div>
-          <el-icon>
-            <Location />
-          </el-icon>
-          <span>{{ record.address }}</span>
-        </div>
-        <div>
-          <el-icon>
-            <Compass />
-          </el-icon>
-          <span v-if="record.source === 'database'">
-            {{ record.lat }}, {{ record.lng }}
-          </span>
-          <span v-else>
-            Coordinates unavailable
+    <!-- Card top -->
+    <div class="card-top">
+      <div class="card-main">
+        <div class="town-row">
+          <span class="town">{{ record.town }}</span>
+          <span class="source-badge" :class="isMapped ? 'badge--mapped' : 'badge--unmapped'">
+            {{ isMapped ? 'On Map' : 'Unmapped' }}
           </span>
         </div>
+        <div class="address">📍 {{ record.address }}</div>
+        <div v-if="isMapped" class="coords">{{ record.lat }}, {{ record.lng }}</div>
       </div>
-      <el-button type="primary" size="small" :icon="Link" @click="openFormedUrl">
-        Map
-      </el-button>
-    </div>
-
-    <!-- Flat Type Information -->
-    <!-- <div class="flat-type-grid">
-      <div v-for="(count, type) in record.flatTypes" :key="type" class="flat-type-item">
-        <div class="type">{{ type }}</div>
-        <div class="count">{{ count }}</div>
-      </div>
-    </div> -->
-
-    <!-- Site Expiry -->
-    <div class="expiry">
-      <el-icon>
-        <Timer />
-      </el-icon>
-      <span>Site expiry:&nbsp;</span>
-      <strong>{{ record.siteExpiry }}</strong>
-    </div>
-
-
-
-    <el-collapse expand-icon-position="left">
-      <el-collapse-item title="More information" name="1">
-        <div v-if="record.source.toString() !== 'error'" class="busstop-proximity">
-          <div class="mrt-station-information-wrapper">
-            <div>Nearest 3 MRT/LRT Stations:</div>
-            <div class="mrt-station-tags">
-              <el-tag v-for="station in mrtStationRecords" :key="station.station" type="info" size="small"
-                class="mrt-station-tag">
-                <span class="station-name">{{ station.station }}</span>
-                <span class="station-distance">&nbsp;|&nbsp;~{{ Number(station.distance_m).toFixed(0) }} m</span>
-              </el-tag>
-            </div>
-          </div>
-          <div class="busstop-information-wrapper">
-            <div class="proximity-label">
-              Busstops within <strong>{{ formattedProximity }}</strong> : <strong>{{ busstopCounts }}</strong>
-            </div>
-            <div class="slider-wrapper">
-              <el-slider v-model="proximityInMeters" :step="500" :min="0" :max="2000" show-stops :show-tooltip="false"
-                @change="retrieveBusstopsWithinProximityToPphs(record)" />
-              <div class="slider-scale">
-                <span>0 m</span>
-                <!-- <span style="display: flex; flex-direction: column; align-items: center;">
-                <span>For proximity >2KM</span>
-                <span>Please login</span>
-              </span> -->
-                <span>2 km</span>
-              </div>
-            </div>
-            <div>Busstop Information (Nearest {{ busstopRecords.length }})</div>
-            <BusstopInformationComponent :records="busstopRecords" :busServices="busServicesByBusstop" />
-          </div>
+      <div class="card-side">
+        <el-button size="small" @click="openFormedUrl" :disabled="!record.formedUrl">
+          Maps ↗
+        </el-button>
+        <div class="expiry-chip">
+          <span class="expiry-label">Expiry</span>
+          <span class="expiry-value">{{ record.siteExpiry }}</span>
         </div>
-        <div v-else>
-          Something went wrong retrieving coordinates, unable to show more information.
+      </div>
+    </div>
+
+    <!-- MRT stations -->
+    <div v-if="mrtStationRecords?.length" class="mrt-row">
+      <span class="section-label">Nearest MRT / LRT</span>
+      <div class="mrt-tags">
+        <span v-for="station in mrtStationRecords" :key="station.station" class="mrt-tag">
+          {{ station.station }} <span class="mrt-dist">~{{ Number(station.distance_m).toFixed(0) }}m</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- More info collapse -->
+    <el-collapse expand-icon-position="left" class="card-collapse">
+      <el-collapse-item name="1">
+        <template #title>
+          <span class="collapse-title">Bus stop info</span>
+        </template>
+
+        <div v-if="isMapped" class="busstop-section">
+          <div class="proximity-row">
+            <span class="section-label">Within <strong>{{ formattedProximity }}</strong> — <strong>{{ busstopCounts }}</strong> stop{{ busstopCounts !== 1 ? 's' : '' }}</span>
+          </div>
+          <div class="slider-wrap">
+            <el-slider
+              v-model="proximityInMeters"
+              :step="500" :min="0" :max="2000"
+              show-stops :show-tooltip="false"
+              @change="retrieveBusstopsWithinProximityToPphs(record)"
+            />
+            <div class="slider-scale">
+              <span>0 m</span>
+              <span>2 km</span>
+            </div>
+          </div>
+          <div class="section-label" style="margin-bottom: 8px;">Nearest {{ busstopRecords.length }} stops</div>
+          <BusstopInformationComponent :records="busstopRecords" :busServices="busServicesByBusstop" />
+        </div>
+        <div v-else class="unmapped-notice">
+          Coordinates unavailable — bus stop information cannot be shown.
         </div>
       </el-collapse-item>
     </el-collapse>
-  </el-card>
 
+  </div>
 </template>
 
 <style scoped>
-.admin-panel {
+.pphs-card {
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  font-weight: 600;
-  background-color: #60626620;
-  padding: 1rem;
-  border-radius: 1rem;
-  gap: 0.5rem;
+  gap: 12px;
+  transition: border-color 0.15s;
 }
 
-.admin-panel-action {
+.pphs-card:hover {
+  border-color: var(--el-color-primary);
+}
+
+/* Admin bar */
+.admin-bar {
   display: flex;
-  flex-direction: row;
-  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--color-background-mute);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
 }
 
-.slider-wrapper {
-  width: 80%;
-  padding-left: 1rem
+.admin-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text);
+  opacity: 0.5;
 }
 
-.busstop-proximity {
-  margin-top: 12px;
+/* Card top */
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
 }
 
-.proximity-label {
-  font-weight: 500;
-  margin-bottom: 6px;
-  color: #303133;
+.card-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.town-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.town {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-heading);
+}
+
+.source-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 20px;
+}
+
+.badge--mapped {
+  background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
+  color: var(--el-color-success);
+  border: 1px solid color-mix(in srgb, var(--el-color-success) 30%, transparent);
+}
+
+.badge--unmapped {
+  background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
+  color: var(--el-color-danger);
+  border: 1px solid color-mix(in srgb, var(--el-color-danger) 25%, transparent);
+}
+
+.address {
+  font-size: 0.88rem;
+  color: var(--color-text);
+  line-height: 1.4;
+}
+
+.coords {
+  font-size: 0.75rem;
+  color: var(--color-text);
+  opacity: 0.45;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Side */
+.card-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.expiry-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.expiry-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text);
+  opacity: 0.4;
+}
+
+.expiry-value {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+/* MRT row */
+.mrt-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.section-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text);
+  opacity: 0.55;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mrt-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mrt-tag {
+  font-size: 0.78rem;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--color-background-mute);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mrt-dist {
+  opacity: 0.5;
+  font-size: 0.72rem;
+}
+
+/* Collapse */
+.card-collapse {
+  border: none;
+  --el-collapse-border-color: var(--color-border);
+}
+
+.card-collapse :deep(.el-collapse-item__header) {
+  background: transparent;
+  font-size: 0.82rem;
+  color: var(--color-text);
+  border-bottom-color: var(--color-border);
+  height: 36px;
+}
+
+.card-collapse :deep(.el-collapse-item__wrap) {
+  background: transparent;
+  border-bottom: none;
+}
+
+.card-collapse :deep(.el-collapse-item__content) {
+  padding-bottom: 0;
+}
+
+.collapse-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--el-color-primary);
+}
+
+/* Bus stop section */
+.busstop-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.proximity-row {
+  font-size: 0.82rem;
+  color: var(--color-text);
+}
+
+.slider-wrap {
+  padding: 0 4px;
 }
 
 .slider-scale {
   display: flex;
   justify-content: space-between;
-  font-size: 0.8rem;
-  color: #909399;
-  margin-top: 4px;
+  font-size: 0.72rem;
+  color: var(--color-text);
+  opacity: 0.45;
+  margin-top: 2px;
 }
 
-.pphs-card {
-  width: 100%;
-  border-radius: 12px;
-  transition: all 0.3s ease;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.town {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: #303133;
-}
-
-.address {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  color: #606266;
-  font-size: 0.95rem;
-}
-
-.address .el-icon {
-  margin-right: 4px;
-}
-
-.flat-type-grid {
-  display: flex;
-  justify-content: space-around;
-}
-
-.flat-type-item {
-  background: #f9fafc;
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
-  text-align: center;
-  padding: 6px 10px;
-  flex: 1;
-  margin: 0 4px;
-}
-
-.flat-type-item .type {
-  font-weight: 500;
-  color: #606266;
-}
-
-.flat-type-item .count {
-  color: #909399;
-  font-size: 0.9rem;
-}
-
-.expiry {
-  display: flex;
-  align-items: center;
-  font-size: 0.9rem;
-  color: #606266;
-  margin-bottom: 1rem;
-}
-
-.expiry .el-icon {
-  margin-right: 6px;
-}
-
-.footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.coords {
-  font-size: 0.8rem;
-  color: #a0a0a0;
-}
-
-.bus-services-wrapper {
-  margin-top: 4px;
+.unmapped-notice {
+  font-size: 0.82rem;
+  color: var(--color-text);
+  opacity: 0.55;
+  padding: 8px 0;
+  font-style: italic;
 }
 </style>

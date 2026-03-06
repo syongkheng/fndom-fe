@@ -1,27 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { useAuthenticationStore } from '@/stores/authentication'
-import { usePermission } from '@/composables/usePermission'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
 import { GRANTABLE_ROLES, MODULE_COLORS, type RoleDefinition } from '@/constants/Roles'
 
-const router = useRouter()
-const { userProfile } = useAuthenticationStore()
-const { hasModuleAccess } = usePermission()
-
-// ── Redirect non-admins ──────────────────────────────────────────────────────
-onMounted(() => {
-  if (!hasModuleAccess('SYSTEM', 5)) {
-    router.replace('/')
-  } else {
-    fetchUsers()
-  }
-})
-
-// ── Types ────────────────────────────────────────────────────────────────────
 interface UserRecord {
   id: number
   username: string
@@ -32,16 +15,15 @@ interface UserRecord {
   createdDt: number
 }
 
-// ── State ────────────────────────────────────────────────────────────────────
 const users = ref<UserRecord[]>([])
 const loading = ref(true)
 const saving = ref(false)
 
+// Drawer
 const drawerVisible = ref(false)
 const selectedUser = ref<UserRecord | null>(null)
 const draftRoles = ref<string[]>([])
 
-// ── Computed ─────────────────────────────────────────────────────────────────
 const groupedRoles = computed(() => {
   const map: Record<string, RoleDefinition[]> = {}
   for (const role of GRANTABLE_ROLES) {
@@ -51,7 +33,6 @@ const groupedRoles = computed(() => {
   return map
 })
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
 const formatDate = (ts: number) => {
   if (!ts) return '—'
   return new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -72,7 +53,6 @@ const roleTagType = (role: string) => {
   return MODULE_COLORS[module] ?? 'info'
 }
 
-// ── Data ─────────────────────────────────────────────────────────────────────
 const fetchUsers = async () => {
   loading.value = true
   const res = await HttpClient.get(ApiRoute.ADMIN.LIST_USERS).catch(() => null)
@@ -84,7 +64,6 @@ const fetchUsers = async () => {
   loading.value = false
 }
 
-// ── Role editor ──────────────────────────────────────────────────────────────
 const openRoleEditor = (user: UserRecord) => {
   selectedUser.value = user
   draftRoles.value = [...user.roles]
@@ -93,11 +72,12 @@ const openRoleEditor = (user: UserRecord) => {
 
 const toggleRole = (role: string) => {
   const idx = draftRoles.value.indexOf(role)
-  if (idx === -1) draftRoles.value.push(role)
-  else draftRoles.value.splice(idx, 1)
+  if (idx === -1) {
+    draftRoles.value.push(role)
+  } else {
+    draftRoles.value.splice(idx, 1)
+  }
 }
-
-const drawerSize = typeof window !== 'undefined' && window.innerWidth <= 640 ? '100%' : '400px'
 
 const saveRoles = async () => {
   if (!selectedUser.value) return
@@ -117,79 +97,75 @@ const saveRoles = async () => {
     ElMessage.error('Failed to update roles.')
   }
 }
+
+onMounted(fetchUsers)
 </script>
 
 <template>
-  <div class="dash-root">
+  <div class="admin-root">
 
     <!-- Header -->
-    <div class="dash-header">
+    <div class="admin-header">
       <div>
-        <h1 class="dash-title">Admin Dashboard</h1>
-        <p class="dash-subtitle">Logged in as <strong>{{ userProfile.username }}</strong></p>
+        <h1 class="admin-title">User Management</h1>
+        <p class="admin-subtitle">Grant and revoke module roles across all registered users.</p>
+      </div>
+      <el-button size="small" @click="fetchUsers" :loading="loading">Refresh</el-button>
+    </div>
+
+    <!-- Stats -->
+    <div class="admin-stats">
+      <div class="stat-item">
+        <span class="stat-val">{{ users.length }}</span>
+        <span class="stat-label">Total Users</span>
+      </div>
+      <div class="stat-divider" />
+      <div class="stat-item">
+        <span class="stat-val">{{ users.filter(u => u.roles.length > 0).length }}</span>
+        <span class="stat-label">With Roles</span>
+      </div>
+      <div class="stat-divider" />
+      <div class="stat-item">
+        <span class="stat-val">{{ users.filter(u => u.roles.length === 0).length }}</span>
+        <span class="stat-label">Members Only</span>
       </div>
     </div>
 
-    <!-- User Management section -->
-    <section class="dash-section">
-      <div class="section-header">
-        <div>
-          <div class="section-title">User Management</div>
-          <div class="section-desc">Grant and revoke module roles across all registered users.</div>
-        </div>
-        <el-button size="small" @click="fetchUsers" :loading="loading">Refresh</el-button>
-      </div>
+    <!-- Loading -->
+    <div v-if="loading" class="admin-loading">
+      <el-skeleton :rows="6" animated />
+    </div>
 
-      <!-- Stats -->
-      <div class="um-stats">
-        <div class="stat-item">
-          <span class="stat-val">{{ users.length }}</span>
-          <span class="stat-label">Total Users</span>
+    <!-- User list -->
+    <div v-else class="user-list">
+      <div
+        v-for="user in users"
+        :key="user.id"
+        class="user-row"
+        @click="openRoleEditor(user)"
+      >
+        <div class="user-avatar">
+          {{ user.username.charAt(0).toUpperCase() }}
         </div>
-        <div class="stat-divider" />
-        <div class="stat-item">
-          <span class="stat-val">{{ users.filter(u => u.roles.length > 0).length }}</span>
-          <span class="stat-label">With Roles</span>
+        <div class="user-main">
+          <div class="user-name">{{ user.username }}</div>
+          <div class="user-meta">Joined {{ formatDate(user.createdDt) }} · Last seen {{ formatLastSeen(user.lastLoggedInDt) }}</div>
         </div>
-        <div class="stat-divider" />
-        <div class="stat-item">
-          <span class="stat-val">{{ users.filter(u => u.roles.length === 0).length }}</span>
-          <span class="stat-label">Members Only</span>
+        <div class="user-roles">
+          <el-tag
+            v-for="role in user.roles"
+            :key="role"
+            :type="roleTagType(role)"
+            size="small"
+            class="role-chip"
+          >{{ role }}</el-tag>
+          <span v-if="!user.roles.length" class="no-roles">Member</span>
         </div>
-      </div>
-
-      <!-- Loading -->
-      <el-skeleton v-if="loading" :rows="5" animated />
-
-      <!-- User list -->
-      <div v-else class="user-list">
-        <div
-          v-for="user in users"
-          :key="user.id"
-          class="user-row"
-          @click="openRoleEditor(user)"
-        >
-          <div class="user-avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
-          <div class="user-main">
-            <div class="user-name">{{ user.username }}</div>
-            <div class="user-meta">Joined {{ formatDate(user.createdDt) }} · Last seen {{ formatLastSeen(user.lastLoggedInDt) }}</div>
-          </div>
-          <div class="user-roles">
-            <el-tag
-              v-for="role in user.roles"
-              :key="role"
-              :type="roleTagType(role)"
-              size="small"
-              class="role-chip"
-            >{{ role }}</el-tag>
-            <span v-if="!user.roles.length" class="no-roles">Member</span>
-          </div>
-          <div class="user-action">
-            <el-button size="small" link>Edit roles →</el-button>
-          </div>
+        <div class="user-action">
+          <el-button size="small" link>Edit roles →</el-button>
         </div>
       </div>
-    </section>
+    </div>
 
   </div>
 
@@ -198,7 +174,7 @@ const saveRoles = async () => {
     v-model="drawerVisible"
     :title="`Edit roles — ${selectedUser?.username}`"
     direction="rtl"
-    :size="drawerSize"
+    size="400px"
   >
     <div class="drawer-body" v-if="selectedUser">
 
@@ -260,78 +236,46 @@ const saveRoles = async () => {
 </template>
 
 <style scoped>
-.dash-root {
-  max-width: 960px;
+.admin-root {
+  max-width: 900px;
   width: 100%;
   justify-self: center;
   padding-bottom: 48px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
 }
 
 /* Header */
-.dash-header {
+.admin-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 24px 0 8px;
+  padding: 24px 0 16px;
+  gap: 12px;
 }
 
-.dash-title {
+.admin-title {
   font-size: 1.4rem;
   font-weight: 800;
   color: var(--color-heading);
   margin-bottom: 4px;
 }
 
-.dash-subtitle {
+.admin-subtitle {
   font-size: 0.85rem;
   color: var(--color-text);
-  opacity: 0.55;
+  opacity: 0.6;
   margin: 0;
 }
 
-/* Section card */
-.dash-section {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 20px;
-  background: var(--color-background-soft);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-}
-
-.section-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.section-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-heading);
-  margin-bottom: 2px;
-}
-
-.section-desc {
-  font-size: 0.8rem;
-  color: var(--color-text);
-  opacity: 0.5;
-}
-
 /* Stats */
-.um-stats {
+.admin-stats {
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 10px 16px;
-  background: var(--color-background-mute);
+  background: var(--color-background-soft);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 10px;
+  margin-bottom: 16px;
 }
 
 .stat-item {
@@ -361,6 +305,11 @@ const saveRoles = async () => {
   background: var(--color-border);
 }
 
+/* Loading */
+.admin-loading {
+  padding: 16px 0;
+}
+
 /* User list */
 .user-list {
   display: flex;
@@ -372,8 +321,8 @@ const saveRoles = async () => {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 12px 14px;
-  background: var(--color-background-mute);
+  padding: 14px 16px;
+  background: var(--color-background-soft);
   border: 1px solid var(--color-border);
   border-radius: 10px;
   cursor: pointer;
@@ -382,15 +331,16 @@ const saveRoles = async () => {
 
 .user-row:hover {
   border-color: var(--el-color-primary);
+  background: var(--color-background-mute);
 }
 
 .user-avatar {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: color-mix(in srgb, var(--el-color-primary) 15%, transparent);
   color: var(--el-color-primary);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -404,15 +354,15 @@ const saveRoles = async () => {
 }
 
 .user-name {
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--color-heading);
 }
 
 .user-meta {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   color: var(--color-text);
-  opacity: 0.4;
+  opacity: 0.45;
   margin-top: 2px;
 }
 
@@ -420,17 +370,17 @@ const saveRoles = async () => {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  max-width: 280px;
+  max-width: 300px;
   justify-content: flex-end;
 }
 
 .role-chip {
-  font-size: 0.67rem;
+  font-size: 0.68rem;
   font-weight: 600;
 }
 
 .no-roles {
-  font-size: 0.73rem;
+  font-size: 0.75rem;
   color: var(--color-text);
   opacity: 0.35;
   font-style: italic;
@@ -446,8 +396,6 @@ const saveRoles = async () => {
   flex-direction: column;
   gap: 20px;
   padding-bottom: 16px;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
 }
 
 .drawer-user-info {
@@ -516,6 +464,7 @@ const saveRoles = async () => {
   align-self: center;
 }
 
+/* Module groups */
 .role-module-group {
   display: flex;
   flex-direction: column;
@@ -587,35 +536,21 @@ const saveRoles = async () => {
   line-height: 1.4;
 }
 
+/* Drawer footer */
 .drawer-footer {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
 }
 
-@media (max-width: 640px) {
-  .user-roles,
-  .user-action {
+/* Mobile */
+@media (max-width: 600px) {
+  .user-roles {
     display: none;
   }
 
-  .drawer-footer {
-    flex-direction: column-reverse;
-    gap: 10px;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-
-  .drawer-footer .el-button {
-    width: 100%;
-    margin: 0;
-  }
-
-  .role-option {
-    padding: 12px 14px;
-  }
-
-  .drawer-user-info {
-    padding: 12px;
+  .user-action {
+    display: none;
   }
 }
 </style>

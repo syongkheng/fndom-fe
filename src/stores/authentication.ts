@@ -18,7 +18,7 @@ export const useAuthenticationStore = defineStore('authentication', () => {
 
   const redirectAfterLogin = ref(true)
 
-  const userProfile = ref({ username: '', role: '' })
+  const userProfile = ref({ username: '', roles: [] as string[] })
 
   const setRedirectAfterLogin = (value: boolean) => {
     redirectAfterLogin.value = value
@@ -181,7 +181,7 @@ export const useAuthenticationStore = defineStore('authentication', () => {
   const handleLogout = () => {
     StorageUtils.remove(StorageKey.JWT, 'local')
     isAuthenticated.value = false
-    userProfile.value = { username: '', role: '' }
+    userProfile.value = { username: '', roles: [] }
     ElMessage.success('Logged out successfully.')
   }
 

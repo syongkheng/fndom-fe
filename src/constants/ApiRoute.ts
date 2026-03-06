@@ -23,11 +23,18 @@ export const ApiRoute = {
     GET_BUS_SVC_BY_BUSSTOP_CODE: `/api/lta/bus/services`,
   },
   ITINERARY: {
+    GET_ALL: `/api/itinerary`,
     RETRIEVE_BY_ID: (sessionId: string | undefined) => `/api/itinerary/${sessionId}`,
+    RETRIEVE_BY_SHORT_CODE: (shortCode: string) => `/api/itinerary/v/${shortCode}`,
     CREATE: `/api/itinerary`,
     MODIFY: `/api/itinerary/edit`,
     CHECK_PERMISSION: `/api/itinerary/challenge`,
     ADD_COLLABORATOR: `/api/itinerary/add-collaborator`,
+    DELETE: (sessionId: string) => `/api/itinerary/delete/${sessionId}`,
+  },
+  ADMIN: {
+    LIST_USERS: `/api/auth/admin/users`,
+    UPDATE_USER_ROLES: (id: number) => `/api/auth/admin/users/${id}/roles`,
   },
   FILE: {
     CREATE: `/api/file`,

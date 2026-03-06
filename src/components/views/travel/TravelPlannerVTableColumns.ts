@@ -19,6 +19,7 @@ import { FileUtils } from '@/utilities/FileUtils'
 export function createTravelPlannerVTableColumns(
   addAgendaItem: () => void,
   removeAgendaItem: (id: string) => void,
+  getDateRange: () => { startDate?: number; endDate?: number; unknownDate?: boolean } = () => ({}),
 ): Column<any>[] {
   return [
     {
@@ -30,15 +31,48 @@ export function createTravelPlannerVTableColumns(
       cellRenderer: ({ rowData }) => {
         if (rowData.isAddRow) return h('span', '')
 
+        const { startDate, endDate, unknownDate } = getDateRange()
+
+        const toLocalMidnight = (ts: number) => {
+          const d = new Date(ts)
+          d.setHours(0, 0, 0, 0)
+          return d.getTime()
+        }
+
+        const disabledDate = (unknownDate || (!startDate && !endDate))
+          ? undefined
+          : (time: Date) => {
+              const t = time.getTime()
+              if (startDate && t < toLocalMidnight(startDate)) return true
+              if (endDate && t > toLocalMidnight(endDate)) return true
+              return false
+            }
+
+        const toDateObj = (val: any): Date | null => {
+          if (!val) return null
+          const d = new Date(val)
+          return isNaN(d.getTime()) ? null : d
+        }
+
+        const toLocalDateStr = (d: Date | null): string => {
+          if (!d) return ''
+          const y = d.getFullYear()
+          const m = String(d.getMonth() + 1).padStart(2, '0')
+          const day = String(d.getDate()).padStart(2, '0')
+          return `${y}-${m}-${day}`
+        }
+
         return h(ElDatePicker, {
-          modelValue: rowData.date,
-          'onUpdate:modelValue': (val: string) => {
-            rowData.date = val
+          modelValue: toDateObj(rowData.date),
+          'onUpdate:modelValue': (val: Date | null) => {
+            rowData.date = toLocalDateStr(val)
           },
           type: 'date',
           placeholder: 'Select date',
           style: 'width: 100%',
           size: 'small',
+          defaultValue: startDate ? new Date(startDate) : new Date(),
+          disabledDate,
         })
       },
     },
@@ -48,10 +82,10 @@ export function createTravelPlannerVTableColumns(
       title: 'City',
       dataKey: 'city',
       width: 300,
-      cellRenderer: ({ rowData, cellData }) => {
+      cellRenderer: ({ rowData }) => {
         if (rowData.isAddRow) return h('span', '')
         return h(ElCascader, {
-          modelValue: cellData,
+          modelValue: rowData.cityRaw ?? [],
           'onUpdate:modelValue': (val: CascaderValue | null | undefined) => {
             rowData.city = val ? JSON.stringify(val) : ''
             rowData.cityRaw = val ?? []
@@ -69,14 +103,14 @@ export function createTravelPlannerVTableColumns(
     {
       key: 'startTime',
       title: 'Start Time',
-      dataKey: 'time',
+      dataKey: 'startTime',
       width: 110,
       cellRenderer: ({ rowData }) => {
         if (rowData.isAddRow) return h('span', '')
         return h(ElTimePicker, {
-          modelValue: rowData.time,
+          modelValue: rowData.startTime,
           'onUpdate:modelValue': (val: string) => {
-            rowData.time = val
+            rowData.startTime = val
           },
           placeholder: 'Time',
           style: 'width: 100%',

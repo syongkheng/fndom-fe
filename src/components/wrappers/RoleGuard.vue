@@ -1,19 +1,17 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import { useAuthenticationStore } from "@/stores/authentication";
+import { computed } from 'vue'
+import { usePermission } from '@/composables/usePermission'
 
 const props = defineProps<{
-  roles: string[];
-}>();
+  module: string   // e.g. 'PPHS', 'KS', 'TRAVEL', 'SYSTEM'
+  minLevel: number // e.g. 3, 4, 5
+}>()
 
-const authStore = useAuthenticationStore();
+const { hasModuleAccess } = usePermission()
 
-const hasRole = computed(() => {
-  const userRoles = authStore.userProfile?.role ?? [];
-  return props.roles.some(role => userRoles.includes(role)) && !authStore.turnOffAdminFeatures;
-});
+const allowed = computed(() => hasModuleAccess(props.module, props.minLevel))
 </script>
 
 <template>
-  <slot v-if="hasRole"></slot>
+  <slot v-if="allowed" />
 </template>

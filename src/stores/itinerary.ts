@@ -33,6 +33,7 @@ export const useItineraryStore = defineStore('itinerary', () => {
     itinerary.numberOfPax = 1
     itinerary.agendaItems = []
     itinerary.destinationRaw = []
+    itinerary.challenge = undefined
     itinerary._agendaIdsToDelete = []
     itinerary._agendaIdsToUpdate = []
   }
@@ -73,8 +74,15 @@ export const useItineraryStore = defineStore('itinerary', () => {
         return { isSuccess: false, error: 'itinerary', shortCode: undefined }
       }
 
-      const { shortCode, agendaToFileMap } = response.data
+      const { shortCode, agendaToFileMap } = response.data.data
       loadingStage.value = 'Uploading Files'
+
+      // Map returned agendaIds back to agenda items by index
+      agendaToFileMap.forEach(({ agendaId }: { agendaId: number }, index: number) => {
+        if (itinerary.agendaItems[index]) {
+          itinerary.agendaItems[index].id = String(agendaId)
+        }
+      })
 
       const uuidToAgendaIdMap = new Map<string, number>()
       agendaToFileMap.forEach(
@@ -203,7 +211,15 @@ export const useItineraryStore = defineStore('itinerary', () => {
       }
 
       // Handle file creations
-      const { agendaToFileMap, shortCode } = response.data
+      const { agendaToFileMap, shortCode } = response.data.data
+
+      // Map returned agendaIds back to agenda items by index
+      agendaToFileMap.forEach(({ agendaId }: { agendaId: number }, index: number) => {
+        if (itinerary.agendaItems[index]) {
+          itinerary.agendaItems[index].id = String(agendaId)
+        }
+      })
+
       const uuidToAgendaIdMap = new Map<string, number>()
 
       agendaToFileMap.forEach(
@@ -337,7 +353,7 @@ export const useItineraryStore = defineStore('itinerary', () => {
   const retrieveItinerary = async (sessionId: string | undefined) => {
     return await HttpClient.get(`${ApiRoute.ITINERARY.RETRIEVE_BY_ID(sessionId)}`)
       .then((res) => {
-        return res.data
+        return res.data.data
       })
       .catch((err) => {
         console.error('Error: ', err)
@@ -369,6 +385,7 @@ export const useItineraryStore = defineStore('itinerary', () => {
       ? clonedRetrievedItinerary.endDate
       : undefined
     itinerary.shortCode = clonedRetrievedItinerary.shortCode
+    itinerary.challenge = clonedRetrievedItinerary.challenge
   }
 
   return {

@@ -3,6 +3,7 @@ import type { FileWithPreview } from './FileWithPreview'
 interface AgendaItem {
   id?: string
   _localIndex?: string
+  category?: string
   title: string
   desc?: string
   cityRaw?: string[]

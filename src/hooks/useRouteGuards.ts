@@ -1,4 +1,5 @@
 import { useTokenVerification } from '@/hooks/useTokenVerification'
+import { useAuthenticationStore } from '@/stores/authentication'
 import { ElMessage } from 'element-plus'
 import type { NavigationGuardNext } from 'vue-router'
 
@@ -39,8 +40,28 @@ export function useRouteGuards() {
     }
   }
 
+  const systemR5Guard = async ({ next }: { next: NavigationGuardNext }) => {
+    try {
+      const { verifyToken } = useTokenVerification()
+      const validity = await verifyToken()
+      if (!validity) {
+        ElMessage.error('You must be logged in.')
+        return next({ path: '/', query: { showLogin: 'true' } })
+      }
+      const authStore = useAuthenticationStore()
+      if (!authStore.userProfile.roles?.includes('SYSTEM_R5')) {
+        ElMessage.error('Access denied.')
+        return next('/')
+      }
+      next()
+    } catch {
+      next('/')
+    }
+  }
+
   return {
     authGuard,
     collabListGuard,
+    systemR5Guard,
   }
 }
