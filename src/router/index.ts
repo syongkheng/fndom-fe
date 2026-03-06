@@ -60,6 +60,7 @@ const router = createRouter({
       path: '/travel',
       name: 'travel',
       component: () => import('../components/views/travel/TravelListView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
     },
     {
       path: '/travel/v/:shortCode',
@@ -70,6 +71,7 @@ const router = createRouter({
       path: '/travel/:sessionId',
       name: 'travel-planner',
       component: () => import('../components/views/travel/TravelPlannerView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
     },
     {
       path: '/admin/users',
