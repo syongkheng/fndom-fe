@@ -9,8 +9,8 @@ interface AgendaItem {
   cityRaw?: string[]
   city?: string
   durationTimingRaw?: string[]
-  startTime?: number
-  endTime?: number
+  startTime?: string
+  endTime?: string
   durationInHours?: number
   unknownTime: boolean
   files: FileWithPreview[]
