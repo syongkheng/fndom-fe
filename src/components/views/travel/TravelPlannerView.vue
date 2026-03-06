@@ -4,6 +4,8 @@ import { useRoute } from 'vue-router'
 import { useNav } from '@/hooks/useNav'
 import { useItineraryStore } from '@/stores/itinerary'
 import { useBreakpointManager } from '@/hooks/useBreakpointManager'
+import { useLayoutStateStore } from '@/stores/layoutState'
+import { useAuthenticationStore } from '@/stores/authentication'
 import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
 import { createTravelPlannerVTableColumns } from './TravelPlannerVTableColumns'
@@ -15,7 +17,10 @@ import type { AgendaItem } from '@/interfaces/forms/itinerary/AgendaItem'
 const route = useRoute()
 const nav = useNav()
 const itineraryStore = useItineraryStore()
+const layoutStore = useLayoutStateStore()
+const authStore = useAuthenticationStore()
 const { itinerary, loadingStage } = storeToRefs(itineraryStore)
+const { isAuthenticated } = storeToRefs(authStore)
 
 const sessionId = route.params.sessionId as string
 
@@ -221,6 +226,11 @@ const columns = createTravelPlannerVTableColumns(
 
 // ── Shared ────────────────────────────────────────────────────────────────────
 onMounted(async () => {
+  if (!isAuthenticated.value) {
+    layoutStore.loginDialog.setTrue()
+    loading.value = false
+    return
+  }
   await itineraryStore.retrieveItineraryForUpdate(sessionId)
   loading.value = false
   if (!sessionStorage.getItem(privacySeenKey)) {
@@ -289,6 +299,15 @@ const skipPrivacy = () => {
 
 <template>
   <div class="planner-view">
+
+    <!-- Auth gate -->
+    <div v-if="!isAuthenticated" class="planner-auth-gate">
+      <div class="auth-gate-icon">🔒</div>
+      <p class="auth-gate-text">Please log in to edit this trip.</p>
+      <el-button type="primary" @click="layoutStore.loginDialog.setTrue()">Log In</el-button>
+    </div>
+
+    <template v-else>
 
     <!-- Top bar -->
     <div class="planner-topbar">
@@ -400,6 +419,7 @@ const skipPrivacy = () => {
       </el-auto-resizer>
     </div>
 
+    </template>
   </div>
 
   <!-- ── PRIVACY DIALOG ───────────────────────────────────────────────── -->
@@ -935,6 +955,25 @@ const skipPrivacy = () => {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
+}
+
+/* ── Auth gate ── */
+.planner-auth-gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 80px 0;
+}
+
+.auth-gate-icon {
+  font-size: 2.4rem;
+}
+
+.auth-gate-text {
+  font-size: 0.9rem;
+  color: var(--color-text);
+  opacity: 0.6;
 }
 
 /* ── Mobile ── */

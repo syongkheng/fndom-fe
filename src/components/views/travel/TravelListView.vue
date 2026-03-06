@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useNav } from '@/hooks/useNav'
 import { useLayoutStateStore } from '@/stores/layoutState'
 import { useAuthenticationStore } from '@/stores/authentication'
@@ -12,7 +12,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 const nav = useNav()
 const layoutStore = useLayoutStateStore()
 const authStore = useAuthenticationStore()
-const { user } = storeToRefs(authStore)
+const { isAuthenticated } = storeToRefs(authStore)
 
 interface TripCard {
   id: number
@@ -48,7 +48,17 @@ const fetchTrips = async () => {
   loading.value = false
 }
 
-onMounted(fetchTrips)
+onMounted(() => {
+  if (!isAuthenticated.value) {
+    layoutStore.loginDialog.setTrue()
+    return
+  }
+  fetchTrips()
+})
+
+watch(isAuthenticated, (val) => {
+  if (val) fetchTrips()
+})
 
 const formatDateRange = (startDate?: number, endDate?: number) => {
   if (!startDate) return 'Dates TBC'
@@ -124,6 +134,15 @@ const deleteTrip = async (sessionId: string) => {
 
 <template>
   <div class="page-container">
+
+    <!-- Auth gate -->
+    <div v-if="!isAuthenticated" class="auth-gate">
+      <div class="auth-gate-icon">🔒</div>
+      <p class="auth-gate-text">Please log in to view your trips.</p>
+      <el-button type="primary" @click="layoutStore.loginDialog.setTrue()">Log In</el-button>
+    </div>
+
+    <template v-else>
     <header class="list-header">
       <div>
         <h1 class="list-title">My Trips</h1>
@@ -251,6 +270,8 @@ const deleteTrip = async (sessionId: string) => {
         <el-button type="primary" :loading="creating" @click="handleCreate">Create Trip</el-button>
       </template>
     </el-dialog>
+
+    </template>
   </div>
 </template>
 
@@ -351,6 +372,24 @@ const deleteTrip = async (sessionId: string) => {
 
 .trip-card-actions {
   flex-shrink: 0;
+}
+
+.auth-gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 80px 0;
+}
+
+.auth-gate-icon {
+  font-size: 2.4rem;
+}
+
+.auth-gate-text {
+  font-size: 0.9rem;
+  color: var(--color-text);
+  opacity: 0.6;
 }
 
 .empty-state {
