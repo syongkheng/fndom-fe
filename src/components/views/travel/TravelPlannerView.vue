@@ -62,6 +62,7 @@ const makeBlankDraft = (presetDate = ''): AgendaItem => ({
 const drawerForm = ref<AgendaItem>(makeBlankDraft())
 
 const openAddDrawer = (presetDate?: string) => {
+  if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
   drawerIsNew.value = true
   drawerEditKey.value = undefined
   // Always normalise to a clean local YYYY-MM-DD so the date picker shows
@@ -72,6 +73,7 @@ const openAddDrawer = (presetDate?: string) => {
 }
 
 const openEditDrawer = (item: AgendaItem) => {
+  if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
   drawerIsNew.value = false
   drawerEditKey.value = item.id ?? item._localIndex
   drawerForm.value = { ...item }
@@ -240,6 +242,7 @@ onMounted(async () => {
 })
 
 const handleSave = async () => {
+  if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
   saving.value = true
   const result = await itineraryStore.updateItinerary()
   saving.value = false
@@ -253,6 +256,7 @@ const handleSave = async () => {
 }
 
 const handleShare = () => {
+  if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
   if (!itinerary.value.shortCode) {
     ElMessage.info('Save the trip first to generate a share link.')
     return
@@ -268,6 +272,7 @@ const challengeDraft = ref('')
 const privacySeenKey = `itinerary-privacy-seen-${sessionId}`
 
 const openPrivacyDialog = () => {
+  if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
   challengeDraft.value = itinerary.value.challenge ?? ''
   privacyDialogVisible.value = true
 }

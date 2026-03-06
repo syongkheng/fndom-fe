@@ -68,11 +68,13 @@ const formatDateRange = (startDate?: number, endDate?: number) => {
 }
 
 const openNewTripDialog = () => {
+  if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
   newTrip.value = { sessionTitle: '', destination: '', dateRange: [], numberOfPax: 1 }
   showNewTripDialog.value = true
 }
 
 const handleCreate = async () => {
+  if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
   if (!newTrip.value.sessionTitle.trim()) {
     ElMessage.warning('Please enter a trip title.')
     return
@@ -113,6 +115,7 @@ const copyShareLink = (shortCode: string) => {
 }
 
 const confirmDelete = (trip: TripCard) => {
+  if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
   ElMessageBox.confirm(`Delete "${trip.sessionTitle}"? This cannot be undone.`, 'Delete Trip', {
     confirmButtonText: 'Delete',
     cancelButtonText: 'Cancel',
