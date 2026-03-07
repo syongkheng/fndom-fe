@@ -144,9 +144,16 @@ const getCardTime = (item: AgendaItem) => {
   const unknownTime = item.unknownTime || !!(item as any).unknown_time
   const st = item.startTime ?? (item as any).start_time
   if (unknownTime || !st) return null
-  if (typeof st === 'string') return st.slice(0, 5)
-  const d = new Date(st)
-  return isNaN(d.getTime()) ? null : d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  const toHHMM = (val: any) => {
+    if (typeof val === 'string') return val.slice(0, 5)
+    const d = new Date(val)
+    return isNaN(d.getTime()) ? null : d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  }
+  const start = toHHMM(st)
+  if (!start) return null
+  const et = item.endTime ?? (item as any).end_time
+  const end = et ? toHHMM(et) : null
+  return end ? `${start} – ${end}` : start
 }
 
 const getItemTimeMinutes = (item: AgendaItem): number => {
