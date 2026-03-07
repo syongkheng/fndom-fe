@@ -167,6 +167,76 @@ const getCity = (item: AgendaRow): string | null => {
   return resolveCityLabel(raw ?? [])
 }
 
+// ── Collapsible days ─────────────────────────────────────────────────────────
+const collapsedDays = ref(new Set<string>())
+const toggleDay = (key: string) => {
+  if (collapsedDays.value.has(key)) {
+    collapsedDays.value.delete(key)
+  } else {
+    collapsedDays.value.add(key)
+  }
+  collapsedDays.value = new Set(collapsedDays.value)
+}
+
+// ── Export ────────────────────────────────────────────────────────────────────
+const triggerDownload = (content: string, filename: string, mime: string) => {
+  const blob = new Blob([content], { type: mime })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+const exportJSON = () => {
+  if (!itinerary.value) return
+  const data = {
+    title: itinerary.value.sessionTitle,
+    destination: itinerary.value.destination ?? null,
+    startDate: itinerary.value.startDate ?? null,
+    endDate: itinerary.value.endDate ?? null,
+    numberOfPax: itinerary.value.numberOfPax ?? null,
+    days: groupedByDate.value.map((group) => ({
+      date: group.date === '__tbc__' ? null : group.date,
+      dayNumber: group.dayNumber,
+      items: group.items.map((item) => ({
+        title: item.title,
+        category: item.category ?? null,
+        desc: item.desc ?? null,
+        city: getCity(item) ?? null,
+        startTime: (item.startTime ?? item.start_time) ?? null,
+        endTime: (item.endTime ?? (item as any).end_time) ?? null,
+        budget: item.budget ?? null,
+      })),
+    })),
+  }
+  const slug = (itinerary.value.sessionTitle || 'itinerary').replace(/\s+/g, '-').toLowerCase()
+  triggerDownload(JSON.stringify(data, null, 2), `${slug}.json`, 'application/json')
+}
+
+const exportCSV = () => {
+  if (!itinerary.value) return
+  const headers = ['Day', 'Date', 'Title', 'Category', 'Start Time', 'End Time', 'City', 'Budget', 'Description']
+  const q = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`
+  const rows = groupedByDate.value.flatMap((group) =>
+    group.items.map((item) => [
+      q(group.dayNumber ?? ''),
+      q(group.date === '__tbc__' ? '' : group.date),
+      q(item.title),
+      q(item.category ?? ''),
+      q(item.startTime ?? item.start_time ?? ''),
+      q((item.endTime ?? (item as any).end_time) ?? ''),
+      q(getCity(item) ?? ''),
+      q(item.budget ?? ''),
+      q(item.desc ?? ''),
+    ].join(','))
+  )
+  const csv = [headers.join(','), ...rows].join('\n')
+  const slug = (itinerary.value.sessionTitle || 'itinerary').replace(/\s+/g, '-').toLowerCase()
+  triggerDownload(csv, `${slug}.csv`, 'text/csv')
+}
+
 // ── Grouping ─────────────────────────────────────────────────────────────────
 const groupedByDate = computed(() => {
   if (!itinerary.value?.agendaItems?.length) return []
@@ -274,6 +344,17 @@ const groupedByDate = computed(() => {
             👥 {{ itinerary.numberOfPax }} traveller{{ itinerary.numberOfPax === 1 ? '' : 's' }}
           </span>
         </div>
+        <div class="trip-header-actions">
+          <el-dropdown trigger="click" @command="(cmd: string) => cmd === 'json' ? exportJSON() : exportCSV()">
+            <el-button size="small">Export ↓</el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="json">Export JSON</el-dropdown-item>
+                <el-dropdown-item command="csv">Export CSV</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
       </header>
 
       <!-- Empty agenda -->
@@ -286,13 +367,15 @@ const groupedByDate = computed(() => {
         <div v-for="(group, gi) in groupedByDate" :key="group.date" class="timeline-day">
 
           <!-- Day heading -->
-          <div class="day-heading">
+          <div class="day-heading" @click="toggleDay(group.date)">
             <div v-if="group.dayNumber !== null" class="day-badge">{{ group.dayNumber }}</div>
             <div class="day-label">{{ formatDate(group.date) }}</div>
+            <span class="day-item-count" v-if="collapsedDays.has(group.date)">{{ group.items.length }} item{{ group.items.length === 1 ? '' : 's' }}</span>
+            <span class="day-chevron">{{ collapsedDays.has(group.date) ? '›' : '⌄' }}</span>
           </div>
 
           <!-- Items -->
-          <div class="day-items">
+          <div v-show="!collapsedDays.has(group.date)" class="day-items">
             <div
               v-for="(item, ii) in group.items"
               :key="item.id ?? ii"
@@ -328,6 +411,8 @@ const groupedByDate = computed(() => {
 
     </div>
   </div>
+
+  <el-backtop target=".wrapper" :visibility-height="300" :right="24" :bottom="32" />
 </template>
 
 <style scoped>
@@ -431,6 +516,10 @@ const groupedByDate = computed(() => {
   gap: 8px;
 }
 
+.trip-header-actions {
+  margin-top: 14px;
+}
+
 .meta-pill {
   font-size: 0.8rem;
   color: var(--color-text);
@@ -466,6 +555,27 @@ const groupedByDate = computed(() => {
   align-items: center;
   gap: 10px;
   margin-bottom: 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.day-heading:hover .day-label {
+  color: var(--el-color-primary);
+}
+
+.day-item-count {
+  font-size: 0.72rem;
+  color: var(--color-text);
+  opacity: 0.45;
+  margin-left: 2px;
+}
+
+.day-chevron {
+  margin-left: auto;
+  font-size: 1rem;
+  color: var(--color-text);
+  opacity: 0.4;
+  line-height: 1;
 }
 
 .day-badge {

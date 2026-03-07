@@ -28,6 +28,17 @@ const loading = ref(true)
 const saving = ref(false)
 const editMode = ref<'form' | 'table'>('form')
 
+// ── Collapsible days ──────────────────────────────────────────────────────────
+const collapsedDays = ref(new Set<string>())
+const toggleDay = (key: string) => {
+  if (collapsedDays.value.has(key)) {
+    collapsedDays.value.delete(key)
+  } else {
+    collapsedDays.value.add(key)
+  }
+  collapsedDays.value = new Set(collapsedDays.value)
+}
+
 // ── Responsive drawer ─────────────────────────────────────────────────────────
 const { width } = useBreakpointManager()
 const isMobile = computed(() => width.value <= 600)
@@ -347,6 +358,64 @@ const skipPrivacy = () => {
   sessionStorage.setItem(privacySeenKey, '1')
   privacyDialogVisible.value = false
 }
+
+// ── Export ────────────────────────────────────────────────────────────────────
+const triggerDownload = (content: string, filename: string, mime: string) => {
+  const blob = new Blob([content], { type: mime })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+const exportJSON = () => {
+  const data = {
+    title: itinerary.value.sessionTitle,
+    destination: itinerary.value.destination,
+    startDate: itinerary.value.startDate,
+    endDate: itinerary.value.endDate,
+    numberOfPax: itinerary.value.numberOfPax,
+    agendaItems: groupedByDate.value.flatMap((group) =>
+      group.items.map((item) => ({
+        day: group.dayNumber ?? null,
+        date: group.date === '__tbc__' ? null : group.date,
+        category: item.category ?? null,
+        title: item.title,
+        description: item.desc ?? null,
+        startTime: item.startTime ?? (item as any).start_time ?? null,
+        endTime: item.endTime ?? (item as any).end_time ?? null,
+        city: getCardCity(item),
+        budget: item.budget ?? null,
+      }))
+    ),
+  }
+  const name = (itinerary.value.sessionTitle || 'itinerary').replace(/[^\w\s-]/g, '').trim()
+  triggerDownload(JSON.stringify(data, null, 2), `${name}.json`, 'application/json')
+}
+
+const exportCSV = () => {
+  const headers = ['Day', 'Date', 'Category', 'Title', 'Description', 'Start Time', 'End Time', 'City', 'Budget']
+  const rows = groupedByDate.value.flatMap((group) =>
+    group.items.map((item) => [
+      group.dayNumber ?? '',
+      group.date === '__tbc__' ? 'TBC' : group.date,
+      item.category ?? '',
+      item.title,
+      item.desc ?? '',
+      item.startTime ?? (item as any).start_time ?? '',
+      item.endTime ?? (item as any).end_time ?? '',
+      getCardCity(item) ?? '',
+      item.budget ?? '',
+    ])
+  )
+  const csv = [headers, ...rows]
+    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    .join('\n')
+  const name = (itinerary.value.sessionTitle || 'itinerary').replace(/[^\w\s-]/g, '').trim()
+  triggerDownload(csv, `${name}.csv`, 'text/csv;charset=utf-8;')
+}
 </script>
 
 <template>
@@ -367,6 +436,15 @@ const skipPrivacy = () => {
       <div class="planner-actions">
         <el-segmented v-if="!isMobile" v-model="editMode" size="small"
           :options="[{ label: '📋 Form', value: 'form' }, { label: '⊞ Table', value: 'table' }]" />
+        <el-dropdown size="small" trigger="click" @command="(cmd: string) => cmd === 'json' ? exportJSON() : exportCSV()">
+          <el-button size="small">Export ↓</el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="json">Export as JSON</el-dropdown-item>
+              <el-dropdown-item command="csv">Export as CSV</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
         <el-button size="small" @click="handleShare">Share 🔗</el-button>
         <el-tooltip :content="itinerary.challenge ? 'Access code set' : 'No access code'" placement="bottom">
           <el-button size="small" @click="openPrivacyDialog">
@@ -407,12 +485,14 @@ const skipPrivacy = () => {
       <!-- Day groups -->
       <div v-else>
         <div v-for="group in groupedByDate" :key="group.date" class="day-group">
-          <div class="day-group-header">
+          <div class="day-group-header" @click="toggleDay(group.date)">
             <div v-if="group.dayNumber !== null" class="day-badge">{{ group.dayNumber }}</div>
             <div class="day-label">{{ formatGroupDate(group.date) }}</div>
+            <span class="day-item-count" v-if="collapsedDays.has(group.date)">{{ group.items.length }} item{{ group.items.length === 1 ? '' : 's' }}</span>
+            <span class="day-chevron">{{ collapsedDays.has(group.date) ? '›' : '⌄' }}</span>
           </div>
 
-          <div class="agenda-cards">
+          <div v-show="!collapsedDays.has(group.date)" class="agenda-cards">
             <div v-for="item in group.items" :key="item.id ?? item._localIndex" class="agenda-card"
               :class="item.id ? 'card--saved' : 'card--new'">
               <div class="card-icon">{{ getCategoryEmoji(item.category) }}</div>
@@ -451,7 +531,7 @@ const skipPrivacy = () => {
             </div>
           </div>
 
-          <button class="add-to-day-btn" @click="openAddDrawer(group.date !== '__tbc__' ? group.date : '')">
+          <button v-show="!collapsedDays.has(group.date)" class="add-to-day-btn" @click="openAddDrawer(group.date !== '__tbc__' ? group.date : '')">
             + Add to {{ group.dayNumber !== null ? `Day ${group.dayNumber}` : 'Date TBC' }}
           </button>
         </div>
@@ -473,6 +553,8 @@ const skipPrivacy = () => {
 
     </template>
   </div>
+
+  <el-backtop target=".wrapper" :visibility-height="300" :right="24" :bottom="32" />
 
   <!-- ── PRIVACY DIALOG ───────────────────────────────────────────────── -->
   <el-dialog
@@ -698,6 +780,27 @@ const skipPrivacy = () => {
   margin-bottom: 10px;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  user-select: none;
+}
+
+.day-group-header:hover .day-label {
+  color: var(--el-color-primary);
+}
+
+.day-item-count {
+  font-size: 0.72rem;
+  color: var(--color-text);
+  opacity: 0.45;
+  margin-left: 2px;
+}
+
+.day-chevron {
+  margin-left: auto;
+  font-size: 1rem;
+  color: var(--color-text);
+  opacity: 0.4;
+  line-height: 1;
 }
 
 .day-badge {
