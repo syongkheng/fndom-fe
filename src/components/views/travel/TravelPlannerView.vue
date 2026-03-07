@@ -235,8 +235,8 @@ onMounted(async () => {
   }
   await itineraryStore.retrieveItineraryForUpdate(sessionId)
   loading.value = false
-  if (!sessionStorage.getItem(privacySeenKey)) {
-    challengeDraft.value = itinerary.value.challenge ?? ''
+  if (!sessionStorage.getItem(privacySeenKey) && !itinerary.value.challenge) {
+    challengeDraft.value = ''
     privacyDialogVisible.value = true
   }
 })
