@@ -7,10 +7,11 @@ import { useAuthenticationStore } from '@/stores/authentication'
 import { storeToRefs } from 'pinia'
 import { useBreakpointManager } from '@/hooks/useBreakpointManager'
 import { Breakpoint } from '@/constants/Breakpoint'
-import { computed, ref } from 'vue'
-
+import { computed } from 'vue'
+import { useThemeStore } from '@/stores/theme'
 
 const { redirectToDashboard, redirectToLanding, redirectToProfile } = useNav()
+const themeStore = useThemeStore()
 
 const layoutStore = useLayoutStateStore()
 const authStore = useAuthenticationStore()
@@ -65,10 +66,9 @@ const handleMenuExpansion = () => {
         </div>
       </div>
       <div class="nav-links">
-        <!-- <span v-if="isAuthenticated && (authStore.userProfile.role === 'R4' || authStore.userProfile.role === 'R5')">
-          <el-switch v-model="isAdminViewEnabled" active-text="Admin View On" inactive-text="Admin View Off"
-            inline-prompt />
-        </span> -->
+        <el-button circle size="small" class="theme-toggle" @click="themeStore.toggle()">
+          <span>{{ themeStore.isDark ? '☀️' : '🌙' }}</span>
+        </el-button>
         <span v-if="!isAuthenticated">
           <el-button @click="layoutStore.loginDialog.toggle()" type="primary" :icon="Star" size="small">
             Login
@@ -86,20 +86,12 @@ const handleMenuExpansion = () => {
 
 <style scoped>
 .header {
-  --header-bg: #f8f9fa;
-  --border-color: #e9ecef;
-  --text-color: #2c3e50;
-  --active-color: #42b983;
-  --success-color: var(--el-color-success);
-  --white: var(--el-color-white);
-  --icon-color: #aaaaaa;
-
   position: sticky;
   top: 0;
   z-index: 99;
   padding: 1em;
-  background-color: var(--header-bg);
-  border-bottom: 1px solid var(--border-color);
+  background-color: var(--color-background-soft);
+  border-bottom: 1px solid var(--color-border);
   height: 80px;
   display: flex;
   flex-direction: row;
@@ -118,7 +110,7 @@ const handleMenuExpansion = () => {
   font-size: 0.65rem;
   padding: 0.3rem 0.5rem;
   border-radius: 0.1rem;
-  background-color: #fff;
+  background-color: var(--color-background);
 }
 
 .nav-container {
@@ -138,7 +130,7 @@ const handleMenuExpansion = () => {
 
   a {
     font: bold 1.5em sans-serif;
-    color: var(--text-color);
+    color: var(--color-heading);
     text-decoration: none;
   }
 }
@@ -154,18 +146,18 @@ const handleMenuExpansion = () => {
   align-items: center;
 
   a {
-    color: var(--text-color);
+    color: var(--color-heading);
     font-weight: 500;
     text-decoration: none;
     transition: color 0.3s ease;
 
     &:hover,
     &.active {
-      color: var(--active-color);
+      color: var(--el-color-primary);
     }
 
     &.active {
-      border-bottom: 2px solid var(--active-color);
+      border-bottom: 2px solid var(--el-color-primary);
     }
   }
 }
@@ -179,7 +171,12 @@ const handleMenuExpansion = () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: var(--icon-color);
+  color: var(--color-text);
+  opacity: 0.5;
+}
+
+.theme-toggle {
+  font-size: 0.85rem;
 }
 
 /* Search & Engagement */

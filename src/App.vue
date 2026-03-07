@@ -7,11 +7,13 @@ import LoginView from './components/views/LoginView.vue'
 import { useRoute } from 'vue-router'
 import { watch } from 'vue'
 import { useLayoutStateStore } from './stores/layoutState'
+import { useThemeStore } from './stores/theme'
 import AppInitializer from './AppInitializer.vue'
 import LoadingDialog from './components/dialogs/LoadingDialog.vue'
 
 const route = useRoute()
 const layoutStore = useLayoutStateStore()
+useThemeStore() // initialises on first call — applies dark/light class before render
 
 watch(() => route.query.showLogin, (newVal) => {
   if (newVal === 'true') {

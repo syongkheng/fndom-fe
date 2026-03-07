@@ -1,12 +1,17 @@
 @import './base.css';
 
 :root {
-  --hyperlink-hover: #2e856e;
   --hyperlink-color: #1d4ed8;
-  --text-color: #333333;
-  --homepage-svg-icon: #333333;
-  --icon-text-color: #666666;
+  --hyperlink-hover: #1e6bc0;
+  --text-color: var(--color-heading);
+  --homepage-svg-icon: var(--color-heading);
+  --icon-text-color: var(--color-text);
   --icon-text-size: 12px;
+}
+
+html.dark {
+  --hyperlink-color: #60a5fa;
+  --hyperlink-hover: #93c5fd;
 }
 
 #app {
@@ -15,7 +20,7 @@
 }
 
 main {
-  background-color: #f8f9fa;
+  background-color: var(--color-background);
 }
 
 .clickable {
