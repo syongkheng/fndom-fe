@@ -76,7 +76,21 @@ const openEditDrawer = (item: AgendaItem) => {
   if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
   drawerIsNew.value = false
   drawerEditKey.value = item.id ?? item._localIndex
-  drawerForm.value = { ...item }
+  const a = item as any
+
+  // Normalise snake_case fields that backend-loaded items carry
+  const cityRaw: string[] =
+    item.cityRaw?.length
+      ? item.cityRaw
+      : (() => { try { return JSON.parse(a.city_raw ?? '[]') } catch { return [] } })()
+
+  drawerForm.value = {
+    ...item,
+    startTime: item.startTime ?? a.start_time ?? undefined,
+    endTime: item.endTime ?? a.end_time ?? undefined,
+    unknownTime: item.unknownTime !== undefined ? item.unknownTime : !!a.unknown_time,
+    cityRaw,
+  }
   drawerVisible.value = true
 }
 
@@ -127,22 +141,45 @@ const toLocalDateKey = (date: any): string => {
 }
 
 const getCardTime = (item: AgendaItem) => {
-  if (item.unknownTime || !item.startTime) return null
-  const st = item.startTime as unknown as string | number
+  const unknownTime = item.unknownTime || !!(item as any).unknown_time
+  const st = item.startTime ?? (item as any).start_time
+  if (unknownTime || !st) return null
   if (typeof st === 'string') return st.slice(0, 5)
   const d = new Date(st)
   return isNaN(d.getTime()) ? null : d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
-const getCardCity = (item: AgendaItem) => {
-  if (item.cityRaw && item.cityRaw.length > 0) return item.cityRaw[item.cityRaw.length - 1]
-  if (item.city) {
-    try {
-      const parsed = JSON.parse(item.city)
-      return Array.isArray(parsed) ? parsed[parsed.length - 1] : item.city
-    } catch { return item.city }
+const getItemTimeMinutes = (item: AgendaItem): number => {
+  const unknownTime = item.unknownTime || !!(item as any).unknown_time
+  const st = item.startTime ?? (item as any).start_time
+  if (unknownTime || !st || typeof st !== 'string') return Infinity
+  const [h, m] = st.split(':').map(Number)
+  return isNaN(h) || isNaN(m) ? Infinity : h * 60 + m
+}
+
+const resolveCityLabel = (valuePath: string[]): string | null => {
+  if (!valuePath?.length) return null
+  let options: any[] = HiearchicalCountry as unknown as any[]
+  let label: string | null = null
+  for (const val of valuePath) {
+    const found = options.find((o) => o.value === val)
+    if (!found) return valuePath[valuePath.length - 1]
+    label = found.label
+    options = found.children ?? []
   }
-  return null
+  return label
+}
+
+const getCardCity = (item: AgendaItem) => {
+  const raw: string[] | null =
+    item.cityRaw?.length
+      ? item.cityRaw
+      : (() => {
+          const src = item.city ?? (item as any).city_raw
+          if (!src) return null
+          try { return JSON.parse(src) } catch { return null }
+        })()
+  return resolveCityLabel(raw ?? [])
 }
 
 const groupedByDate = computed(() => {
@@ -166,6 +203,9 @@ const groupedByDate = computed(() => {
     if (!map.has(key)) map.set(key, [])
     map.get(key)!.push(item)
   }
+
+  // Sort within each day by start time; items with no time sort to the end
+  map.forEach((dayItems) => dayItems.sort((a, b) => getItemTimeMinutes(a) - getItemTimeMinutes(b)))
 
   let dayNumber = 0
   return Array.from(map.entries()).map(([date, items]) => {
