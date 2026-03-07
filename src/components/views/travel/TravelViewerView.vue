@@ -5,6 +5,7 @@ import { useNav } from '@/hooks/useNav'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
 import { getCategoryEmoji } from '@/constants/TravelCategories'
+import { HiearchicalCountry } from '@/constants/HierarchicalCountry'
 
 const route = useRoute()
 const nav = useNav()
@@ -115,25 +116,55 @@ const formatDate = (dateKey: string) => {
 }
 
 // ── Agenda helpers ────────────────────────────────────────────────────────────
+const toHHMM = (val: any): string | null => {
+  if (!val) return null
+  if (typeof val === 'string') return val.slice(0, 5)
+  const d = new Date(val as number)
+  return isNaN(d.getTime()) ? null : d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+}
+
 const getTime = (item: AgendaRow): string | null => {
   const unknown = item.unknownTime ?? item.unknown_time
   const st = item.startTime ?? item.start_time
   if (unknown || !st) return null
-  if (typeof st === 'string') return st.slice(0, 5)
-  const d = new Date(st as number)
-  return isNaN(d.getTime()) ? null : d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  const start = toHHMM(st)
+  if (!start) return null
+  const et = item.endTime ?? (item as any).end_time
+  const end = et ? toHHMM(et) : null
+  return end ? `${start} – ${end}` : start
+}
+
+const getItemTimeMinutes = (item: AgendaRow): number => {
+  const unknown = item.unknownTime ?? item.unknown_time
+  const st = item.startTime ?? item.start_time
+  if (unknown || !st || typeof st !== 'string') return Infinity
+  const [h, m] = st.split(':').map(Number)
+  return isNaN(h) || isNaN(m) ? Infinity : h * 60 + m
+}
+
+const resolveCityLabel = (valuePath: string[]): string | null => {
+  if (!valuePath?.length) return null
+  let options: any[] = HiearchicalCountry as unknown as any[]
+  let label: string | null = null
+  for (const val of valuePath) {
+    const found = options.find((o) => o.value === val)
+    if (!found) return valuePath[valuePath.length - 1]
+    label = found.label
+    options = found.children ?? []
+  }
+  return label
 }
 
 const getCity = (item: AgendaRow): string | null => {
-  const raw = item.cityRaw ?? (item.city_raw ? (() => { try { return JSON.parse(item.city_raw!) } catch { return null } })() : null)
-  if (Array.isArray(raw) && raw.length > 0) return raw[raw.length - 1]
-  if (item.city) {
-    try {
-      const parsed = JSON.parse(item.city)
-      return Array.isArray(parsed) ? parsed[parsed.length - 1] : item.city
-    } catch { return item.city }
-  }
-  return null
+  const raw: string[] | null =
+    item.cityRaw?.length
+      ? item.cityRaw
+      : (() => {
+          const src = (item as any).city_raw ?? item.city
+          if (!src) return null
+          try { return JSON.parse(src) } catch { return null }
+        })()
+  return resolveCityLabel(raw ?? [])
 }
 
 // ── Grouping ─────────────────────────────────────────────────────────────────
@@ -153,6 +184,17 @@ const groupedByDate = computed(() => {
     if (!map.has(key)) map.set(key, [])
     map.get(key)!.push(item)
   }
+
+  // Within each day: timed items sorted by start_time asc, then untimed items sorted by id asc
+  map.forEach((dayItems) => {
+    dayItems.sort((a, b) => {
+      const ta = getItemTimeMinutes(a)
+      const tb = getItemTimeMinutes(b)
+      if (ta !== tb) return ta - tb
+      // Both untimed — preserve insertion order by id
+      return (a.id ?? 0) - (b.id ?? 0)
+    })
+  })
 
   let dayNumber = 0
   return Array.from(map.entries()).map(([date, items]) => {
