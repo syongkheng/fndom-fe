@@ -160,7 +160,7 @@ const getCity = (item: AgendaRow): string | null => {
     item.cityRaw?.length
       ? item.cityRaw
       : (() => {
-          const src = (item as any).city_raw ?? item.city
+          const src = item.city ?? (item as any).city_raw
           if (!src) return null
           try { return JSON.parse(src) } catch { return null }
         })()
