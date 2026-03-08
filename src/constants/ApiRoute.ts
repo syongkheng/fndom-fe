@@ -3,6 +3,8 @@ export const ApiRoute = {
     PREFLIGHT: `/api/auth/preflight`,
     REGISTER: `/api/auth/register`,
     LOGIN: `/api/auth/login`,
+    VERIFY_EMAIL: `/api/auth/verify-email`,
+    RESEND_VERIFY: `/api/auth/resend-verify`,
     TOKEN_VERIFICATION: `/api/auth/verification`,
   },
   PROFILE: {

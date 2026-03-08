@@ -11,11 +11,10 @@ import type { AxiosError } from 'axios'
 export const useAuthenticationStore = defineStore('authentication', () => {
   const isAuthenticated = ref(false)
   const turnOffAdminFeatures = ref(false)
-  const authenticationStep = ref<'username' | 'register' | 'login'>('username')
+  const authenticationStep = ref<'email' | 'register' | 'login' | 'verify'>('email')
   const formRef = ref<FormInstance>()
   const loading = ref(false)
   const registerError = ref('')
-
   const redirectAfterLogin = ref(true)
 
   const userProfile = ref({ username: '', roles: [] as string[] })
@@ -25,156 +24,166 @@ export const useAuthenticationStore = defineStore('authentication', () => {
   }
 
   const form = reactive<LoginForm>({
-    identity: '',
+    email: '',
+    username: '',
     password: '',
+    verifyCode: '',
     terms: true,
   })
 
   const rules = getLoginFormRules()
+
   const resetForm = () => {
-    form.identity = ''
+    form.email = ''
+    form.username = ''
     form.password = ''
+    form.verifyCode = ''
+    authenticationStep.value = 'email'
+    registerError.value = ''
   }
 
-  const isLoginFormValid = (): boolean => {
-    if (form.identity?.length < 3) {
-      registerError.value = `Has to be at least 3 characters`
-      return false
-    }
-
-    if (!form.terms) {
-      registerError.value = `Must agree to terms`
-      return false
-    }
-
-    return true
-  }
-
+  // ── Preflight ────────────────────────────────────────────────────────────────
   const handleAuthenticate = async () => {
     loading.value = true
     registerError.value = ''
-
     try {
-      if (!form.terms) {
-        throw new Error('You must agree to the terms and conditions')
-      }
-
-      if (!isLoginFormValid()) {
-        ElMessage.error('Authentication unsuccessful!')
+      if (!form.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+        registerError.value = 'Please enter a valid email address'
         return
       }
-
-      return await HttpClient.post(ApiRoute.AUTHENTICATE.PREFLIGHT, {
-        username: form.identity,
+      const res = await HttpClient.post(ApiRoute.AUTHENTICATE.PREFLIGHT, {
+        email: form.email,
         system: 'fnd',
-      })
-        .then((res) => {
-          return res.data.data.exist ?? false
-        })
-        .catch(() => {
-          ElMessage.error('Invalid Credentials.')
-        })
+      }).catch(() => null)
+      return res?.data?.data?.exist ?? false
     } catch {
-      registerError.value = 'Login failed. Please try again.'
-      ElMessage.error('Something went wrong. Please try again.')
+      registerError.value = 'Something went wrong. Please try again.'
     } finally {
       loading.value = false
     }
   }
 
+  // ── Login ────────────────────────────────────────────────────────────────────
   const handleLogin = async (): Promise<boolean> => {
     loading.value = true
     registerError.value = ''
-
     try {
       if (!form.terms) {
-        throw new Error('You must agree to the terms and conditions')
-      }
-
-      if (!isLoginFormValid()) {
-        ElMessage.error('Authentication unsuccessful!')
+        registerError.value = 'You must agree to the terms and conditions'
         return false
       }
-
-      const isLoginRequestSuccessful = await HttpClient.post(ApiRoute.AUTHENTICATE.LOGIN, {
-        username: form.identity,
+      const res = await HttpClient.post(ApiRoute.AUTHENTICATE.LOGIN, {
+        email: form.email,
         password: form.password,
         system: 'fnd',
+      }).catch((err: AxiosError) => {
+        const data = err.response?.data as any
+        if (data?.data?.code === 'email_not_verified') {
+          authenticationStep.value = 'verify'
+          registerError.value = 'Please verify your email first.'
+        } else {
+          ElMessage.error('Invalid credentials.')
+        }
+        return null
       })
-        .then((res) => {
-          const token = res.data.data.token.replace(/^"|"$/g, '')
-          StorageUtils.set(StorageKey.JWT, token, 'local')
-          ElMessage.success('Login success')
-          return !!token
-        })
-        .catch(() => {
-          ElMessage.error('Invalid Credentials.')
-          return false
-        })
+      if (!res) return false
 
-      isAuthenticated.value = isLoginRequestSuccessful
-      return isLoginRequestSuccessful
+      const token = res.data.data.token.replace(/^"|"$/g, '')
+      StorageUtils.set(StorageKey.JWT, token, 'local')
+      ElMessage.success('Login successful')
+      isAuthenticated.value = true
+      return true
     } catch {
       registerError.value = 'Login failed. Please try again.'
-      ElMessage.error('Something went wrong. Please try again.')
       return false
     } finally {
       loading.value = false
     }
   }
 
-  const isRegistrationFormValid = (): boolean => {
-    // const emailRegex =
-    //   /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
-
-    if (form.password.length < 8) {
-      registerError.value = `Password length too short (Must be at least 8)`
-      return false
-    }
-
-    // if (!emailRegex.test(form.identity)) {
-    //   registerError.value = `Invalid Email Address`
-    //   return false
-    // }
-
-    return true
-  }
-
-  const handleRegister = async () => {
+  // ── Register ─────────────────────────────────────────────────────────────────
+  const handleRegister = async (): Promise<boolean> => {
     loading.value = true
     registerError.value = ''
-
     try {
-      if (!isRegistrationFormValid()) {
-        ElMessage.error('Registration unsuccessful!')
-        return
+      if (!form.terms) {
+        registerError.value = 'You must agree to the terms and conditions'
+        return false
       }
-
-      return await HttpClient.post(ApiRoute.AUTHENTICATE.REGISTER, {
-        username: form.identity,
+      if (form.username.trim().length < 3) {
+        registerError.value = 'Display name must be at least 3 characters'
+        return false
+      }
+      if (form.password.length < 8) {
+        registerError.value = 'Password must be at least 8 characters'
+        return false
+      }
+      const res = await HttpClient.post(ApiRoute.AUTHENTICATE.REGISTER, {
+        username: form.username.trim(),
+        email: form.email,
         password: form.password,
         system: 'fnd',
-        role: 'R1',
-      }).then((res) => {
-        const token = res.data.data.token.replace(/^"|"$/g, '')
-        StorageUtils.set(StorageKey.JWT, token, 'local')
-        ElMessage.success('Login success')
-        isAuthenticated.value = true
-        return !!token
+      }).catch((err: AxiosError) => {
+        const data = err.response?.data as any
+        registerError.value = data?.data?.message ?? 'Registration failed. Please try again.'
+        return null
       })
-    } catch (err) {
-      if ((err as AxiosError).isAxiosError) {
-        const axiosError = err as AxiosError
-        const { displayMessage } = axiosError.response?.data as {
-          code: string
-          displayMessage: string
-        }
-        ElMessage.error(`${displayMessage}`)
-      }
+      if (!res) return false
 
+      // Backend sends verification email — move to verify step
+      authenticationStep.value = 'verify'
+      ElMessage.success('Account created! Check your email for the verification code.')
+      return true
+    } catch {
       registerError.value = 'Registration failed. Please try again.'
+      return false
     } finally {
       loading.value = false
+    }
+  }
+
+  // ── Email verification ────────────────────────────────────────────────────────
+  const handleVerifyEmail = async (): Promise<boolean> => {
+    loading.value = true
+    registerError.value = ''
+    try {
+      if (!/^\d{6}$/.test(form.verifyCode)) {
+        registerError.value = 'Please enter the 6-digit code from your email'
+        return false
+      }
+      const res = await HttpClient.post(ApiRoute.AUTHENTICATE.VERIFY_EMAIL, {
+        email: form.email,
+        system: 'fnd',
+        code: form.verifyCode,
+      }).catch(() => {
+        registerError.value = 'Incorrect or expired code. Please try again.'
+        return null
+      })
+      if (!res) return false
+
+      const token = res.data.data.token.replace(/^"|"$/g, '')
+      StorageUtils.set(StorageKey.JWT, token, 'local')
+      ElMessage.success('Email verified! Welcome.')
+      isAuthenticated.value = true
+      return true
+    } catch {
+      registerError.value = 'Verification failed. Please try again.'
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // ── Resend code ───────────────────────────────────────────────────────────────
+  const handleResendCode = async () => {
+    try {
+      await HttpClient.post(ApiRoute.AUTHENTICATE.RESEND_VERIFY, {
+        email: form.email,
+        system: 'fnd',
+      })
+      ElMessage.success('A new code has been sent to your email.')
+    } catch {
+      ElMessage.error('Could not resend the code. Please try again.')
     }
   }
 
@@ -197,6 +206,8 @@ export const useAuthenticationStore = defineStore('authentication', () => {
     handleAuthenticate,
     handleLogin,
     handleRegister,
+    handleVerifyEmail,
+    handleResendCode,
     handleLogout,
     registerError,
     loading,
