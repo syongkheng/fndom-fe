@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AppBreadcrumb from '@/components/common/AppBreadcrumb.vue'
+
 const sanctuaries = [
   { id: 1, coords: '237, 828' },
   { id: 2, coords: '237, 606' },
@@ -28,6 +30,7 @@ const protectedAlliances = ['RGN', 'AHG', 'Fnd']
 
 <template>
   <div class="page-container">
+    <AppBreadcrumb :crumbs="[{ label: 'Kingshot', path: '/ks' }, { label: 'Agreement' }]" />
     <header class="ag-header">
       <div class="ag-meta">UC236 Proposition · Posted 5 Feb 2026</div>
       <h1 class="ag-title">United Coalition of 236</h1>

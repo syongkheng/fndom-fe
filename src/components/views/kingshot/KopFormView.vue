@@ -3,6 +3,7 @@ import HttpClient from '@/interceptors/HttpClient'
 import { ElMessage } from 'element-plus'
 import { computed, ref, watch } from 'vue'
 import { useNav } from '@/hooks/useNav'
+import AppBreadcrumb from '@/components/common/AppBreadcrumb.vue'
 import { useKopRegistration } from '@/hooks/useKopRegistration'
 
 const nav = useNav()
@@ -126,6 +127,7 @@ const handleSubmitForm = async () => {
 
 <template>
   <div class="page-container">
+    <AppBreadcrumb :crumbs="[{ label: 'Kingshot', path: '/ks' }, { label: 'KoP Registration' }]" />
     <form class="form-card">
       <div class="form-header">
         <h1 class="page-title">KoP Appointment Booking</h1>
