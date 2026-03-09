@@ -2,10 +2,12 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { usePphsStore } from "@/stores/pphs";
+import type { PphsRecord } from "@/interfaces/PphsRecord.model";
 
 import MapComponent from "@/components/map/MapComponent.vue";
 import PphsRecordCard from "@/components/cards/pphs/PphsRecordCard.vue";
 import ManagePphsDialog from "@/components/dialogs/ManagePphsDialog.vue";
+import PphsCompareDialog from "@/components/dialogs/PphsCompareDialog.vue";
 
 const pphsStore = usePphsStore();
 const { pphsRecords, selectedRecord } = storeToRefs(pphsStore);
@@ -32,6 +34,26 @@ const pphsBatch = (() => {
 
 const selectedBatchValue = ref(pphsBatch[0].value);
 const mapExpanded = ref(true);
+
+const compareMode = ref(false);
+const selectedForCompare = ref<PphsRecord[]>([]);
+const compareDialogOpen = ref(false);
+
+const selectionFull = computed(() => selectedForCompare.value.length >= 3);
+
+const toggleCompareMode = () => {
+  compareMode.value = !compareMode.value;
+  if (!compareMode.value) selectedForCompare.value = [];
+};
+
+const toggleSelectRecord = (record: PphsRecord) => {
+  const idx = selectedForCompare.value.findIndex((r) => r.address === record.address);
+  if (idx !== -1) {
+    selectedForCompare.value.splice(idx, 1);
+  } else if (!selectionFull.value) {
+    selectedForCompare.value.push(record);
+  }
+};
 
 const sortedRecords = computed(() =>
   [...pphsRecords.value].sort((a, b) => a.town.localeCompare(b.town))
@@ -94,6 +116,14 @@ watch(selectedBatchValue, (batch) => {
       <el-button link size="small" class="map-toggle-btn" @click="mapExpanded = !mapExpanded">
         {{ mapExpanded ? 'Hide map ▲' : 'Show map ▼' }}
       </el-button>
+      <el-button
+        link size="small"
+        :type="compareMode ? 'danger' : 'primary'"
+        class="map-toggle-btn"
+        @click="toggleCompareMode"
+      >
+        {{ compareMode ? 'Cancel' : 'Compare' }}
+      </el-button>
     </div>
 
     <!-- Map -->
@@ -112,13 +142,38 @@ watch(selectedBatchValue, (batch) => {
         :key="`${record.town}-${record.address}`"
         :id="getCardId(record.town, record.address)"
       >
-        <PphsRecordCard :record="record" />
+        <PphsRecordCard
+          :record="record"
+          :compareMode="compareMode"
+          :isSelected="selectedForCompare.some((r) => r.address === record.address)"
+          :selectionFull="selectionFull"
+          @toggle="toggleSelectRecord(record)"
+        />
       </div>
     </div>
 
   </div>
 
+  <!-- Sticky compare bar -->
+  <Transition name="slide-up">
+    <div v-if="compareMode" class="compare-bar">
+      <span class="compare-bar-hint">
+        {{ selectedForCompare.length === 0
+          ? 'Select up to 3 listings to compare'
+          : `${selectedForCompare.length} of 3 selected` }}
+      </span>
+      <el-button
+        type="primary" size="small"
+        :disabled="selectedForCompare.length < 2"
+        @click="compareDialogOpen = true"
+      >
+        Compare {{ selectedForCompare.length >= 2 ? `(${selectedForCompare.length})` : '' }}
+      </el-button>
+    </div>
+  </Transition>
+
   <ManagePphsDialog :record="selectedRecord" />
+  <PphsCompareDialog v-model="compareDialogOpen" :records="selectedForCompare" />
   <el-backtop :right="20" :bottom="24" />
 </template>
 
@@ -258,6 +313,41 @@ watch(selectedBatchValue, (batch) => {
 .pphs-empty-icon {
   font-size: 2.4rem;
   margin-bottom: 10px;
+}
+
+/* Compare bar */
+.compare-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  white-space: nowrap;
+}
+
+.compare-bar-hint {
+  font-size: 0.82rem;
+  color: var(--color-text);
+  opacity: 0.7;
+}
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  transform: translateX(-50%) translateY(16px);
+  opacity: 0;
 }
 
 /* Mobile */

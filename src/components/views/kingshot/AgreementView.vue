@@ -1,14 +1,14 @@
 <script setup lang="ts">
 const sanctuaries = [
-  { id: 1,  coords: '237, 828' },
-  { id: 2,  coords: '237, 606' },
-  { id: 3,  coords: '237, 348' },
-  { id: 4,  coords: '366, 237' },
-  { id: 5,  coords: '588, 237' },
-  { id: 6,  coords: '846, 237' },
-  { id: 7,  coords: '957, 348' },
-  { id: 8,  coords: '957, 606' },
-  { id: 9,  coords: '957, 828' },
+  { id: 1, coords: '237, 828' },
+  { id: 2, coords: '237, 606' },
+  { id: 3, coords: '237, 348' },
+  { id: 4, coords: '366, 237' },
+  { id: 5, coords: '588, 237' },
+  { id: 6, coords: '846, 237' },
+  { id: 7, coords: '957, 348' },
+  { id: 8, coords: '957, 606' },
+  { id: 9, coords: '957, 828' },
   { id: 10, coords: '846, 957' },
   { id: 11, coords: '606, 957' },
   { id: 12, coords: '366, 957' },
@@ -21,9 +21,9 @@ const fortresses = [
   { id: 4, coords: '800, 597' },
 ]
 
-const alliances = ['VKG', 'HKL', 'Fnd', 'AHG', 'Sol', 'VKA', 'RGN', 'HKS', 'ARK', 'TTS', 'EUW', 'VKF']
+const alliances = ['Fnd', 'AHG', 'RGN']
 
-const protectedAlliances = ['VKG', 'VKA', 'VKF', 'HKL', 'HKS', 'RGN', 'ARK', 'AHG', 'a36', 'Sol', 'Fnd']
+const protectedAlliances = ['RGN', 'AHG', 'Fnd']
 </script>
 
 <template>
@@ -46,7 +46,6 @@ const protectedAlliances = ['VKG', 'VKA', 'VKF', 'HKL', 'HKS', 'RGN', 'ARK', 'AH
           </p>
 
           <h2 class="doc-h2">Member Alliances</h2>
-          <p class="doc-body">As of the last KvK with 298, 12 alliances are tracked (in no particular order):</p>
           <div class="alliance-grid">
             <span v-for="a in alliances" :key="a" class="alliance-chip">{{ a }}</span>
           </div>
@@ -63,17 +62,37 @@ const protectedAlliances = ['VKG', 'VKA', 'VKF', 'HKL', 'HKS', 'RGN', 'ARK', 'AH
                 </tr>
               </thead>
               <tbody>
-                <tr><td>Rank 1</td><td>1</td><td>3</td><td></td></tr>
-                <tr><td>Rank 2</td><td>1</td><td>3</td><td></td></tr>
-                <tr><td>Rank 3</td><td>1</td><td>2</td><td></td></tr>
-                <tr><td>Rank 4</td><td>0 <span class="tag-rotate">+ rotating</span></td><td>2</td><td>Weekly rotation with Rank 5</td></tr>
-                <tr><td>Rank 5</td><td>0 <span class="tag-rotate">+ rotating</span></td><td>2</td><td>Weekly rotation with Rank 4</td></tr>
+                <tr>
+                  <td>Rank 1</td>
+                  <td>2</td>
+                  <td>3</td>
+                  <td>For Fnd</td>
+                </tr>
+                <tr>
+                  <td>Rank 2</td>
+                  <td>1</td>
+                  <td>4</td>
+                  <td>For RGN</td>
+                </tr>
+                <tr>
+                  <td>Rank 3</td>
+                  <td>1</td>
+                  <td>4</td>
+                  <td>For AHG</td>
+                </tr>
+                <tr>
+                  <td>Rank 4</td>
+                  <td>0
+                    <!-- <span class="tag-rotate">+ rotating</span> -->
+                  </td>
+                  <td>1</td>
+                  <td>Can be used for FFA</td>
+                </tr>
               </tbody>
             </table>
           </div>
           <p class="doc-body doc-note">
-            The remaining fortress rotates between Rank 4 (Week 1) and Rank 5 (Week 2) on a weekly basis.
-            Buildings are selected round-robin and must be finalised at least 12 hours before the Signup deadline.
+            Let's arrange internally.
           </p>
 
           <h2 class="doc-h2">Document Structure</h2>
@@ -87,8 +106,7 @@ const protectedAlliances = ['VKG', 'VKA', 'VKF', 'HKL', 'HKS', 'RGN', 'ARK', 'AH
             <li><strong>Section VII</strong> — Castle Distribution &amp; Buff Management</li>
           </ul>
           <p class="doc-body doc-note">
-            Records of Final Votes &amp; Inauguration are located in the
-            <strong>236 Kingdom Diplomats</strong> channel on the Kingdom 236 Discord Server.
+            Last updated 2026 March 09
           </p>
         </div>
       </el-tab-pane>
@@ -104,6 +122,9 @@ const protectedAlliances = ['VKG', 'VKA', 'VKF', 'HKL', 'HKS', 'RGN', 'ARK', 'AH
 
           <h2 class="doc-h2">Section I — Voting &amp; Procedures</h2>
           <p class="doc-body">
+            Let's work it out in game.
+          </p>
+          <!-- <p class="doc-body">
             Any motion or proposal requires at least a <strong>12-hour voting window</strong>.
             Votes are cast by each alliance's nominated representative. A motion requires
             <strong>at least 51%</strong> of votes to pass. Forfeited votes are excluded from the total count.
@@ -114,18 +135,35 @@ const protectedAlliances = ['VKG', 'VKA', 'VKF', 'HKL', 'HKS', 'RGN', 'ARK', 'AH
           <div class="table-wrap">
             <table class="doc-table">
               <thead>
-                <tr><th>Percentile</th><th>Votes</th><th>Alliances (KvK vs 239)</th></tr>
+                <tr>
+                  <th>Percentile</th>
+                  <th>Votes</th>
+                  <th>Alliances (KvK vs 239)</th>
+                </tr>
               </thead>
               <tbody>
-                <tr><td>75th percentile</td><td>3 votes each</td><td>VKG, Fnd, HKL</td></tr>
-                <tr><td>50th percentile</td><td>2 votes each</td><td>AHG, Sol, VKA</td></tr>
-                <tr><td>Remaining</td><td>1 vote each</td><td>RGN, HKS, ARK, TTS, EUW, VKF</td></tr>
+                <tr>
+                  <td>75th percentile</td>
+                  <td>3 votes each</td>
+                  <td>VKG, Fnd, HKL</td>
+                </tr>
+                <tr>
+                  <td>50th percentile</td>
+                  <td>2 votes each</td>
+                  <td>AHG, Sol, VKA</td>
+                </tr>
+                <tr>
+                  <td>Remaining</td>
+                  <td>1 vote each</td>
+                  <td>RGN, HKS, ARK, TTS, EUW, VKF</td>
+                </tr>
               </tbody>
             </table>
           </div>
           <p class="doc-body doc-note">
             Total: (3×3) + (3×2) + (6×1) = <strong>21 votes</strong>. Required to pass: <strong>11</strong>.
-            Alliances may not split their votes. Farm alliances with KvK contributions receive additional votes on top of their main alliance.
+            Alliances may not split their votes. Farm alliances with KvK contributions receive additional votes on top
+            of their main alliance.
           </p>
 
           <h3 class="doc-h3">Raising a Motion</h3>
@@ -133,15 +171,20 @@ const protectedAlliances = ['VKG', 'VKA', 'VKF', 'HKL', 'HKS', 'RGN', 'ARK', 'AH
             <li>Any alliance with votes may raise a motion — do so early to allow sufficient discussion time.</li>
             <li>Standard window: <strong>12 hours</strong></li>
             <li>Emergency window: <strong>6 hours</strong> — requires approval from 75th percentile alliances</li>
-            <li>Topics may include building assignments, member transfers between alliances, or rally leader arrangements</li>
-          </ul>
+            <li>Topics may include building assignments, member transfers between alliances, or rally leader
+              arrangements</li>
+          </ul> -->
 
           <h2 class="doc-h2">Section II — Contributions Recording</h2>
           <p class="doc-body">
-            Each alliance appoints a dedicated recorder to log their daily KvK contribution data.
-            All entries are submitted via the designated Google Sheet
-            (<strong>K236KvK</strong>) accessible in the <code>#state-files</code> channel on the Kingdom 236 Discord Server.
+            Just have fun and do your best. Contributions will be tracked at the final day.
+            <!-- All entries are submitted via the designated Google Sheet
+            (<strong>K236KvK</strong>) accessible in the <code>#state-files</code> channel on the Kingdom 236 Discord
+            Server. -->
           </p>
+          <!-- <p class="doc-body">
+            Look out for the google sheet to post!
+          </p> -->
         </div>
       </el-tab-pane>
 
@@ -157,7 +200,12 @@ const protectedAlliances = ['VKG', 'VKA', 'VKF', 'HKL', 'HKS', 'RGN', 'ARK', 'AH
           </p>
           <div class="table-wrap">
             <table class="doc-table">
-              <thead><tr><th>#</th><th>Coordinates</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Coordinates</th>
+                </tr>
+              </thead>
               <tbody>
                 <tr v-for="s in sanctuaries" :key="s.id">
                   <td>Sanctuary {{ s.id }}</td>
@@ -170,7 +218,12 @@ const protectedAlliances = ['VKG', 'VKA', 'VKF', 'HKL', 'HKS', 'RGN', 'ARK', 'AH
           <h2 class="doc-h2">Section IV — Fortresses</h2>
           <div class="table-wrap">
             <table class="doc-table">
-              <thead><tr><th>#</th><th>Coordinates</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Coordinates</th>
+                </tr>
+              </thead>
               <tbody>
                 <tr v-for="f in fortresses" :key="f.id">
                   <td>Fortress {{ f.id }}</td>
@@ -182,15 +235,14 @@ const protectedAlliances = ['VKG', 'VKA', 'VKF', 'HKL', 'HKS', 'RGN', 'ARK', 'AH
 
           <h3 class="doc-h3">Selection Rules</h3>
           <ul class="doc-list">
-            <li>Selection must be completed at least <strong>12 hours before the Signup deadline</strong>.</li>
-            <li>Round-robin order: Rank 1 picks first, then Rank 2, 3, 4, 5, cycling back to Rank 1 for each subsequent pick.</li>
-            <li>The remaining fortress rotates between Rank 4 and Rank 5 weekly (Week 1 → Rank 4, Week 2 → Rank 5).</li>
+            <li>Round-robin order: Rank 1 picks first, then Rank 2, 3, 4, 5, cycling back to Rank 1 for each subsequent
+              pick.</li>
+            <li>Fnd picks 1st fortress, HKL picks 1st fortress, AHG picks 1st fortress, Fnd picks 2nd fortress</li>
           </ul>
 
           <h3 class="doc-h3">FFA Sanctuaries</h3>
           <ul class="doc-list">
-            <li>During weeks with eligible additional buildings, sanctuaries may be offered for FFA.</li>
-            <li>All FFA details must be shared in the <strong>Kingdom Diplo Discord</strong> channel.</li>
+            <li>Any FFA details must be announced early.</li>
             <li>During FFA: <strong>no solo attacks</strong> for the first hit — rallies only.</li>
           </ul>
 
@@ -199,38 +251,46 @@ const protectedAlliances = ['VKG', 'VKA', 'VKF', 'HKL', 'HKS', 'RGN', 'ARK', 'AH
           <div class="table-wrap">
             <table class="doc-table">
               <thead>
-                <tr><th>Building</th><th>Coordinates</th><th>Non-KvK</th><th>KvK Period</th></tr>
+                <tr>
+                  <th>Building</th>
+                  <th>Coordinates</th>
+                  <th>Non-KvK</th>
+                  <th>KvK Period</th>
+                </tr>
               </thead>
               <tbody>
                 <tr>
                   <td>L4 Arsenal #1</td>
                   <td class="coord">816, 486</td>
-                  <td>Fnd ↔ HKL rotation</td>
+                  <!-- <td>Fnd ↔ HKL rotation</td> -->
+                  <td>Fnd</td>
                   <td>Fnd</td>
                 </tr>
                 <tr>
                   <td>L4 Armory #1</td>
                   <td class="coord">588, 327</td>
-                  <td>AHG</td>
+                  <!-- <td>AHG</td> -->
+                  <td>Fnd</td>
                   <td>Fnd</td>
                 </tr>
                 <tr>
                   <td>L4 Arsenal #2</td>
                   <td class="coord">387, 486</td>
-                  <td>VKG</td>
-                  <td>VKG</td>
+                  <td>HKL ↔ AHG rotation</td>
+                  <td>AHG</td>
                 </tr>
                 <tr>
                   <td>L4 Armory #2</td>
                   <td class="coord">588, 867</td>
-                  <td>VKG</td>
-                  <td>VKG</td>
+                  <td>HKL ↔ AHG rotation</td>
+                  <td>AHG</td>
                 </tr>
               </tbody>
             </table>
           </div>
           <p class="doc-body doc-note">
-            KvK period is defined as the period during which the occupying alliance holds the buildings at the KvK Castle Battle.
+            KvK period is defined as the period during which the occupying alliance holds the buildings at the KvK
+            Castle Battle.
             If HKL misses their rotation, HKL and Fnd will collaborate to reach a fair resolution.
           </p>
         </div>

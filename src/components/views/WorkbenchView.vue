@@ -35,6 +35,13 @@ const modules = [
     path: '/pphs',
   },
   {
+    key: 'flat',
+    title: 'Flat Analysis',
+    description: 'Search by postal code · MRT and bus stop proximity',
+    icon: '🏠',
+    path: '/flat',
+  },
+  {
     key: 'travel',
     title: 'Travel',
     description: 'Itinerary planning and collaboration',

@@ -57,6 +57,11 @@ const router = createRouter({
       component: () => import('../components/views/hdb/HomeView.vue'),
     },
     {
+      path: '/flat',
+      name: 'flat',
+      component: () => import('../components/views/flat/HomeView.vue'),
+    },
+    {
       path: '/travel',
       name: 'travel',
       component: () => import('../components/views/travel/TravelListView.vue'),

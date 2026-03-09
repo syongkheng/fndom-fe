@@ -5,7 +5,7 @@ import type { BusRouteInformation } from '@/interfaces/BusRouteInformation.model
 import type { BusstopInformation } from '@/interfaces/BusstopInformation.model';
 import type { MrtStationInformation } from '@/interfaces/MrtStationInformation.model';
 import type { PphsRecord } from '@/interfaces/PphsRecord.model';
-import { EditPen } from '@element-plus/icons-vue'
+import { EditPen, Select } from '@element-plus/icons-vue'
 import { computed, onMounted, ref } from 'vue';
 import BusstopInformationComponent from './BusstopInformationComponent.vue';
 import { useLayoutStateStore } from '@/stores/layoutState';
@@ -24,7 +24,12 @@ const pphsStore = usePphsStore();
 
 const props = defineProps<{
   record: PphsRecord
+  compareMode?: boolean
+  isSelected?: boolean
+  selectionFull?: boolean
 }>()
+
+const emit = defineEmits<{ toggle: [] }>()
 
 const isMapped = computed(() => props.record.source === 'database')
 
@@ -93,7 +98,19 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="pphs-card">
+  <div
+    class="pphs-card"
+    :class="{
+      'card--selected': isSelected,
+      'card--compare-dim': compareMode && selectionFull && !isSelected,
+    }"
+    @click="compareMode ? emit('toggle') : undefined"
+  >
+
+    <!-- Compare mode overlay -->
+    <div v-if="compareMode" class="compare-check" :class="{ 'compare-check--on': isSelected }">
+      <el-icon v-if="isSelected"><Select /></el-icon>
+    </div>
 
     <!-- Admin bar -->
     <RoleGuard module="PPHS" :min-level="5">
@@ -400,5 +417,44 @@ onMounted(async () => {
   opacity: 0.55;
   padding: 8px 0;
   font-style: italic;
+}
+
+/* Compare mode */
+.pphs-card {
+  position: relative;
+}
+
+.card--selected {
+  border-color: var(--el-color-primary) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+}
+
+.card--compare-dim {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.compare-check {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  background: var(--color-background-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, background 0.15s;
+  z-index: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.compare-check--on {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary);
+  color: #fff;
 }
 </style>

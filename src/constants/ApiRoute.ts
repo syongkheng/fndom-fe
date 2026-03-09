@@ -42,4 +42,9 @@ export const ApiRoute = {
     CREATE: `/api/file`,
     DELETE: `/api/file/delete`,
   },
+  DATA_GOV_SG: {
+    // HDB Resale Flat Prices (Jan 2017 onwards) — update resource ID here if dataset changes
+    HDB_RESALE_PRICES: `https://data.gov.sg/api/action/datastore_search`,
+    HDB_RESALE_RESOURCE_ID: `d_8b84c4ee58e3cfc0ece0d773c8ca6abc`,
+  },
 }
