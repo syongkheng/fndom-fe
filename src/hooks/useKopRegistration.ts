@@ -1,9 +1,8 @@
-import { ref } from 'vue'
-
-// Singleton ref — shared across all imports.
-// TODO: replace with backend flag
-const isRegistrationOpen = ref(false)
+import { computed } from 'vue'
+import { useFeatureFlagStore } from '@/stores/featureFlags'
 
 export function useKopRegistration() {
+  const featureFlagStore = useFeatureFlagStore()
+  const isRegistrationOpen = computed(() => featureFlagStore.isEnabled('kop_registration'))
   return { isRegistrationOpen }
 }

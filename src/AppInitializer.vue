@@ -1,18 +1,20 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue'
 import { useTokenVerification } from './hooks/useTokenVerification'
+import { useFeatureFlagStore } from './stores/featureFlags'
 
 // import { StorageUtils } from './utilities/StorageUtils'
 // import { startHeartbeat } from './utilities/HeartbeatUtils'
 
 const { verifyToken, isVerifying } = useTokenVerification()
+const featureFlagStore = useFeatureFlagStore()
 
 // let stopHeartbeat: (() => void) | null = null
 
 onMounted(async () => {
   // const visitorSessionId = StorageUtils.getVisitorSessionId()
 
-  await verifyToken()
+  await Promise.all([verifyToken(), featureFlagStore.fetchFlags()])
 
   // stopHeartbeat = startHeartbeat(visitorSessionId)
 })
