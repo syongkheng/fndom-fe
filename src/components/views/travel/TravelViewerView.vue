@@ -40,6 +40,7 @@ interface ItineraryData {
   startDate?: number
   endDate?: number
   numberOfPax?: number
+  viewCount?: number
   agendaItems: AgendaRow[]
 }
 
@@ -196,6 +197,9 @@ const getTime = (item: AgendaRow): string | null => {
           </span>
           <span v-if="itinerary.numberOfPax" class="meta-pill">
             👥 {{ itinerary.numberOfPax }} traveller{{ itinerary.numberOfPax === 1 ? '' : 's' }}
+          </span>
+          <span v-if="itinerary.viewCount !== undefined" class="meta-pill">
+            👁 {{ itinerary.viewCount }} view{{ itinerary.viewCount === 1 ? '' : 's' }}
           </span>
         </div>
         <div class="trip-header-actions">
