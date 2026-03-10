@@ -125,7 +125,14 @@ export const useAuthenticationStore = defineStore('authentication', () => {
         system: 'fnd',
       }).catch((err: AxiosError) => {
         const data = err.response?.data as any
-        registerError.value = data?.data?.message ?? 'Registration failed. Please try again.'
+        const code = data?.data?.code
+        if (code === 'email_already_registered') {
+          registerError.value = 'This email is already registered.'
+        } else if (code === 'username_already_taken') {
+          registerError.value = 'This username is already taken.'
+        } else {
+          registerError.value = data?.data?.message ?? 'Registration failed. Please try again.'
+        }
         return null
       })
       if (!res) return false
@@ -155,8 +162,15 @@ export const useAuthenticationStore = defineStore('authentication', () => {
         email: form.email,
         system: 'fnd',
         code: form.verifyCode,
-      }).catch(() => {
-        registerError.value = 'Incorrect or expired code. Please try again.'
+      }).catch((err: AxiosError) => {
+        const code = (err.response?.data as any)?.data?.code
+        if (code === 'code_expired') {
+          registerError.value = "Your code has expired. Click 'Resend code' to get a new one."
+        } else if (code === 'max_verify_attempts') {
+          registerError.value = "Too many incorrect attempts. Click 'Resend code' for a new code."
+        } else {
+          registerError.value = 'Incorrect code. Please try again.'
+        }
         return null
       })
       if (!res) return false

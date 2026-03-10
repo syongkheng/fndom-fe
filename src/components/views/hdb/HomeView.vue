@@ -8,6 +8,8 @@ import MapComponent from "@/components/map/MapComponent.vue";
 import PphsRecordCard from "@/components/cards/pphs/PphsRecordCard.vue";
 import ManagePphsDialog from "@/components/dialogs/ManagePphsDialog.vue";
 import PphsCompareDialog from "@/components/dialogs/PphsCompareDialog.vue";
+import EmptyState from "@/components/common/EmptyState.vue";
+import StatPill from "@/components/common/StatPill.vue";
 
 const pphsStore = usePphsStore();
 const { pphsRecords, selectedRecord } = storeToRefs(pphsStore);
@@ -98,20 +100,11 @@ watch(selectedBatchValue, (batch) => {
 
     <!-- Stats bar -->
     <div v-if="sortedRecords.length" class="pphs-stats">
-      <div class="stat-pill">
-        <span class="stat-value">{{ sortedRecords.length }}</span>
-        <span class="stat-label">Listings</span>
-      </div>
+      <StatPill :value="sortedRecords.length" label="Listings" />
       <div class="stat-divider" />
-      <div class="stat-pill">
-        <span class="stat-value">{{ mappedCount }}</span>
-        <span class="stat-label">On Map</span>
-      </div>
+      <StatPill :value="mappedCount" label="On Map" />
       <div class="stat-divider" />
-      <div class="stat-pill">
-        <span class="stat-value">{{ sortedRecords.length - mappedCount }}</span>
-        <span class="stat-label">Unmapped</span>
-      </div>
+      <StatPill :value="sortedRecords.length - mappedCount" label="Unmapped" />
       <div class="stat-spacer" />
       <el-button link size="small" class="map-toggle-btn" @click="mapExpanded = !mapExpanded">
         {{ mapExpanded ? 'Hide map ▲' : 'Show map ▼' }}
@@ -133,10 +126,7 @@ watch(selectedBatchValue, (batch) => {
 
     <!-- Cards -->
     <div class="pphs-list">
-      <div v-if="!sortedRecords.length" class="pphs-empty">
-        <div class="pphs-empty-icon">🏠</div>
-        <p>No records found for this batch.</p>
-      </div>
+      <EmptyState v-if="!sortedRecords.length" icon="🏠" title="No records found for this batch." />
       <div
         v-for="record in sortedRecords"
         :key="`${record.town}-${record.address}`"
@@ -241,28 +231,6 @@ watch(selectedBatchValue, (batch) => {
   margin-bottom: 12px;
 }
 
-.stat-pill {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  min-width: 44px;
-}
-
-.stat-value {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--color-heading);
-  line-height: 1;
-}
-
-.stat-label {
-  font-size: 0.68rem;
-  color: var(--color-text);
-  opacity: 0.55;
-  white-space: nowrap;
-}
-
 .stat-divider {
   width: 1px;
   height: 16px;
@@ -301,18 +269,6 @@ watch(selectedBatchValue, (batch) => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-
-.pphs-empty {
-  text-align: center;
-  padding: 60px 0;
-  color: var(--color-text);
-  opacity: 0.5;
-}
-
-.pphs-empty-icon {
-  font-size: 2.4rem;
-  margin-bottom: 10px;
 }
 
 /* Compare bar */

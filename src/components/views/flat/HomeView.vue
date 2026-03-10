@@ -4,6 +4,8 @@ import axios from 'axios'
 import type { OneMapResult } from '@/interfaces/OneMapResult.model'
 import FlatAnalysisCard from '@/components/cards/flat/FlatAnalysisCard.vue'
 import FlatMapComponent from '@/components/map/FlatMapComponent.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
+import StatPill from '@/components/common/StatPill.vue'
 
 const postalCode = ref('')
 const loading = ref(false)
@@ -83,10 +85,7 @@ onMounted(() => {
     <template v-if="!loading && searched">
       <!-- Stats bar -->
       <div v-if="results.length" class="flat-stats">
-        <div class="stat-pill">
-          <span class="stat-value">{{ results.length }}</span>
-          <span class="stat-label">Result{{ results.length !== 1 ? 's' : '' }}</span>
-        </div>
+        <StatPill :value="results.length" :label="`Result${results.length !== 1 ? 's' : ''}`" />
         <div class="stat-spacer" />
         <el-button link size="small" class="map-toggle-btn" @click="mapExpanded = !mapExpanded">
           {{ mapExpanded ? 'Hide map ▲' : 'Show map ▼' }}
@@ -110,10 +109,7 @@ onMounted(() => {
       </div>
 
       <!-- Empty state -->
-      <div v-else class="flat-empty">
-        <div class="flat-empty-icon">🔍</div>
-        <p>No results found for postal code <strong>{{ postalCode }}</strong></p>
-      </div>
+      <EmptyState v-else icon="🔍" title="No results found" :message="`No results found for postal code ${postalCode}`" />
     </template>
 
     <!-- Skeleton loader -->
@@ -180,28 +176,6 @@ onMounted(() => {
   margin: 16px 0 12px;
 }
 
-.stat-pill {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  min-width: 44px;
-}
-
-.stat-value {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--color-heading);
-  line-height: 1;
-}
-
-.stat-label {
-  font-size: 0.68rem;
-  color: var(--color-text);
-  opacity: 0.55;
-  white-space: nowrap;
-}
-
 .stat-spacer {
   flex: 1;
 }
@@ -234,18 +208,6 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-
-.flat-empty {
-  text-align: center;
-  padding: 60px 0;
-  color: var(--color-text);
-  opacity: 0.5;
-}
-
-.flat-empty-icon {
-  font-size: 2.4rem;
-  margin-bottom: 10px;
 }
 
 .state-block {

@@ -4,7 +4,8 @@ import { useAuthenticationStore } from '@/stores/authentication'
 import { useLayoutStateStore } from '@/stores/layoutState'
 import { Message, Lock, User } from '@element-plus/icons-vue'
 import { storeToRefs } from 'pinia'
-import { computed } from 'vue'
+import { computed, ref, nextTick, watch } from 'vue'
+import OtpInput from '@/components/common/OtpInput.vue'
 
 const stepTitles = {
   email: 'Login / Register',
@@ -72,9 +73,31 @@ const handleSubmit = () => {
 
 const handleBack = () => {
   authenticationStep.value = 'email'
-  form.password = ''
-  form.verifyCode = ''
+  form.value.password = ''
+  form.value.verifyCode = ''
   registerError.value = ''
+}
+
+// ── OTP verify input ──────────────────────────────────────────────────────────
+const verifyDigits = ref<string[]>(['', '', '', '', '', ''])
+const otpRef = ref<{ focus: () => void } | null>(null)
+
+// Focus first box when verify step becomes active
+watch(authenticationStep, (step) => {
+  if (step === 'verify') {
+    verifyDigits.value = ['', '', '', '', '', '']
+    nextTick(() => otpRef.value?.focus())
+  }
+})
+
+// Keep store in sync and reset digits if store clears the code (e.g. resend/back)
+watch(() => form.value.verifyCode, (val) => {
+  if (!val) verifyDigits.value = ['', '', '', '', '', '']
+})
+
+const onOtpUpdate = (digits: string[]) => {
+  verifyDigits.value = digits
+  form.value.verifyCode = digits.join('')
 }
 
 const handleOnClose = () => {
@@ -168,17 +191,14 @@ const handleOnClose = () => {
           </el-form-item>
         </template>
 
-        <!-- Step: verify — 6-digit code -->
-        <el-form-item v-else-if="authenticationStep === 'verify'" size="large">
-          <el-input
-            v-model="form.verifyCode"
-            placeholder="000000"
-            maxlength="6"
-            style="letter-spacing: 0.3em; font-size: 1.2rem;"
-            clearable
-            @keyup.enter="handleSubmit"
-          />
-        </el-form-item>
+        <!-- Step: verify — 6-digit OTP -->
+        <OtpInput
+          v-else-if="authenticationStep === 'verify'"
+          ref="otpRef"
+          v-model="verifyDigits"
+          @update:model-value="onOtpUpdate"
+          @complete="handleSubmit"
+        />
 
         <!-- Error message -->
         <p v-if="registerError" class="error-text">{{ registerError }}</p>
@@ -288,6 +308,7 @@ const handleOnClose = () => {
   color: var(--el-color-primary);
   cursor: pointer;
 }
+
 
 @media (max-width: 600px) {
   .login-dialog :deep(.el-dialog) {

@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useNav } from '@/hooks/useNav'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
 import { getCategoryEmoji } from '@/constants/TravelCategories'
-import { HiearchicalCountry } from '@/constants/HierarchicalCountry'
+import OtpInput from '@/components/common/OtpInput.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
+import { useTravelDayGroups } from '@/composables/useTravelDayGroups'
+import { useTravelExport } from '@/composables/useTravelExport'
+import { useCityLabel } from '@/composables/useCityLabel'
 
 const route = useRoute()
 const nav = useNav()
@@ -46,12 +50,18 @@ const error = ref(false)
 // ── Challenge gate ────────────────────────────────────────────────────────────
 const challengeRequired = ref(false)
 const challengeVerified = ref(false)
-const challengeInput = ref('')
+const challengeDigits = ref<string[]>(['', '', '', '', '', ''])
+const challengeInput = computed(() => challengeDigits.value.join(''))
 const challengeError = ref(false)
 const verifyingChallenge = ref(false)
+const otpRef = ref<{ focus: () => void } | null>(null)
 
-const onChallengeInput = (val: string) => {
-  challengeInput.value = val.replace(/\D/g, '').slice(0, 6)
+watch(challengeRequired, (val) => {
+  if (val) nextTick(() => otpRef.value?.focus())
+})
+
+const onOtpUpdate = (digits: string[]) => {
+  challengeDigits.value = digits
   challengeError.value = false
 }
 
@@ -73,6 +83,8 @@ const verifyChallenge = async () => {
     challengeRequired.value = false
   } else {
     challengeError.value = true
+    challengeDigits.value = ['', '', '', '', '', '']
+    nextTick(() => otpRef.value?.focus())
   }
 }
 
@@ -90,30 +102,15 @@ onMounted(async () => {
   loading.value = false
 })
 
-// ── Date helpers ─────────────────────────────────────────────────────────────
-// Normalise any date value (ISO string, YYYY-MM-DD, timestamp) to local YYYY-MM-DD
-const toLocalDateKey = (date: any): string => {
-  if (!date) return '__tbc__'
-  const d = new Date(date)
-  if (isNaN(d.getTime())) return '__tbc__'
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
+// ── City label ────────────────────────────────────────────────────────────────
+const { getCardCity: getCity } = useCityLabel()
 
-const formatHeaderRange = (startDate?: number, endDate?: number) => {
-  if (!startDate) return null
-  const fmt = (ts: number) =>
-    new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-  return endDate ? `${fmt(startDate)} – ${fmt(endDate)}` : fmt(startDate)
-}
+// ── Date helpers ──────────────────────────────────────────────────────────────
+const agendaItemsRef = computed(() => itinerary.value?.agendaItems ?? [])
+const { collapsedDays, toggleDay, groupedByDate, formatDate, formatHeaderRange } = useTravelDayGroups(agendaItemsRef)
 
-const formatDate = (dateKey: string) => {
-  if (dateKey === '__tbc__') return 'Date TBC'
-  const d = new Date(`${dateKey}T12:00:00`)
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
-}
+// ── Export ────────────────────────────────────────────────────────────────────
+const { exportJSON, exportCSV } = useTravelExport(itinerary, groupedByDate, getCity)
 
 // ── Agenda helpers ────────────────────────────────────────────────────────────
 const toHHMM = (val: any): string | null => {
@@ -133,146 +130,6 @@ const getTime = (item: AgendaRow): string | null => {
   const end = et ? toHHMM(et) : null
   return end ? `${start} – ${end}` : start
 }
-
-const getItemTimeMinutes = (item: AgendaRow): number => {
-  const unknown = item.unknownTime ?? item.unknown_time
-  const st = item.startTime ?? item.start_time
-  if (unknown || !st || typeof st !== 'string') return Infinity
-  const [h, m] = st.split(':').map(Number)
-  return isNaN(h) || isNaN(m) ? Infinity : h * 60 + m
-}
-
-const resolveCityLabel = (valuePath: string[]): string | null => {
-  if (!valuePath?.length) return null
-  let options: any[] = HiearchicalCountry as unknown as any[]
-  let label: string | null = null
-  for (const val of valuePath) {
-    const found = options.find((o) => o.value === val)
-    if (!found) return valuePath[valuePath.length - 1]
-    label = found.label
-    options = found.children ?? []
-  }
-  return label
-}
-
-const getCity = (item: AgendaRow): string | null => {
-  const raw: string[] | null =
-    item.cityRaw?.length
-      ? item.cityRaw
-      : (() => {
-          const src = item.city ?? (item as any).city_raw
-          if (!src) return null
-          try { return JSON.parse(src) } catch { return null }
-        })()
-  return resolveCityLabel(raw ?? [])
-}
-
-// ── Collapsible days ─────────────────────────────────────────────────────────
-const collapsedDays = ref(new Set<string>())
-const toggleDay = (key: string) => {
-  if (collapsedDays.value.has(key)) {
-    collapsedDays.value.delete(key)
-  } else {
-    collapsedDays.value.add(key)
-  }
-  collapsedDays.value = new Set(collapsedDays.value)
-}
-
-// ── Export ────────────────────────────────────────────────────────────────────
-const triggerDownload = (content: string, filename: string, mime: string) => {
-  const blob = new Blob([content], { type: mime })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
-const exportJSON = () => {
-  if (!itinerary.value) return
-  const data = {
-    title: itinerary.value.sessionTitle,
-    destination: itinerary.value.destination ?? null,
-    startDate: itinerary.value.startDate ?? null,
-    endDate: itinerary.value.endDate ?? null,
-    numberOfPax: itinerary.value.numberOfPax ?? null,
-    days: groupedByDate.value.map((group) => ({
-      date: group.date === '__tbc__' ? null : group.date,
-      dayNumber: group.dayNumber,
-      items: group.items.map((item) => ({
-        title: item.title,
-        category: item.category ?? null,
-        desc: item.desc ?? null,
-        city: getCity(item) ?? null,
-        startTime: (item.startTime ?? item.start_time) ?? null,
-        endTime: (item.endTime ?? (item as any).end_time) ?? null,
-        budget: item.budget ?? null,
-      })),
-    })),
-  }
-  const slug = (itinerary.value.sessionTitle || 'itinerary').replace(/\s+/g, '-').toLowerCase()
-  triggerDownload(JSON.stringify(data, null, 2), `${slug}.json`, 'application/json')
-}
-
-const exportCSV = () => {
-  if (!itinerary.value) return
-  const headers = ['Day', 'Date', 'Title', 'Category', 'Start Time', 'End Time', 'City', 'Budget', 'Description']
-  const q = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`
-  const rows = groupedByDate.value.flatMap((group) =>
-    group.items.map((item) => [
-      q(group.dayNumber ?? ''),
-      q(group.date === '__tbc__' ? '' : group.date),
-      q(item.title),
-      q(item.category ?? ''),
-      q(item.startTime ?? item.start_time ?? ''),
-      q((item.endTime ?? (item as any).end_time) ?? ''),
-      q(getCity(item) ?? ''),
-      q(item.budget ?? ''),
-      q(item.desc ?? ''),
-    ].join(','))
-  )
-  const csv = [headers.join(','), ...rows].join('\n')
-  const slug = (itinerary.value.sessionTitle || 'itinerary').replace(/\s+/g, '-').toLowerCase()
-  triggerDownload(csv, `${slug}.csv`, 'text/csv')
-}
-
-// ── Grouping ─────────────────────────────────────────────────────────────────
-const groupedByDate = computed(() => {
-  if (!itinerary.value?.agendaItems?.length) return []
-
-  const sorted = [...itinerary.value.agendaItems].sort((a, b) => {
-    if (!a.date && !b.date) return 0
-    if (!a.date) return 1
-    if (!b.date) return -1
-    return new Date(a.date).getTime() - new Date(b.date).getTime()
-  })
-
-  const map = new Map<string, AgendaRow[]>()
-  for (const item of sorted) {
-    const key = toLocalDateKey(item.date)
-    if (!map.has(key)) map.set(key, [])
-    map.get(key)!.push(item)
-  }
-
-  // Within each day: timed items sorted by start_time asc, then untimed items sorted by id asc
-  map.forEach((dayItems) => {
-    dayItems.sort((a, b) => {
-      const ta = getItemTimeMinutes(a)
-      const tb = getItemTimeMinutes(b)
-      if (ta !== tb) return ta - tb
-      // Both untimed — preserve insertion order by id
-      return (a.id ?? 0) - (b.id ?? 0)
-    })
-  })
-
-  let dayNumber = 0
-  return Array.from(map.entries()).map(([date, items]) => {
-    const isTbc = date === '__tbc__'
-    if (!isTbc) dayNumber++
-    return { date, items, dayNumber: isTbc ? null : dayNumber }
-  })
-})
 </script>
 
 <template>
@@ -289,15 +146,12 @@ const groupedByDate = computed(() => {
     <div class="gate-body">
       <div class="gate-icon">🔒</div>
       <p class="gate-desc">This itinerary is protected. Enter the 6-digit access code to view it.</p>
-      <el-input
-        :model-value="challengeInput"
-        placeholder="000000"
-        maxlength="6"
-        size="large"
-        :status="challengeError ? 'error' : ''"
-        style="letter-spacing: 0.3em; font-size: 1.2rem; text-align: center;"
-        @input="onChallengeInput"
-        @keyup.enter="verifyChallenge"
+      <OtpInput
+        ref="otpRef"
+        v-model="challengeDigits"
+        :error="challengeError"
+        @update:model-value="onOtpUpdate"
+        @complete="verifyChallenge"
       />
       <div v-if="challengeError" class="gate-error">Incorrect code. Please try again.</div>
     </div>
@@ -306,7 +160,7 @@ const groupedByDate = computed(() => {
         type="primary"
         style="width: 100%"
         :loading="verifyingChallenge"
-        :disabled="challengeInput.length !== 6"
+        :disabled="challengeInput.length !== 6 || verifyingChallenge"
         @click="verifyChallenge"
       >
         Unlock
@@ -358,9 +212,7 @@ const groupedByDate = computed(() => {
       </header>
 
       <!-- Empty agenda -->
-      <div v-if="groupedByDate.length === 0" class="empty-agenda">
-        <p>No agenda items yet.</p>
-      </div>
+      <EmptyState v-if="groupedByDate.length === 0" icon="🗺️" title="No agenda items yet." />
 
       <!-- Timeline -->
       <div v-else class="timeline">
@@ -527,14 +379,6 @@ const groupedByDate = computed(() => {
   border: 1px solid var(--color-border);
   border-radius: 20px;
   padding: 3px 10px;
-}
-
-/* ── Empty ── */
-.empty-agenda {
-  font-size: 0.85rem;
-  color: var(--color-text);
-  opacity: 0.5;
-  padding: 20px 0;
 }
 
 /* ── Timeline ── */

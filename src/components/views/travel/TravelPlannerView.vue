@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, computed, onMounted, watchEffect } from 'vue'
+import { ref, computed, onMounted, watchEffect, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useNav } from '@/hooks/useNav'
 import { useItineraryStore } from '@/stores/itinerary'
@@ -9,10 +9,14 @@ import { useAuthenticationStore } from '@/stores/authentication'
 import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
 import { createTravelPlannerVTableColumns } from './TravelPlannerVTableColumns'
-import { HiearchicalCountry } from '@/constants/HierarchicalCountry'
-import { TRAVEL_CATEGORIES, getCategoryEmoji } from '@/constants/TravelCategories'
-import type { CascaderValue, CascaderOption } from 'element-plus'
+import { getCategoryEmoji } from '@/constants/TravelCategories'
 import type { AgendaItem } from '@/interfaces/forms/itinerary/AgendaItem'
+import EmptyState from '@/components/common/EmptyState.vue'
+import PrivacyDialog from '@/components/views/travel/PrivacyDialog.vue'
+import AgendaDrawer from '@/components/views/travel/AgendaDrawer.vue'
+import { useTravelDayGroups } from '@/composables/useTravelDayGroups'
+import { useTravelExport } from '@/composables/useTravelExport'
+import { useCityLabel } from '@/composables/useCityLabel'
 
 const route = useRoute()
 const nav = useNav()
@@ -28,16 +32,16 @@ const loading = ref(true)
 const saving = ref(false)
 const editMode = ref<'form' | 'table'>('form')
 
-// ── Collapsible days ──────────────────────────────────────────────────────────
-const collapsedDays = ref(new Set<string>())
-const toggleDay = (key: string) => {
-  if (collapsedDays.value.has(key)) {
-    collapsedDays.value.delete(key)
-  } else {
-    collapsedDays.value.add(key)
-  }
-  collapsedDays.value = new Set(collapsedDays.value)
-}
+// ── City label ────────────────────────────────────────────────────────────────
+const { getCardCity } = useCityLabel()
+
+// ── Collapsible days + grouping ───────────────────────────────────────────────
+const agendaItemsRef = computed(() => itinerary.value.agendaItems ?? [])
+const { collapsedDays, toggleDay, groupedByDate, formatDate: formatGroupDate, toLocalDateKey } = useTravelDayGroups(agendaItemsRef)
+
+// ── Export ────────────────────────────────────────────────────────────────────
+const itineraryAsNullable = computed(() => itinerary.value as any)
+const { exportJSON, exportCSV } = useTravelExport(itineraryAsNullable, groupedByDate, getCardCity)
 
 // ── Responsive drawer ─────────────────────────────────────────────────────────
 const { width } = useBreakpointManager()
@@ -52,6 +56,7 @@ watchEffect(() => { if (isMobile.value) editMode.value = 'form' })
 const drawerVisible = ref(false)
 const drawerIsNew = ref(false)
 const drawerEditKey = ref<string | undefined>()
+const drawerItem = ref<AgendaItem | null>(null)
 
 const makeBlankDraft = (presetDate = ''): AgendaItem => ({
   _localIndex: `agenda-${Date.now()}`,
@@ -70,16 +75,12 @@ const makeBlankDraft = (presetDate = ''): AgendaItem => ({
   _agendaToFileMapping: [],
 })
 
-const drawerForm = ref<AgendaItem>(makeBlankDraft())
-
 const openAddDrawer = (presetDate?: string) => {
   if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
   drawerIsNew.value = true
   drawerEditKey.value = undefined
-  // Always normalise to a clean local YYYY-MM-DD so the date picker shows
-  // the right day regardless of what format came from the backend.
   const normalised = presetDate ? toLocalDateKey(presetDate) : ''
-  drawerForm.value = makeBlankDraft(normalised === '__tbc__' ? '' : normalised)
+  drawerItem.value = makeBlankDraft(normalised === '__tbc__' ? '' : normalised)
   drawerVisible.value = true
 }
 
@@ -88,14 +89,11 @@ const openEditDrawer = (item: AgendaItem) => {
   drawerIsNew.value = false
   drawerEditKey.value = item.id ?? item._localIndex
   const a = item as any
-
-  // Normalise snake_case fields that backend-loaded items carry
   const cityRaw: string[] =
     item.cityRaw?.length
       ? item.cityRaw
       : (() => { try { return JSON.parse(a.city_raw ?? '[]') } catch { return [] } })()
-
-  drawerForm.value = {
+  drawerItem.value = {
     ...item,
     startTime: item.startTime ?? a.start_time ?? undefined,
     endTime: item.endTime ?? a.end_time ?? undefined,
@@ -105,51 +103,19 @@ const openEditDrawer = (item: AgendaItem) => {
   drawerVisible.value = true
 }
 
-const saveDrawerItem = () => {
-  if (!drawerForm.value.title.trim()) {
-    ElMessage.warning('Please enter a title.')
-    return
-  }
+const onDrawerSave = (item: AgendaItem) => {
   if (drawerIsNew.value) {
-    itinerary.value.agendaItems.push({ ...drawerForm.value })
+    itinerary.value.agendaItems.push({ ...item })
   } else {
     const idx = itinerary.value.agendaItems.findIndex(
       (i) => (i.id ?? i._localIndex) === drawerEditKey.value,
     )
-    if (idx !== -1) itinerary.value.agendaItems[idx] = { ...drawerForm.value }
+    if (idx !== -1) itinerary.value.agendaItems[idx] = { ...item }
   }
   drawerVisible.value = false
 }
 
-const drawerCityChange = (val: CascaderValue | null | undefined) => {
-  drawerForm.value.city = val ? JSON.stringify(val) : ''
-  drawerForm.value.cityRaw = (val as string[] | null) ?? []
-}
-
-const drawerDisabledDate = (time: Date) => {
-  const { startDate, endDate, unknownDate } = itinerary.value
-  if (unknownDate || (!startDate && !endDate)) return false
-  const t = time.getTime()
-  const toMid = (ts: number) => { const d = new Date(ts); d.setHours(0, 0, 0, 0); return d.getTime() }
-  if (startDate && t < toMid(startDate)) return true
-  if (endDate && t > toMid(endDate)) return true
-  return false
-}
-
 // ── Form mode helpers ─────────────────────────────────────────────────────────
-
-// Converts any date value (ISO string, YYYY-MM-DD, timestamp, Date) to a
-// local YYYY-MM-DD string so that dates from the backend, table mode, and
-// drawer all group together correctly.
-const toLocalDateKey = (date: any): string => {
-  if (!date) return '__tbc__'
-  const d = new Date(date)
-  if (isNaN(d.getTime())) return '__tbc__'
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
 
 const getCardTime = (item: AgendaItem) => {
   const unknownTime = item.unknownTime || !!(item as any).unknown_time
@@ -165,79 +131,6 @@ const getCardTime = (item: AgendaItem) => {
   const et = item.endTime ?? (item as any).end_time
   const end = et ? toHHMM(et) : null
   return end ? `${start} – ${end}` : start
-}
-
-const getItemTimeMinutes = (item: AgendaItem): number => {
-  const unknownTime = item.unknownTime || !!(item as any).unknown_time
-  const st = item.startTime ?? (item as any).start_time
-  if (unknownTime || !st || typeof st !== 'string') return Infinity
-  const [h, m] = st.split(':').map(Number)
-  return isNaN(h) || isNaN(m) ? Infinity : h * 60 + m
-}
-
-const resolveCityLabel = (valuePath: string[]): string | null => {
-  if (!valuePath?.length) return null
-  let options: any[] = HiearchicalCountry as unknown as any[]
-  let label: string | null = null
-  for (const val of valuePath) {
-    const found = options.find((o) => o.value === val)
-    if (!found) return valuePath[valuePath.length - 1]
-    label = found.label
-    options = found.children ?? []
-  }
-  return label
-}
-
-const getCardCity = (item: AgendaItem) => {
-  const raw: string[] | null =
-    item.cityRaw?.length
-      ? item.cityRaw
-      : (() => {
-          const src = item.city ?? (item as any).city_raw
-          if (!src) return null
-          try { return JSON.parse(src) } catch { return null }
-        })()
-  return resolveCityLabel(raw ?? [])
-}
-
-const groupedByDate = computed(() => {
-  const items = itinerary.value.agendaItems
-  if (!items?.length) return []
-
-  // Sort by timestamp for correct chronological order
-  const sorted = [...items].sort((a, b) => {
-    if (!a.date && !b.date) return 0
-    if (!a.date) return 1
-    if (!b.date) return -1
-    return new Date(a.date as any).getTime() - new Date(b.date as any).getTime()
-  })
-
-  // Normalise every date to a local YYYY-MM-DD key so that ISO strings from
-  // the backend, date strings from the table, and strings from the drawer all
-  // collapse to the same group.
-  const map = new Map<string, AgendaItem[]>()
-  for (const item of sorted) {
-    const key = toLocalDateKey(item.date)
-    if (!map.has(key)) map.set(key, [])
-    map.get(key)!.push(item)
-  }
-
-  // Sort within each day by start time; items with no time sort to the end
-  map.forEach((dayItems) => dayItems.sort((a, b) => getItemTimeMinutes(a) - getItemTimeMinutes(b)))
-
-  let dayNumber = 0
-  return Array.from(map.entries()).map(([date, items]) => {
-    const isTbc = date === '__tbc__'
-    if (!isTbc) dayNumber++
-    return { date, items, dayNumber: isTbc ? null : dayNumber }
-  })
-})
-
-const formatGroupDate = (dateKey: string) => {
-  if (dateKey === '__tbc__') return 'Date TBC'
-  // Add T12:00:00 so parsing is never affected by UTC-midnight timezone shifts
-  const d = new Date(`${dateKey}T12:00:00`)
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 // ── Table mode (unchanged) ────────────────────────────────────────────────────
@@ -294,7 +187,6 @@ onMounted(async () => {
   await itineraryStore.retrieveItineraryForUpdate(sessionId)
   loading.value = false
   if (!sessionStorage.getItem(privacySeenKey) && !itinerary.value.challenge) {
-    challengeDraft.value = ''
     privacyDialogVisible.value = true
   }
 })
@@ -326,96 +218,32 @@ const handleShare = () => {
 
 // ── Privacy / challenge ───────────────────────────────────────────────────────
 const privacyDialogVisible = ref(false)
-const challengeDraft = ref('')
 const privacySeenKey = `itinerary-privacy-seen-${sessionId}`
+const privacyDialogRef = ref<{ setDigits: (d: string[]) => void } | null>(null)
 
 const openPrivacyDialog = () => {
   if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
-  challengeDraft.value = itinerary.value.challenge ?? ''
+  const existing = itinerary.value.challenge ?? ''
+  const digits = [...existing.slice(0, 6).split(''), '', '', '', '', ''].slice(0, 6)
   privacyDialogVisible.value = true
+  // Set existing digits after dialog opens
+  nextTick(() => privacyDialogRef.value?.setDigits(digits))
 }
 
-const onChallengeInput = (val: string) => {
-  challengeDraft.value = val.replace(/\D/g, '').slice(0, 6)
-}
-
-const saveChallenge = () => {
-  if (challengeDraft.value && challengeDraft.value.length !== 6) {
-    ElMessage.warning('Access code must be exactly 6 digits.')
-    return
-  }
-  itinerary.value.challenge = challengeDraft.value || undefined
+const onPrivacySave = (code: string | undefined) => {
+  itinerary.value.challenge = code
   sessionStorage.setItem(privacySeenKey, '1')
-  privacyDialogVisible.value = false
   ElMessage.success(
-    challengeDraft.value
+    code
       ? 'Access code set. Save your trip to apply.'
       : 'No access code set — trip remains public.',
   )
 }
 
-const skipPrivacy = () => {
+const onPrivacyClose = () => {
   sessionStorage.setItem(privacySeenKey, '1')
-  privacyDialogVisible.value = false
 }
 
-// ── Export ────────────────────────────────────────────────────────────────────
-const triggerDownload = (content: string, filename: string, mime: string) => {
-  const blob = new Blob([content], { type: mime })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
-const exportJSON = () => {
-  const data = {
-    title: itinerary.value.sessionTitle,
-    destination: itinerary.value.destination,
-    startDate: itinerary.value.startDate,
-    endDate: itinerary.value.endDate,
-    numberOfPax: itinerary.value.numberOfPax,
-    agendaItems: groupedByDate.value.flatMap((group) =>
-      group.items.map((item) => ({
-        day: group.dayNumber ?? null,
-        date: group.date === '__tbc__' ? null : group.date,
-        category: item.category ?? null,
-        title: item.title,
-        description: item.desc ?? null,
-        startTime: item.startTime ?? (item as any).start_time ?? null,
-        endTime: item.endTime ?? (item as any).end_time ?? null,
-        city: getCardCity(item),
-        budget: item.budget ?? null,
-      }))
-    ),
-  }
-  const name = (itinerary.value.sessionTitle || 'itinerary').replace(/[^\w\s-]/g, '').trim()
-  triggerDownload(JSON.stringify(data, null, 2), `${name}.json`, 'application/json')
-}
-
-const exportCSV = () => {
-  const headers = ['Day', 'Date', 'Category', 'Title', 'Description', 'Start Time', 'End Time', 'City', 'Budget']
-  const rows = groupedByDate.value.flatMap((group) =>
-    group.items.map((item) => [
-      group.dayNumber ?? '',
-      group.date === '__tbc__' ? 'TBC' : group.date,
-      item.category ?? '',
-      item.title,
-      item.desc ?? '',
-      item.startTime ?? (item as any).start_time ?? '',
-      item.endTime ?? (item as any).end_time ?? '',
-      getCardCity(item) ?? '',
-      item.budget ?? '',
-    ])
-  )
-  const csv = [headers, ...rows]
-    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-    .join('\n')
-  const name = (itinerary.value.sessionTitle || 'itinerary').replace(/[^\w\s-]/g, '').trim()
-  triggerDownload(csv, `${name}.csv`, 'text/csv;charset=utf-8;')
-}
 </script>
 
 <template>
@@ -476,11 +304,9 @@ const exportCSV = () => {
     <div v-else-if="editMode === 'form'" class="form-mode">
 
       <!-- Empty state -->
-      <div v-if="groupedByDate.length === 0" class="form-empty">
-        <div class="form-empty-icon">🗺️</div>
-        <p class="form-empty-text">No agenda items yet.</p>
+      <EmptyState v-if="groupedByDate.length === 0" icon="🗺️" title="No agenda items yet.">
         <el-button type="primary" @click="openAddDrawer()">+ Add First Item</el-button>
-      </div>
+      </EmptyState>
 
       <!-- Day groups -->
       <div v-else>
@@ -557,121 +383,25 @@ const exportCSV = () => {
   <el-backtop target=".wrapper" :visibility-height="300" :right="24" :bottom="32" />
 
   <!-- ── PRIVACY DIALOG ───────────────────────────────────────────────── -->
-  <el-dialog
+  <PrivacyDialog
+    ref="privacyDialogRef"
     v-model="privacyDialogVisible"
-    title="Trip Privacy"
-    width="360px"
-    :close-on-click-modal="false"
-    align-center
-  >
-    <div class="privacy-dialog-body">
-      <div class="privacy-warning">
-        <span class="privacy-icon">🌐</span>
-        <p>This trip is <strong>public by default</strong> — anyone with the share link can view it.</p>
-      </div>
-      <p class="privacy-hint">
-        You can set a 6-digit numeric access code. Viewers will need this code to see your itinerary.
-      </p>
-      <div class="privacy-input-wrap">
-        <el-input
-          :model-value="challengeDraft"
-          placeholder="e.g. 123456"
-          maxlength="6"
-          size="large"
-          style="letter-spacing: 0.25em; font-size: 1.1rem; text-align: center;"
-          :clearable="true"
-          @input="onChallengeInput"
-        />
-        <div class="privacy-input-hint">Leave blank to keep the trip public</div>
-      </div>
-    </div>
-    <template #footer>
-      <div class="privacy-dialog-footer">
-        <el-button @click="skipPrivacy">Skip for now</el-button>
-        <el-button type="primary" @click="saveChallenge">
-          {{ challengeDraft ? 'Set Access Code' : 'Keep Public' }}
-        </el-button>
-      </div>
-    </template>
-  </el-dialog>
+    @save="onPrivacySave"
+    @update:model-value="(v) => { if (!v) onPrivacyClose() }"
+  />
 
   <!-- ── DRAWER ─────────────────────────────────────────────────────────── -->
-  <el-drawer v-model="drawerVisible" :title="drawerIsNew ? 'New Agenda Item' : 'Edit Item'" :direction="drawerDirection"
-    :size="drawerSize">
-    <div class="drawer-form">
-
-      <!-- Category -->
-      <div class="form-section">
-        <div class="form-label">Category</div>
-        <div class="category-grid">
-          <button v-for="cat in TRAVEL_CATEGORIES" :key="cat.value" class="cat-btn"
-            :class="{ active: drawerForm.category === cat.value }" @click="drawerForm.category = cat.value">
-            <span class="cat-emoji">{{ cat.emoji }}</span>
-            <span class="cat-label">{{ cat.label }}</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Title -->
-      <div class="form-section">
-        <div class="form-label">Title <span class="req">*</span></div>
-        <el-input v-model="drawerForm.title" placeholder="e.g. Lunch at local restaurant" size="large" />
-      </div>
-
-      <!-- Date -->
-      <div class="form-section">
-        <div class="form-label">Date</div>
-        <el-date-picker v-model="drawerForm.date" type="date" placeholder="Select date" style="width: 100%"
-          value-format="YYYY-MM-DD" :disabled-date="drawerDisabledDate"
-          :default-value="itinerary.startDate ? new Date(itinerary.startDate) : undefined" size="large" />
-      </div>
-
-      <!-- City -->
-      <div class="form-section">
-        <div class="form-label">City</div>
-        <el-cascader :model-value="drawerForm.cityRaw" :options="HiearchicalCountry as unknown as CascaderOption[]"
-          placeholder="Select city" style="width: 100%" :props="{ checkStrictly: true }" clearable size="large"
-          @change="drawerCityChange" />
-      </div>
-
-      <!-- Time -->
-      <div class="form-section">
-        <div class="form-label">Time</div>
-        <div class="time-row">
-          <el-time-picker v-model="drawerForm.startTime" placeholder="Start" style="flex: 1" format="HH:mm"
-            value-format="HH:mm" :disabled="drawerForm.unknownTime" size="large" />
-          <span class="time-sep">–</span>
-          <el-time-picker v-model="drawerForm.endTime" placeholder="End" style="flex: 1" format="HH:mm"
-            value-format="HH:mm" :disabled="drawerForm.unknownTime" size="large" />
-        </div>
-        <el-checkbox v-model="drawerForm.unknownTime" style="margin-top: 6px">
-          Time TBC
-        </el-checkbox>
-      </div>
-
-      <!-- Notes -->
-      <div class="form-section">
-        <div class="form-label">Notes</div>
-        <el-input v-model="drawerForm.desc" type="textarea" :rows="3" placeholder="Any notes or details..."
-          size="large" />
-      </div>
-
-      <!-- Budget -->
-      <div class="form-section">
-        <div class="form-label">Budget</div>
-        <el-input-number v-model="drawerForm.budget" :min="0" style="width: 100%" size="large" placeholder="0.00" />
-      </div>
-
-      <!-- Actions -->
-      <div class="drawer-actions">
-        <el-button style="flex: 1" @click="drawerVisible = false">Cancel</el-button>
-        <el-button style="flex: 1" type="primary" @click="saveDrawerItem">
-          {{ drawerIsNew ? 'Add Item' : 'Save Changes' }}
-        </el-button>
-      </div>
-
-    </div>
-  </el-drawer>
+  <AgendaDrawer
+    v-model="drawerVisible"
+    :item="drawerItem"
+    :is-new="drawerIsNew"
+    :drawer-direction="drawerDirection"
+    :drawer-size="drawerSize"
+    :start-date="itinerary.startDate"
+    :end-date="itinerary.endDate"
+    :unknown-date="itinerary.unknownDate"
+    @save="onDrawerSave"
+  />
 </template>
 
 <style scoped>
@@ -748,24 +478,6 @@ const exportCSV = () => {
 /* ── Form mode ── */
 .form-mode {
   flex: 1;
-}
-
-.form-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 60px 0;
-}
-
-.form-empty-icon {
-  font-size: 2.4rem;
-}
-
-.form-empty-text {
-  font-size: 0.9rem;
-  color: var(--color-text);
-  opacity: 0.55;
 }
 
 /* Day groups */
@@ -966,150 +678,6 @@ const exportCSV = () => {
 
 .form-add-global {
   margin-top: 8px;
-}
-
-/* ── Drawer form ── */
-.drawer-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.drawer-actions {
-  display: flex;
-  gap: 8px;
-  position: sticky;
-  bottom: 0;
-  padding: 16px 0 8px;
-  background: var(--el-drawer-bg-color, var(--color-background-soft));
-}
-
-.form-section {
-  margin-bottom: 18px;
-}
-
-.form-label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--color-text);
-  opacity: 0.7;
-  margin-bottom: 6px;
-}
-
-.req {
-  color: #f87171;
-}
-
-/* Category grid */
-.category-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-}
-
-.cat-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  padding: 8px 4px;
-  border-radius: 8px;
-  border: 1px solid var(--color-border);
-  background: var(--color-background-soft);
-  cursor: pointer;
-  transition: border-color 0.12s, background 0.12s;
-}
-
-.cat-btn:hover {
-  border-color: var(--el-color-primary);
-  background: var(--color-background-mute);
-}
-
-.cat-btn.active {
-  border-color: var(--el-color-primary);
-  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
-}
-
-.cat-emoji {
-  font-size: 1.3rem;
-  line-height: 1;
-}
-
-.cat-label {
-  font-size: 0.68rem;
-  color: var(--color-text);
-  font-weight: 500;
-}
-
-/* Time row */
-.time-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.time-sep {
-  font-size: 0.9rem;
-  color: var(--color-text);
-  opacity: 0.5;
-  flex-shrink: 0;
-}
-
-/* ── Privacy dialog ── */
-.privacy-dialog-body {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.privacy-warning {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px;
-  background: color-mix(in srgb, var(--el-color-warning) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--el-color-warning) 30%, transparent);
-  border-radius: 8px;
-}
-
-.privacy-icon {
-  font-size: 1.3rem;
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.privacy-warning p {
-  font-size: 0.85rem;
-  color: var(--color-text);
-  line-height: 1.5;
-  margin: 0;
-}
-
-.privacy-hint {
-  font-size: 0.82rem;
-  color: var(--color-text);
-  opacity: 0.7;
-  line-height: 1.55;
-  margin: 0;
-}
-
-.privacy-input-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.privacy-input-hint {
-  font-size: 0.74rem;
-  color: var(--color-text);
-  opacity: 0.5;
-  text-align: center;
-}
-
-.privacy-dialog-footer {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
 }
 
 /* ── Auth gate ── */
