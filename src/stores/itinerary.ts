@@ -7,6 +7,7 @@ import type { Itinerary } from '@/interfaces/forms/itinerary/Itinerary'
 import { ApiRoute } from '@/constants/ApiRoute'
 import { ListUtils } from '@/utilities/ListUtils'
 import type { AgendaItem } from '@/interfaces/forms/itinerary/AgendaItem'
+import type { ItineraryBooking } from '@/interfaces/forms/itinerary/ItineraryBooking'
 
 export const useItineraryStore = defineStore('itinerary', () => {
   const loadingStage = ref<'Storing Itinerary' | 'Uploading Files' | 'Completed' | ''>('')
@@ -22,6 +23,9 @@ export const useItineraryStore = defineStore('itinerary', () => {
     destinationRaw: [],
     _agendaIdsToDelete: [],
     _agendaIdsToUpdate: [],
+    bookings: [],
+    paxNames: [],
+    _bookingIdsToDelete: [],
   })
 
   const resetItinerary = () => {
@@ -36,6 +40,9 @@ export const useItineraryStore = defineStore('itinerary', () => {
     itinerary.challenge = undefined
     itinerary._agendaIdsToDelete = []
     itinerary._agendaIdsToUpdate = []
+    itinerary.bookings = []
+    itinerary.paxNames = []
+    itinerary._bookingIdsToDelete = []
   }
 
   const createItinerary = async (): Promise<{
@@ -337,6 +344,31 @@ export const useItineraryStore = defineStore('itinerary', () => {
     }
   }
 
+  const addBooking = (booking: ItineraryBooking) => {
+    itinerary.bookings.push({ ...booking, _localIndex: `booking-${Date.now()}` })
+  }
+
+  const removeBooking = (booking: ItineraryBooking) => {
+    const index = itinerary.bookings.findIndex(
+      (b) => b._localIndex === booking._localIndex || (b.id && b.id === booking.id),
+    )
+    if (index !== -1) {
+      if (itinerary.bookings[index].id !== undefined) {
+        itinerary._bookingIdsToDelete?.push(itinerary.bookings[index].id!)
+      }
+      itinerary.bookings.splice(index, 1)
+    }
+  }
+
+  const updateBooking = (updatedBooking: ItineraryBooking) => {
+    const index = itinerary.bookings.findIndex(
+      (b) => b._localIndex === updatedBooking._localIndex || (b.id && b.id === updatedBooking.id),
+    )
+    if (index !== -1) {
+      itinerary.bookings.splice(index, 1, updatedBooking)
+    }
+  }
+
   const updateAgendaItem = (updatedItem: AgendaItem) => {
     if (updatedItem.id) {
       itinerary._agendaIdsToUpdate?.push(updatedItem.id)
@@ -386,6 +418,9 @@ export const useItineraryStore = defineStore('itinerary', () => {
       : undefined
     itinerary.shortCode = clonedRetrievedItinerary.shortCode
     itinerary.challenge = clonedRetrievedItinerary.challenge
+    itinerary.bookings = clonedRetrievedItinerary.bookings ?? []
+    itinerary.paxNames = clonedRetrievedItinerary.paxNames ?? []
+    itinerary._bookingIdsToDelete = []
   }
 
   return {
@@ -403,5 +438,8 @@ export const useItineraryStore = defineStore('itinerary', () => {
     removeAgendaItem,
     onUnknownDateToggle,
     updateAgendaItem,
+    addBooking,
+    removeBooking,
+    updateBooking,
   }
 })

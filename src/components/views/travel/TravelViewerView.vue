@@ -10,6 +10,8 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import { useTravelDayGroups } from '@/composables/useTravelDayGroups'
 import { useTravelExport } from '@/composables/useTravelExport'
 import { useCityLabel } from '@/composables/useCityLabel'
+import type { ItineraryBooking } from '@/interfaces/forms/itinerary/ItineraryBooking'
+import { ArrowDown } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const nav = useNav()
@@ -42,6 +44,8 @@ interface ItineraryData {
   numberOfPax?: number
   viewCount?: number
   agendaItems: AgendaRow[]
+  bookings?: ItineraryBooking[]
+  paxNames?: string[]
 }
 
 const itinerary = ref<ItineraryData | null>(null)
@@ -131,6 +135,52 @@ const getTime = (item: AgendaRow): string | null => {
   const end = et ? toHHMM(et) : null
   return end ? `${start} – ${end}` : start
 }
+
+// ── Bookings ──────────────────────────────────────────────────────────────────
+const BOOKING_EMOJI: Record<string, string> = {
+  flight: '✈️',
+  accommodation: '🏨',
+  transport: '🚌',
+  other: '📦',
+}
+const getBookingEmoji = (category?: string) => BOOKING_EMOJI[category ?? ''] ?? '📦'
+
+function parsePayment(payment: string | undefined): { label: string; date?: string; type: 'success' | 'warning' | 'info' } | null {
+  if (!payment) return null
+  const match = payment.match(/^([^(]+?)\s*(?:\(([^)]+)\))?$/)
+  if (!match) return { label: payment, type: 'info' }
+  const label = match[1].trim()
+  const date = match[2]?.trim()
+  const lc = label.toLowerCase()
+  const type = lc === 'instant' ? 'success' : lc === 'delayed' ? 'warning' : 'info'
+  return { label, date, type }
+}
+
+const viewerPaxNames = computed(() => {
+  if (itinerary.value?.paxNames?.length) return itinerary.value.paxNames
+  const n = itinerary.value?.numberOfPax ?? 1
+  if (n === 1) return ['Me']
+  return Array.from({ length: n }, (_, i) => `Person ${i + 1}`)
+})
+
+const viewerBookings = computed(() => itinerary.value?.bookings ?? [])
+
+const viewerBookingTotal = computed(() =>
+  viewerBookings.value.reduce((sum, b) => sum + (b.price ?? 0), 0),
+)
+
+const viewerBookedCount = computed(() =>
+  viewerBookings.value.filter((b) => b.booked).length,
+)
+
+const hasAccommodation = computed(() =>
+  viewerBookings.value.some((b) => b.category === 'accommodation'),
+)
+
+const bookingsCollapsed = ref(false)
+
+// ── Mobile ────────────────────────────────────────────────────────────────────
+const isMobile = computed(() => window.innerWidth <= 600)
 </script>
 
 <template>
@@ -262,6 +312,134 @@ const getTime = (item: AgendaRow): string | null => {
             </div>
           </div>
 
+        </div>
+      </div>
+
+      <!-- ── Bookings Section ─────────────────────────────────────────── -->
+      <div v-if="viewerBookings.length > 0" class="bookings-section">
+        <div class="bookings-header" @click="bookingsCollapsed = !bookingsCollapsed">
+          <div class="bookings-header-left">
+            <span class="bookings-title">Bookings</span>
+            <div class="bookings-pills">
+              <span class="booking-pill">SGD {{ viewerBookingTotal.toFixed(2) }}</span>
+              <span class="booking-pill">{{ viewerBookedCount }} / {{ viewerBookings.length }} booked</span>
+            </div>
+          </div>
+          <div class="bookings-header-right">
+            <span class="pax-names-label">{{ viewerPaxNames.join(' · ') }}</span>
+            <el-icon class="collapse-icon" :class="{ 'is-collapsed': bookingsCollapsed }">
+              <arrow-down />
+            </el-icon>
+          </div>
+        </div>
+
+        <div v-show="!bookingsCollapsed">
+          <!-- Mobile: card list -->
+          <div v-if="isMobile" class="booking-cards">
+            <div
+              v-for="booking in viewerBookings"
+              :key="booking.id"
+              class="booking-card"
+            >
+              <div class="booking-card-header">
+                <span class="booking-cat-emoji">{{ getBookingEmoji(booking.category) }}</span>
+                <span class="booking-card-item">{{ booking.item }}</span>
+                <el-tag v-if="booking.booked" type="success" size="small" effect="light">Booked</el-tag>
+                <el-tag v-else type="info" size="small" effect="light">Pending</el-tag>
+              </div>
+              <div class="booking-card-meta">
+                <span v-if="booking.remarks">📍 {{ booking.remarks }}</span>
+                <span v-if="booking.price != null">SGD {{ booking.price.toFixed(2) }}</span>
+                <span v-if="booking.nights">{{ booking.nights }}N</span>
+                <span v-if="booking.freeCancellation">🔄 {{ booking.freeCancellation }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Desktop: table -->
+          <el-table v-else :data="viewerBookings" class="booking-table" size="small">
+            <el-table-column width="40">
+              <template #default="{ row }">
+                <span>{{ getBookingEmoji(row.category) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="Item" min-width="160">
+              <template #default="{ row }">
+                <a v-if="row.link" :href="row.link" target="_blank" class="booking-link">{{ row.item }}</a>
+                <span v-else>{{ row.item }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="Remarks" min-width="80">
+              <template #default="{ row }">
+                <span v-if="row.remarks">{{ row.remarks }}</span>
+                <span v-else class="dim">—</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="Payment" width="100">
+              <template #default="{ row }">
+                <template v-if="parsePayment(row.payment) as any">
+                  <el-tooltip
+                    v-if="parsePayment(row.payment)!.date"
+                    :content="parsePayment(row.payment)!.date"
+                    placement="top"
+                  >
+                    <el-tag :type="parsePayment(row.payment)!.type" size="small" effect="light" style="cursor:default">
+                      {{ parsePayment(row.payment)!.label }}
+                    </el-tag>
+                  </el-tooltip>
+                  <el-tag v-else :type="parsePayment(row.payment)!.type" size="small" effect="light">
+                    {{ parsePayment(row.payment)!.label }}
+                  </el-tag>
+                </template>
+                <span v-else class="dim">—</span>
+              </template>
+            </el-table-column>
+            <el-table-column
+              v-for="name in viewerPaxNames"
+              :key="name"
+              :label="name"
+              width="80"
+            >
+              <template #default="{ row }">
+                <span v-if="row.paxBreakdown?.[name] != null">{{ row.paxBreakdown[name].toFixed(0) }}</span>
+                <span v-else class="dim">—</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="Total" width="90">
+              <template #default="{ row }">
+                <span v-if="row.price != null">{{ row.price.toFixed(2) }}</span>
+                <span v-else class="dim">—</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="Dates" width="150">
+              <template #default="{ row }">
+                <span v-if="row.startDate || row.endDate">
+                  {{ row.startDate ?? '' }}<template v-if="row.startDate && row.endDate"> → </template>{{ row.endDate ?? '' }}
+                  <template v-if="row.nights"> ({{ row.nights }}N)</template>
+                </span>
+                <span v-else class="dim">—</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="Booked" width="70" align="center">
+              <template #default="{ row }">
+                <el-tag :type="row.booked ? 'success' : 'info'" size="small" effect="light">
+                  {{ row.booked ? '✓' : '✗' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="Cancellation" min-width="130">
+              <template #default="{ row }">
+                <span v-if="row.freeCancellation">{{ row.freeCancellation }}</span>
+                <span v-else class="dim">—</span>
+              </template>
+            </el-table-column>
+            <el-table-column v-if="hasAccommodation" label="Bfast" width="60" align="center">
+              <template #default="{ row }">
+                <span v-if="row.category === 'accommodation'">{{ row.breakfast ? '✓' : '✗' }}</span>
+                <span v-else class="dim">—</span>
+              </template>
+            </el-table-column>
+          </el-table>
         </div>
       </div>
 
@@ -562,5 +740,138 @@ const getTime = (item: AgendaRow): string | null => {
   .viewer-wrap {
     padding: 0;
   }
+}
+
+/* Bookings section */
+.bookings-section {
+  margin-top: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.bookings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--color-background-soft);
+  cursor: pointer;
+  user-select: none;
+  gap: 12px;
+}
+
+.bookings-header:hover {
+  background: var(--color-background-mute);
+}
+
+.bookings-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bookings-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.bookings-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.booking-pill {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--el-color-primary-light-8);
+  color: var(--el-color-primary);
+  white-space: nowrap;
+}
+
+.bookings-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pax-names-label {
+  font-size: 12px;
+  color: var(--color-text);
+  opacity: 0.7;
+}
+
+.collapse-icon {
+  transition: transform 0.2s;
+  color: var(--color-text);
+  opacity: 0.5;
+}
+
+.collapse-icon.is-collapsed {
+  transform: rotate(-90deg);
+}
+
+.booking-table {
+  width: 100%;
+}
+
+.booking-table :deep(.dim) {
+  opacity: 0.35;
+}
+
+.booking-table :deep(.booking-link) {
+  color: var(--el-color-primary);
+  text-decoration: none;
+}
+
+.booking-table :deep(.booking-link:hover) {
+  text-decoration: underline;
+}
+
+/* Mobile booking cards */
+.booking-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+}
+
+.booking-card {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.booking-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.booking-cat-emoji {
+  font-size: 16px;
+}
+
+.booking-card-item {
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+}
+
+.booking-card-meta {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--color-text);
+  opacity: 0.75;
+  flex-wrap: wrap;
 }
 </style>
