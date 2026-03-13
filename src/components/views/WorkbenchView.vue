@@ -48,6 +48,13 @@ const modules = [
     icon: '✈️',
     path: '/travel',
   },
+  {
+    key: 'douyin',
+    title: 'Douyin Live',
+    description: 'Check if a Douyin user is livestreaming',
+    icon: '📺',
+    path: '/douyin',
+  },
   // {
   //   key: 'habit',
   //   title: 'Habit',

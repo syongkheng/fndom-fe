@@ -3,6 +3,7 @@ export enum StorageKey {
   EXISTING_SESSION = 'sessionId',
   ITINERARY_IDEMPOTENCY_KEY = 'itineraryIdempotencyKey',
   JWT = 'token',
+  DOUYIN_RECENT = 'douyinRecent',
 }
 
 type StorageType = 'local' | 'session'

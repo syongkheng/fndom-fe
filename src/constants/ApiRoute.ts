@@ -46,6 +46,10 @@ export const ApiRoute = {
     GET_ALL: `/api/feature`,
     TOGGLE: (key: string) => `/api/feature/${key}/toggle`,
   },
+  DOUYIN: {
+    CHECK_LIVE: `/api/douyin/live`,
+    RANK_LIST: `/api/douyin/ranklist`,
+  },
   DATA_GOV_SG: {
     // HDB Resale Flat Prices (Jan 2017 onwards) — update resource ID here if dataset changes
     HDB_RESALE_PRICES: `https://data.gov.sg/api/action/datastore_search`,
