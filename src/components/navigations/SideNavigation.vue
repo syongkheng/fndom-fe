@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { Bell, HomeFilled, House, MoonNight, Notification, Operation } from '@element-plus/icons-vue'
+import { Bell, HomeFilled, House, MoonNight, Notification, Operation, StarFilled } from '@element-plus/icons-vue'
 import { useLayoutStateStore } from '@/stores/layoutState'
 import { useNav } from '@/hooks/useNav'
 import { ElMessage } from 'element-plus';
@@ -56,6 +56,14 @@ const handleSetting = () => {
     </span>
     <el-divider />
     <span class="authenticated menu" v-if="isAuthenticated">
+      <span @click="navigate.redirectToWedding()">
+        <el-menu-item index="8">
+          <el-icon>
+            <StarFilled />
+          </el-icon>
+          <template #title>{{ 'Wedding' }}</template>
+        </el-menu-item>
+      </span>
       <span @click="navigate.redirectToDashboard()">
         <el-menu-item index="6">
           <el-icon>

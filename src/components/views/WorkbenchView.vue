@@ -62,6 +62,13 @@ const modules = [
     icon: '🍱',
     path: '/meal',
   },
+  {
+    key: 'wedding',
+    title: 'Wedding',
+    description: 'Events, guest list and table planner',
+    icon: '💍',
+    path: '/wedding',
+  },
   // {
   //   key: 'habit',
   //   title: 'Habit',

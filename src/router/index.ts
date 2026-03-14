@@ -91,6 +91,12 @@ const router = createRouter({
       beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
     },
     {
+      path: '/wedding',
+      name: 'wedding',
+      component: () => import('../components/views/wedding/HomeView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
+    },
+    {
       path: '/admin/users',
       name: 'admin-users',
       component: () => import('../components/views/admin/UserManagementView.vue'),

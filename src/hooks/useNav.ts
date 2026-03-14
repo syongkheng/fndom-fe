@@ -99,6 +99,10 @@ export function useNav() {
     redirectTo('/travel')
   }
 
+  const redirectToWedding = () => {
+    redirectTo('/wedding')
+  }
+
   return {
     refreshPage,
     redirectTo,
@@ -112,5 +116,6 @@ export function useNav() {
     redirectToPphs,
     redirectToTravel,
     redirectToHabit,
+    redirectToWedding,
   }
 }

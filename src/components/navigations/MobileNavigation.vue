@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ElDialog, ElDivider, ElIcon, ElMessage } from 'element-plus'
-import { HomeFilled, Bell, Operation, MoonNight, Notification, User, Star, House } from '@element-plus/icons-vue'
+import { HomeFilled, Bell, Operation, MoonNight, Notification, User, Star, House, StarFilled } from '@element-plus/icons-vue'
 import { useLayoutStateStore } from '@/stores/layoutState'
 import { useNav } from '@/hooks/useNav'
 import { useAuthenticationStore } from '@/stores/authentication'
@@ -62,6 +62,12 @@ const handleSetting = () => {
       <el-divider class="menu-divider" />
 
       <template v-if="isAuthenticated">
+        <span class="menu-item" @click="handleMenuClick(navigate.redirectToWedding)">
+          <el-icon>
+            <StarFilled />
+          </el-icon>
+          <span class="menu-label">Wedding</span>
+        </span>
         <span class="menu-item" @click="handleMenuClick(navigate.redirectToDashboard)">
           <el-icon>
             <Notification />

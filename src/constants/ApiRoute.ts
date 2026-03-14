@@ -59,6 +59,18 @@ export const ApiRoute = {
     UPLOAD_PHOTO: `/api/meal/photo`,
     DELETE_PHOTO: `/api/meal/photo/delete`,
   },
+  WEDDING: {
+    EVENTS_GET_ALL: `/api/wedding/events`,
+    EVENTS_CREATE: `/api/wedding/events`,
+    EVENTS_UPDATE: `/api/wedding/events/update`,
+    EVENTS_DELETE: `/api/wedding/events/delete`,
+    GUESTS_GET_ALL: `/api/wedding/guests`,
+    GUESTS_CREATE: `/api/wedding/guests`,
+    GUESTS_UPDATE: `/api/wedding/guests/update`,
+    GUESTS_DELETE: `/api/wedding/guests/delete`,
+    TABLES_GET_ALL: `/api/wedding/tables`,
+    TABLES_ASSIGN: `/api/wedding/tables/assign`,
+  },
   DATA_GOV_SG: {
     // HDB Resale Flat Prices (Jan 2017 onwards) — update resource ID here if dataset changes
     HDB_RESALE_PRICES: `https://data.gov.sg/api/action/datastore_search`,
