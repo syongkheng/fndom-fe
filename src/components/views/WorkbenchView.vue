@@ -55,6 +55,13 @@ const modules = [
     icon: '📺',
     path: '/douyin',
   },
+  {
+    key: 'meal',
+    title: 'Meal Prep',
+    description: 'Plan meals and log what you actually ate',
+    icon: '🍱',
+    path: '/meal',
+  },
   // {
   //   key: 'habit',
   //   title: 'Habit',
