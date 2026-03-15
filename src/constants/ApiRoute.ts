@@ -69,6 +69,8 @@ export const ApiRoute = {
     GUESTS_UPDATE: `/api/wedding/guests/update`,
     GUESTS_DELETE: `/api/wedding/guests/delete`,
     TABLES_GET_ALL: `/api/wedding/tables`,
+    TABLES_CREATE: `/api/wedding/tables`,
+    TABLES_DELETE: `/api/wedding/tables/delete`,
     TABLES_ASSIGN: `/api/wedding/tables/assign`,
   },
   DATA_GOV_SG: {

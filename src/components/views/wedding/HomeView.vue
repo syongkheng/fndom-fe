@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import HttpClient from '@/interceptors/HttpClient'
+import { ApiRoute } from '@/constants/ApiRoute'
+import { ElMessage } from 'element-plus'
 
 type EventCategory = 'venue' | 'catering' | 'attire' | 'ceremony' | 'admin' | 'other'
 type EventStatus = 'pending' | 'done'
@@ -23,6 +26,7 @@ interface WeddingGuest {
   plusOne: boolean
   dietaryNotes: string | null
   tableId: number | null
+  seatNumber: number | null
 }
 
 interface WeddingTable {
@@ -31,42 +35,34 @@ interface WeddingTable {
   capacity: number
 }
 
-// ── Mock Data ────────────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────────
 
-const events = ref<WeddingEvent[]>([
-  { id: 1, title: 'Book venue & pay deposit', date: '2026-03-20', category: 'venue', status: 'pending', notes: null },
-  { id: 2, title: 'Send out save-the-dates', date: '2026-04-01', category: 'admin', status: 'done', notes: null },
-  { id: 3, title: 'Bridal dress fitting', date: '2026-04-10', category: 'attire', status: 'pending', notes: null },
-  { id: 4, title: 'Catering tasting session', date: '2026-05-03', category: 'catering', status: 'pending', notes: null },
-  { id: 5, title: 'Rehearsal dinner', date: '2026-06-28', category: 'ceremony', status: 'pending', notes: null },
-  { id: 6, title: 'Wedding Day 🎉', date: '2026-07-12', category: 'ceremony', status: 'pending', notes: null },
-])
+const loading = ref(false)
+const events = ref<WeddingEvent[]>([])
+const tables = ref<WeddingTable[]>([])
+const guests = ref<WeddingGuest[]>([])
 
-const tables = ref<WeddingTable[]>([
-  { id: 1, name: 'Table 1 — VIP', capacity: 8 },
-  { id: 2, name: 'Table 2 — Family', capacity: 10 },
-  { id: 3, name: 'Table 3 — Friends', capacity: 10 },
-  { id: 4, name: 'Table 4 — Colleagues', capacity: 8 },
-])
+// ── Data Fetching ─────────────────────────────────────────────────────────────
 
-const guests = ref<WeddingGuest[]>([
-  { id: 1, name: 'Emily Tan', group: 'bride', rsvp: 'accepted', plusOne: false, dietaryNotes: null, tableId: 1 },
-  { id: 2, name: 'James Lim', group: 'groom', rsvp: 'accepted', plusOne: false, dietaryNotes: null, tableId: 1 },
-  { id: 3, name: 'Sarah Wong', group: 'bride', rsvp: 'accepted', plusOne: true, dietaryNotes: null, tableId: 2 },
-  { id: 4, name: 'David Chen', group: 'groom', rsvp: 'accepted', plusOne: false, dietaryNotes: null, tableId: 2 },
-  { id: 5, name: 'Michelle Ng', group: 'mutual', rsvp: 'pending', plusOne: false, dietaryNotes: null, tableId: null },
-  { id: 6, name: 'Kevin Ong', group: 'mutual', rsvp: 'declined', plusOne: false, dietaryNotes: null, tableId: null },
-  { id: 7, name: 'Fiona Lee', group: 'bride', rsvp: 'accepted', plusOne: true, dietaryNotes: null, tableId: 3 },
-  { id: 8, name: 'Ryan Koh', group: 'groom', rsvp: 'accepted', plusOne: false, dietaryNotes: null, tableId: 3 },
-  { id: 9, name: 'Priya Nair', group: 'mutual', rsvp: 'pending', plusOne: true, dietaryNotes: null, tableId: null },
-  { id: 10, name: 'Thomas Ho', group: 'mutual', rsvp: 'accepted', plusOne: false, dietaryNotes: null, tableId: 4 },
-  { id: 11, name: 'Chloe Tan', group: 'bride', rsvp: 'pending', plusOne: false, dietaryNotes: null, tableId: null },
-  { id: 12, name: 'Marcus Yap', group: 'groom', rsvp: 'accepted', plusOne: false, dietaryNotes: null, tableId: 4 },
-])
+async function fetchAll() {
+  loading.value = true
+  try {
+    const [eventsRes, tablesRes, guestsRes] = await Promise.all([
+      HttpClient.get(ApiRoute.WEDDING.EVENTS_GET_ALL),
+      HttpClient.get(ApiRoute.WEDDING.TABLES_GET_ALL),
+      HttpClient.get(ApiRoute.WEDDING.GUESTS_GET_ALL),
+    ])
+    events.value = eventsRes.data.data ?? []
+    tables.value = tablesRes.data.data ?? []
+    guests.value = guestsRes.data.data ?? []
+  } catch {
+    ElMessage.error('Failed to load wedding data')
+  } finally {
+    loading.value = false
+  }
+}
 
-let nextEventId = 7
-let nextGuestId = 13
-let nextTableId = 5
+onMounted(fetchAll)
 
 // ── Events Tab ───────────────────────────────────────────────────────────────
 
@@ -91,27 +87,41 @@ const filteredEvents = computed(() => {
 
 const eventDoneCount = computed(() => events.value.filter(e => e.status === 'done').length)
 
-function toggleEventStatus(event: WeddingEvent) {
-  event.status = event.status === 'done' ? 'pending' : 'done'
+async function toggleEventStatus(event: WeddingEvent) {
+  const newStatus: EventStatus = event.status === 'done' ? 'pending' : 'done'
+  try {
+    await HttpClient.post(ApiRoute.WEDDING.EVENTS_UPDATE, { id: event.id, status: newStatus })
+    event.status = newStatus
+  } catch {
+    ElMessage.error('Failed to update event')
+  }
 }
 
-function deleteEvent(id: number) {
-  events.value = events.value.filter(e => e.id !== id)
-  confirmDeleteEventId.value = null
+async function deleteEvent(id: number) {
+  try {
+    await HttpClient.post(ApiRoute.WEDDING.EVENTS_DELETE, { id })
+    events.value = events.value.filter(e => e.id !== id)
+    confirmDeleteEventId.value = null
+  } catch {
+    ElMessage.error('Failed to delete event')
+  }
 }
 
-function addEvent() {
+async function addEvent() {
   if (!addEventForm.value.title.trim() || !addEventForm.value.date) return
-  events.value.push({
-    id: nextEventId++,
-    title: addEventForm.value.title.trim(),
-    date: addEventForm.value.date,
-    category: addEventForm.value.category,
-    status: 'pending',
-    notes: addEventForm.value.notes.trim() || null,
-  })
-  showAddEventDialog.value = false
-  addEventForm.value = { title: '', date: '', category: 'venue', notes: '' }
+  try {
+    const { data } = await HttpClient.post(ApiRoute.WEDDING.EVENTS_CREATE, {
+      title: addEventForm.value.title.trim(),
+      date: addEventForm.value.date,
+      category: addEventForm.value.category,
+      notes: addEventForm.value.notes.trim() || null,
+    })
+    events.value.push(data.data)
+    showAddEventDialog.value = false
+    addEventForm.value = { title: '', date: '', category: 'venue', notes: '' }
+  } catch {
+    ElMessage.error('Failed to add event')
+  }
 }
 
 function dateBadgeClass(dateStr: string): string {
@@ -163,23 +173,52 @@ const acceptedPct = computed(() => Math.round((acceptedCount.value / totalGuests
 const declinedPct = computed(() => Math.round((declinedCount.value / totalGuests.value) * 100))
 const pendingPct = computed(() => 100 - acceptedPct.value - declinedPct.value)
 
-function setRsvp(guest: WeddingGuest, status: RsvpStatus) {
-  guest.rsvp = status
+async function setRsvp(guest: WeddingGuest, status: RsvpStatus) {
+  try {
+    await HttpClient.post(ApiRoute.WEDDING.GUESTS_UPDATE, { id: guest.id, rsvp: status })
+    guest.rsvp = status
+  } catch {
+    ElMessage.error('Failed to update RSVP')
+  }
 }
 
-function addGuest() {
+async function addGuest() {
   if (!addGuestForm.value.name.trim()) return
-  guests.value.push({
-    id: nextGuestId++,
-    name: addGuestForm.value.name.trim(),
-    group: addGuestForm.value.group,
-    rsvp: 'pending',
-    plusOne: addGuestForm.value.plusOne,
-    dietaryNotes: addGuestForm.value.dietaryNotes.trim() || null,
-    tableId: null,
-  })
-  showAddGuestDialog.value = false
-  addGuestForm.value = { name: '', group: 'mutual', plusOne: false, dietaryNotes: '' }
+  try {
+    const { data } = await HttpClient.post(ApiRoute.WEDDING.GUESTS_CREATE, {
+      name: addGuestForm.value.name.trim(),
+      group: addGuestForm.value.group,
+      plusOne: addGuestForm.value.plusOne,
+      dietaryNotes: addGuestForm.value.dietaryNotes.trim() || null,
+    })
+    guests.value.push(data.data)
+    showAddGuestDialog.value = false
+    addGuestForm.value = { name: '', group: 'mutual', plusOne: false, dietaryNotes: '' }
+  } catch {
+    ElMessage.error('Failed to add guest')
+  }
+}
+
+async function onGuestTableChange(guest: WeddingGuest, tableId: number | null) {
+  const prevTableId = guest.tableId
+  const prevSeatNumber = guest.seatNumber
+  let seatNumber: number | null = null
+  if (tableId !== null) {
+    const table = tables.value.find(t => t.id === tableId)
+    const occupied = new Set(guests.value.filter(g => g.tableId === tableId && g.id !== guest.id).map(g => g.seatNumber))
+    let seat = 1
+    while (occupied.has(seat) && seat <= (table?.capacity ?? 20)) seat++
+    seatNumber = seat
+  }
+  guest.tableId = tableId
+  guest.seatNumber = seatNumber
+  try {
+    await HttpClient.post(ApiRoute.WEDDING.TABLES_ASSIGN, { guestId: guest.id, tableId, seatNumber })
+  } catch {
+    guest.tableId = prevTableId
+    guest.seatNumber = prevSeatNumber
+    ElMessage.error('Failed to update table assignment')
+  }
 }
 
 function tableOptions(includeNone = true) {
@@ -196,8 +235,129 @@ const addTableForm = ref({ name: '', capacity: 8 })
 const seatedCount = computed(() => guests.value.filter(g => g.tableId !== null).length)
 const unassignedGuests = computed(() => guests.value.filter(g => g.tableId === null))
 
+// ── Drag & Drop ───────────────────────────────────────────────────────────────
+
+const draggingGuestId = ref<number | null>(null)
+const dragOverZone = ref<number | 'unassigned' | null>(null)
+const dragOverSeat = ref<{ tableId: number; seatIdx: number } | null>(null)
+
+function onDragStart(e: DragEvent, guestId: number) {
+  draggingGuestId.value = guestId
+  e.dataTransfer!.effectAllowed = 'move'
+}
+
+function onDragEnd() {
+  draggingGuestId.value = null
+  dragOverZone.value = null
+  dragOverSeat.value = null
+}
+
+function onDragOver(e: DragEvent, zone: number | 'unassigned') {
+  e.preventDefault()
+  e.dataTransfer!.dropEffect = 'move'
+  dragOverZone.value = zone
+}
+
+function onDragLeave(e: DragEvent, zone: number | 'unassigned') {
+  const related = e.relatedTarget as Node | null
+  if (!related || !(e.currentTarget as HTMLElement).contains(related)) {
+    if (dragOverZone.value === zone) dragOverZone.value = null
+  }
+}
+
+async function onDrop(tableId: number | null) {
+  if (draggingGuestId.value === null) return
+  const guest = guests.value.find(g => g.id === draggingGuestId.value)
+  draggingGuestId.value = null
+  dragOverZone.value = null
+  dragOverSeat.value = null
+  if (!guest) return
+  const prevTableId = guest.tableId
+  const prevSeatNumber = guest.seatNumber
+  let seatNumber: number | null = null
+  if (tableId !== null) {
+    const table = tables.value.find(t => t.id === tableId)
+    const occupied = new Set(guests.value.filter(g => g.tableId === tableId && g.id !== guest.id).map(g => g.seatNumber))
+    let seat = 1
+    while (occupied.has(seat) && seat <= (table?.capacity ?? 20)) seat++
+    seatNumber = seat
+  }
+  guest.tableId = tableId
+  guest.seatNumber = seatNumber
+  try {
+    await HttpClient.post(ApiRoute.WEDDING.TABLES_ASSIGN, { guestId: guest.id, tableId, seatNumber })
+  } catch {
+    guest.tableId = prevTableId
+    guest.seatNumber = prevSeatNumber
+    ElMessage.error('Failed to update seat assignment')
+  }
+}
+
+function onDragOverSeat(e: DragEvent, tableId: number, seatIdx: number) {
+  e.preventDefault()
+  e.stopPropagation()
+  e.dataTransfer!.dropEffect = 'move'
+  dragOverSeat.value = { tableId, seatIdx }
+}
+
+function onDragLeaveSeat(e: DragEvent, tableId: number, seatIdx: number) {
+  const related = e.relatedTarget as Node | null
+  if (!related || !(e.currentTarget as HTMLElement).contains(related)) {
+    if (dragOverSeat.value?.tableId === tableId && dragOverSeat.value.seatIdx === seatIdx)
+      dragOverSeat.value = null
+  }
+}
+
+async function onDropSeat(tableId: number, seatIdx: number) {
+  if (draggingGuestId.value === null) return
+  const guest = guests.value.find(g => g.id === draggingGuestId.value)
+  draggingGuestId.value = null
+  dragOverZone.value = null
+  dragOverSeat.value = null
+  if (!guest) return
+  const prevTableId = guest.tableId
+  const prevSeatNumber = guest.seatNumber
+  guest.tableId = tableId
+  guest.seatNumber = seatIdx + 1
+  try {
+    await HttpClient.post(ApiRoute.WEDDING.TABLES_ASSIGN, { guestId: guest.id, tableId, seatNumber: seatIdx + 1 })
+  } catch {
+    guest.tableId = prevTableId
+    guest.seatNumber = prevSeatNumber
+    ElMessage.error('Failed to update seat assignment')
+  }
+}
+
 function guestsAtTable(tableId: number): WeddingGuest[] {
   return guests.value.filter(g => g.tableId === tableId)
+}
+
+function tableSeats(tableId: number, capacity: number): (WeddingGuest | null)[] {
+  const result: (WeddingGuest | null)[] = Array(capacity).fill(null)
+  for (const guest of guests.value.filter(g => g.tableId === tableId)) {
+    const idx = (guest.seatNumber ?? 1) - 1
+    if (idx >= 0 && idx < capacity) result[idx] = guest
+  }
+  return result
+}
+
+function seatStyle(idx: number, capacity: number): Record<string, string> {
+  const R = 56
+  const cx = 75, cy = 75
+  const half = 12
+  const angle = ((2 * Math.PI) / capacity) * idx - Math.PI / 2
+  return {
+    left: Math.round(cx + R * Math.cos(angle) - half) + 'px',
+    top:  Math.round(cy + R * Math.sin(angle) - half) + 'px',
+  }
+}
+
+function guestInitials(name: string): string {
+  return name.trim().split(/\s+/).map(p => p[0]?.toUpperCase() ?? '').join('').slice(0, 2)
+}
+
+function tableShortName(name: string): string {
+  return name.split('—')[0].trim()
 }
 
 function capacityBarPct(tableId: number, capacity: number): number {
@@ -208,20 +368,24 @@ function isOverCapacity(tableId: number, capacity: number): boolean {
   return guestsAtTable(tableId).length > capacity
 }
 
-function addTable() {
+async function addTable() {
   if (!addTableForm.value.name.trim() || addTableForm.value.capacity < 1) return
-  tables.value.push({
-    id: nextTableId++,
-    name: addTableForm.value.name.trim(),
-    capacity: addTableForm.value.capacity,
-  })
-  showAddTableDialog.value = false
-  addTableForm.value = { name: '', capacity: 8 }
+  try {
+    const { data } = await HttpClient.post(ApiRoute.WEDDING.TABLES_CREATE, {
+      name: addTableForm.value.name.trim(),
+      capacity: addTableForm.value.capacity,
+    })
+    tables.value.push(data.data)
+    showAddTableDialog.value = false
+    addTableForm.value = { name: '', capacity: 8 }
+  } catch {
+    ElMessage.error('Failed to add table')
+  }
 }
 </script>
 
 <template>
-  <div class="page-container wedding-page">
+  <div class="page-container wedding-page" v-loading="loading">
     <div class="wedding-header">
       <h1 class="wedding-title">Wedding Planner</h1>
       <p class="wedding-subtitle">Events, guests, and seating — all in one place</p>
@@ -358,11 +522,12 @@ function addTable() {
                 >{{ status }}</button>
               </div>
               <el-select
-                v-model="guest.tableId"
+                :model-value="guest.tableId"
                 size="small"
                 placeholder="Unassigned"
                 clearable
                 class="table-select"
+                @change="(val: number | null) => onGuestTableChange(guest, val ?? null)"
               >
                 <el-option
                   v-for="opt in tableOptions()"
@@ -387,43 +552,81 @@ function addTable() {
           <el-button type="primary" size="small" @click="showAddTableDialog = true">+ Add Table</el-button>
         </div>
 
-        <!-- Table cards -->
-        <div class="table-grid">
-          <div
-            v-for="table in tables"
-            :key="table.id"
-            class="table-card"
-            :class="{ 'table-card--over': isOverCapacity(table.id, table.capacity) }"
-          >
-            <div class="table-card-header">
-              <span class="table-name">{{ table.name }}</span>
-              <span class="table-count" :class="{ 'table-count--over': isOverCapacity(table.id, table.capacity) }">
-                {{ guestsAtTable(table.id).length }} / {{ table.capacity }}
-              </span>
-            </div>
-            <div class="capacity-bar-track">
-              <div
-                class="capacity-bar-fill"
-                :class="{ 'capacity-bar-fill--over': isOverCapacity(table.id, table.capacity) }"
-                :style="{ width: capacityBarPct(table.id, table.capacity) + '%' }"
-              />
-            </div>
-            <div class="table-guests">
-              <span v-for="g in guestsAtTable(table.id)" :key="g.id" class="guest-chip">
-                {{ g.name }}
-              </span>
-              <span v-if="guestsAtTable(table.id).length === 0" class="table-empty">No guests assigned</span>
+        <!-- Venue floor plan -->
+        <div class="venue-plan">
+          <!-- Stage -->
+          <div class="venue-stage">
+            <div class="stage-platform"><span class="stage-label">Stage</span></div>
+            <div class="stage-runway"></div>
+          </div>
+
+          <!-- Round tables -->
+          <div class="venue-tables-area">
+            <div
+              v-for="table in tables"
+              :key="table.id"
+              class="round-table-wrapper"
+              :class="{ 'round-table-wrapper--drag-over': dragOverZone === table.id }"
+              @dragover="onDragOver($event, table.id)"
+              @dragleave="onDragLeave($event, table.id)"
+              @drop.prevent="onDrop(table.id)"
+            >
+              <div class="round-table-canvas">
+                <!-- Seat nodes -->
+                <div
+                  v-for="(seat, idx) in tableSeats(table.id, table.capacity)"
+                  :key="idx"
+                  class="seat-node"
+                  :class="{
+                    'seat-node--filled': !!seat,
+                    'seat-node--dragging': seat && draggingGuestId === seat.id,
+                    'seat-node--drop-target': !seat && dragOverSeat?.tableId === table.id && dragOverSeat?.seatIdx === idx,
+                  }"
+                  :style="seatStyle(idx, table.capacity)"
+                  :title="seat ? seat.name : `Seat ${idx + 1}`"
+                  :data-name="seat ? seat.name : undefined"
+                  :draggable="!!seat"
+                  @dragstart.stop="seat ? onDragStart($event, seat.id) : undefined"
+                  @dragend.stop="onDragEnd"
+                  @dragover.stop="!seat ? onDragOverSeat($event, table.id, idx) : undefined"
+                  @dragleave.stop="!seat ? onDragLeaveSeat($event, table.id, idx) : undefined"
+                  @drop.stop.prevent="!seat ? onDropSeat(table.id, idx) : undefined"
+                >
+                  <span v-if="seat" class="seat-initials">{{ guestInitials(seat.name) }}</span>
+                  <span v-else class="seat-number">{{ idx + 1 }}</span>
+                </div>
+                <!-- Center disc -->
+                <div class="table-disc" :class="{ 'table-disc--over-cap': isOverCapacity(table.id, table.capacity) }">
+                  <span class="table-disc-name">{{ tableShortName(table.name) }}</span>
+                  <span class="table-disc-count" :class="{ 'table-disc-count--over': isOverCapacity(table.id, table.capacity) }">
+                    {{ guestsAtTable(table.id).length }}/{{ table.capacity }}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Unassigned pool -->
-        <div v-if="unassignedGuests.length > 0" class="unassigned-pool">
+        <div
+          class="unassigned-pool"
+          :class="{ 'unassigned-pool--drag-over': dragOverZone === 'unassigned' }"
+          @dragover="onDragOver($event, 'unassigned')"
+          @dragleave="onDragLeave($event, 'unassigned')"
+          @drop.prevent="onDrop(null)"
+        >
           <p class="unassigned-title">Unassigned ({{ unassignedGuests.length }})</p>
           <div class="unassigned-chips">
-            <span v-for="g in unassignedGuests" :key="g.id" class="guest-chip guest-chip--unassigned">
-              {{ g.name }}
-            </span>
+            <span
+              v-for="g in unassignedGuests"
+              :key="g.id"
+              class="guest-chip guest-chip--unassigned guest-chip--draggable"
+              :class="{ 'guest-chip--dragging': draggingGuestId === g.id }"
+              draggable="true"
+              @dragstart="onDragStart($event, g.id)"
+              @dragend="onDragEnd"
+            >{{ g.name }}</span>
+            <span v-if="unassignedGuests.length === 0" class="table-empty">All guests seated 🎉</span>
           </div>
         </div>
       </el-tab-pane>
@@ -872,74 +1075,199 @@ function addTable() {
   margin: 6px 0 0;
 }
 
-/* ── Tables ── */
-.table-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px;
-  margin-bottom: 24px;
+/* ── Venue Floor Plan ── */
+.venue-plan {
+  background: #f5f0eb;
+  border-radius: 14px;
+  padding: 20px 16px 28px;
+  margin-bottom: 16px;
+  overflow-x: auto;
 }
 
-.table-card {
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 14px;
-  background: var(--color-background-soft);
+.venue-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 28px;
 }
 
-.table-card--over {
+.stage-platform {
+  width: 55%;
+  min-width: 160px;
+  max-width: 360px;
+  height: 42px;
+  background: #374151;
+  border-radius: 6px 6px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stage-label {
+  color: #f9fafb;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.stage-runway {
+  width: 20%;
+  min-width: 56px;
+  height: 28px;
+  background: #4b5563;
+  border-radius: 0 0 4px 4px;
+}
+
+.venue-tables-area {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+}
+
+/* Round table wrapper (drop zone) */
+.round-table-wrapper {
+  border-radius: 50%;
+  transition: background 0.15s, outline 0.15s;
+}
+
+.round-table-wrapper--drag-over .round-table-canvas {
+  outline: 3px dashed var(--el-color-primary);
+  outline-offset: 6px;
+  border-radius: 50%;
+}
+
+/* Canvas holds the table disc + all seat nodes */
+.round-table-canvas {
+  position: relative;
+  width: 150px;
+  height: 150px;
+}
+
+/* Center table disc */
+.table-disc {
+  position: absolute;
+  left: 43px;
+  top: 43px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #d1d5db;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  z-index: 1;
+}
+
+.table-disc--over-cap {
   border-color: #ef4444;
   background: #fff5f5;
 }
 
-.table-card-header {
+.table-disc-name {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #374151;
+  text-align: center;
+  line-height: 1.2;
+  padding: 0 3px;
+  word-break: break-word;
+  max-width: 58px;
+}
+
+.table-disc-count {
+  font-size: 0.65rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.table-disc-count--over {
+  color: #ef4444;
+}
+
+/* Individual seat nodes */
+.seat-node {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  border: 1.5px solid #d1d5db;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
+  justify-content: center;
+  z-index: 2;
+  transition: background 0.15s, transform 0.1s;
 }
 
-.table-name {
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: var(--color-heading);
+.seat-node--filled {
+  background: #fbcfe8;
+  border-color: #f472b6;
+  cursor: grab;
+  box-shadow: 0 1px 3px rgba(244,114,182,0.3);
 }
 
-.table-count {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--color-text);
-  opacity: 0.7;
+.seat-node--filled:active {
+  cursor: grabbing;
+  transform: scale(0.92);
 }
 
-.table-count--over {
-  color: #ef4444;
+.seat-node--dragging {
+  opacity: 0.25;
+}
+
+.seat-node--filled::after {
+  content: attr(data-name);
+  position: absolute;
+  bottom: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: #f9fafb;
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 5px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 20;
+}
+
+.seat-node--filled:not(.seat-node--dragging):hover {
+  z-index: 100;
+}
+
+.seat-node--filled:not(.seat-node--dragging):hover::after {
   opacity: 1;
 }
 
-.capacity-bar-track {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--color-background-mute);
-  overflow: hidden;
-  margin-bottom: 10px;
+.seat-initials {
+  font-size: 0.5rem;
+  font-weight: 700;
+  color: #9d174d;
+  pointer-events: none;
+  letter-spacing: 0;
 }
 
-.capacity-bar-fill {
-  height: 100%;
-  border-radius: 3px;
-  background: var(--el-color-primary);
-  transition: width 0.3s;
+.seat-number {
+  font-size: 0.52rem;
+  font-weight: 600;
+  color: #9ca3af;
+  pointer-events: none;
 }
 
-.capacity-bar-fill--over {
-  background: #ef4444;
-}
-
-.table-guests {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
+.seat-node--drop-target {
+  background: #d1fae5;
+  border-color: #10b981;
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
 }
 
 .table-empty {
@@ -982,5 +1310,23 @@ function addTable() {
   background: #fef9c3;
   border-color: #fde68a;
   color: #92400e;
+}
+
+.guest-chip--draggable {
+  cursor: grab;
+}
+
+.guest-chip--draggable:active {
+  cursor: grabbing;
+}
+
+.guest-chip--dragging {
+  opacity: 0.35;
+}
+
+.unassigned-pool--drag-over {
+  border-color: var(--el-color-primary);
+  border-style: solid;
+  background: var(--el-color-primary-light-9);
 }
 </style>
