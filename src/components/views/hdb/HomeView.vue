@@ -324,5 +324,17 @@ watch(selectedBatchValue, (batch) => {
   .pphs-title {
     font-size: 1.15rem;
   }
+
+  .pphs-stats {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .stat-spacer {
+    flex: 1 1 100%;
+    height: 0;
+    margin: 0;
+    padding: 0;
+  }
 }
 </style>
