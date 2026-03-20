@@ -184,6 +184,7 @@ const openEditDrawer = (item: AgendaItem) => {
     endTime: item.endTime ?? a.end_time ?? undefined,
     unknownTime: item.unknownTime !== undefined ? item.unknownTime : !!a.unknown_time,
     cityRaw,
+    coordinates: item.coordinates ?? undefined,
   }
   drawerVisible.value = true
 }
