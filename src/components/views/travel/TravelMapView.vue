@@ -72,7 +72,6 @@ const resolving = ref(false)
 
 interface ResolvedItem extends AgendaItem {
   _coords: { lat: number; lng: number }
-  _globalIdx: number
   _day: number
 }
 
@@ -144,7 +143,6 @@ async function resolveCoordinates(items: AgendaItem[]): Promise<ResolvedItem[]> 
   const dateKeyToDayNum = new Map(uniqueDates.map((k, i) => [k, i + 1]))
 
   const globalOrder = sortItems(items)
-  const indexMap = new Map(globalOrder.map((item, i) => [item.id ?? item._localIndex, i + 1]))
 
   const results: ResolvedItem[] = []
   let firstRequest = true
@@ -169,11 +167,16 @@ async function resolveCoordinates(items: AgendaItem[]): Promise<ResolvedItem[]> 
       results.push({
         ...item,
         _coords: coords,
-        _globalIdx: indexMap.get(item.id ?? item._localIndex) ?? results.length + 1,
         _day: dateKeyToDayNum.get(toLocalDateKey(item.date)) ?? 1,
       })
     }
   }
+
+  results.sort((a, b) => {
+    const dayDiff = a._day - b._day
+    if (dayDiff !== 0) return dayDiff
+    return agendaSortKey(a).localeCompare(agendaSortKey(b))
+  })
 
   return results
 }
@@ -187,13 +190,14 @@ function renderMap(items: ResolvedItem[]) {
 
   markerGroup = L.featureGroup()
 
-  for (const item of items) {
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]
     const emoji = TRAVEL_CATEGORY_EMOJI[item.category ?? ''] ?? '📋'
     const timeLabel = !item.unknownTime && item.startTime ? ` · ${item.startTime}` : ''
 
     const icon = L.divIcon({
       className: '',
-      html: `<div class="travel-pin">${item._globalIdx}</div>`,
+      html: `<div class="travel-pin">${i + 1}</div>`,
       iconSize: [28, 28],
       iconAnchor: [14, 14],
       popupAnchor: [0, -16],
