@@ -20,6 +20,7 @@ import { useTravelDayGroups } from '@/composables/useTravelDayGroups'
 import { useTravelExport } from '@/composables/useTravelExport'
 import { useCityLabel } from '@/composables/useCityLabel'
 import { Edit, Delete, ArrowDown } from '@element-plus/icons-vue'
+import TravelMapView from '@/components/views/travel/TravelMapView.vue'
 
 const route = useRoute()
 const nav = useNav()
@@ -34,7 +35,7 @@ const sessionId = route.params.sessionId as string
 
 const loading = ref(true)
 const saving = ref(false)
-const editMode = ref<'form' | 'table'>('form')
+const editMode = ref<'form' | 'table' | 'map'>('form')
 
 // ── City label ────────────────────────────────────────────────────────────────
 const { getCardCity } = useCityLabel()
@@ -53,8 +54,6 @@ const isMobile = computed(() => width.value <= 600)
 const drawerDirection = computed(() => isMobile.value ? 'btt' : 'rtl')
 const drawerSize = computed(() => isMobile.value ? '92%' : '420px')
 
-// Table mode (el-table-v2) doesn't work on mobile — force Form mode
-watchEffect(() => { if (isMobile.value) editMode.value = 'form' })
 
 // ── Booking drawer state ───────────────────────────────────────────────────────
 const bookingDrawerVisible = ref(false)
@@ -348,8 +347,8 @@ const onPrivacyClose = () => {
     <div class="planner-topbar">
       <el-button link @click="nav.redirectTo('/travel')" class="back-btn">← Trips</el-button>
       <div class="planner-actions">
-        <el-segmented v-if="!isMobile" v-model="editMode" size="small"
-          :options="[{ label: '📋 Form', value: 'form' }, { label: '⊞ Table', value: 'table' }]" />
+        <el-segmented v-model="editMode" size="small"
+          :options="[{ label: '📋 Form', value: 'form' }, { label: '🗺️ Map', value: 'map' }]" />
         <el-dropdown size="small" trigger="click" @command="(cmd: string) => cmd === 'json' ? exportJSON() : exportCSV()">
           <el-button size="small">Export ↓</el-button>
           <template #dropdown>
@@ -454,14 +453,11 @@ const onPrivacyClose = () => {
       </div>
     </div>
 
-    <!-- ── TABLE MODE ────────────────────────────────────────────────────── -->
-    <div v-else class="planner-table">
-      <el-auto-resizer>
-        <template #default="{ width, height }">
-          <el-table-v2 :columns="columns" :data="tableData" :width="width" :height="height" border />
-        </template>
-      </el-auto-resizer>
+    <!-- ── MAP MODE ──────────────────────────────────────────────────────── -->
+    <div v-else-if="editMode === 'map'" class="planner-map">
+      <TravelMapView :agenda-items="itinerary.agendaItems ?? []" />
     </div>
+
 
       <!-- ── Bookings Section ──────────────────────────────────────────────── -->
       <div class="bookings-section">
@@ -726,6 +722,14 @@ const onPrivacyClose = () => {
 
 .planner-loading {
   padding: 20px 0;
+}
+
+/* ── Map mode ── */
+.planner-map {
+  flex: 1;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ── Table mode ── */

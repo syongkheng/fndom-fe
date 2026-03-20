@@ -1,9 +1,8 @@
 <script lang="ts" setup>
 import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { HiearchicalCountry } from '@/constants/HierarchicalCountry'
 import { TRAVEL_CATEGORIES } from '@/constants/TravelCategories'
-import type { CascaderValue, CascaderOption } from 'element-plus'
+import { searchPlaces, type Place } from '@/composables/useGeocode'
 import type { AgendaItem } from '@/interfaces/forms/itinerary/AgendaItem'
 
 const props = defineProps<{
@@ -31,6 +30,8 @@ const makeBlankDraft = (): AgendaItem => ({
   date: '',
   city: '',
   cityRaw: [],
+  coordinates: undefined,
+  placeDisplay: undefined,
   unknownTime: true,
   startTime: undefined,
   endTime: undefined,
@@ -39,6 +40,38 @@ const makeBlankDraft = (): AgendaItem => ({
   _fileIdsToInsert: [],
   _agendaToFileMapping: [],
 })
+
+// ── Place search ──────────────────────────────────────────────────────────────
+const placeOptions = ref<Place[]>([])
+const placeLoading = ref(false)
+let placeDebounce: ReturnType<typeof setTimeout> | null = null
+
+const onPlaceSearch = (query: string) => {
+  if (placeDebounce) clearTimeout(placeDebounce)
+  if (!query.trim()) { placeOptions.value = []; return }
+  placeLoading.value = true
+  placeDebounce = setTimeout(async () => {
+    placeOptions.value = await searchPlaces(query)
+    placeLoading.value = false
+  }, 400)
+}
+
+const onPlaceSelect = (placeId: string) => {
+  const place = placeOptions.value.find((p) => p.placeId === placeId)
+  if (!place) return
+  drawerForm.value.placeDisplay = place.displayName
+  drawerForm.value.coordinates = { lat: place.lat, lng: place.lng }
+  drawerForm.value.cityRaw = [place.displayName]
+  drawerForm.value.city = JSON.stringify([place.displayName])
+}
+
+const clearPlace = () => {
+  drawerForm.value.placeDisplay = undefined
+  drawerForm.value.coordinates = undefined
+  drawerForm.value.cityRaw = []
+  drawerForm.value.city = ''
+  placeOptions.value = []
+}
 
 const drawerForm = ref<AgendaItem>(makeBlankDraft())
 
@@ -59,10 +92,6 @@ watch(() => props.modelValue, (val) => {
   }
 })
 
-const drawerCityChange = (val: CascaderValue | null | undefined) => {
-  drawerForm.value.city = val ? JSON.stringify(val) : ''
-  drawerForm.value.cityRaw = (val as string[] | null) ?? []
-}
 
 const drawerDisabledDate = (time: Date) => {
   const { startDate, endDate, unknownDate } = props
@@ -125,12 +154,37 @@ const cancel = () => {
           :default-value="startDate ? new Date(startDate) : undefined" size="large" />
       </div>
 
-      <!-- City -->
+      <!-- Place search -->
       <div class="form-section">
-        <div class="form-label">City</div>
-        <el-cascader :model-value="drawerForm.cityRaw" :options="HiearchicalCountry as unknown as CascaderOption[]"
-          placeholder="Select city" style="width: 100%" :props="{ checkStrictly: true }" clearable size="large"
-          @change="drawerCityChange" />
+        <div class="form-label">Place</div>
+        <div v-if="drawerForm.placeDisplay" class="place-selected">
+          <span class="place-selected-text">📍 {{ drawerForm.placeDisplay }}</span>
+          <el-button link size="small" @click="clearPlace" class="place-clear">✕</el-button>
+        </div>
+        <el-select
+          v-else
+          style="width: 100%"
+          size="large"
+          filterable
+          remote
+          :remote-method="onPlaceSearch"
+          :loading="placeLoading"
+          placeholder="Search for a place, landmark, city…"
+          value-key="placeId"
+          @change="onPlaceSelect"
+        >
+          <el-option
+            v-for="place in placeOptions"
+            :key="place.placeId"
+            :label="place.displayName"
+            :value="place.placeId"
+          >
+            <span style="font-weight: 500">{{ place.shortName }}</span>
+            <span style="font-size: 0.78rem; color: var(--el-text-color-secondary); margin-left: 6px">
+              {{ place.displayName }}
+            </span>
+          </el-option>
+        </el-select>
       </div>
 
       <!-- Time -->
@@ -244,6 +298,31 @@ const cancel = () => {
   font-size: 0.68rem;
   color: var(--color-text);
   font-weight: 500;
+}
+
+/* Place selected */
+.place-selected {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--el-border-color);
+  background: var(--color-background-soft);
+}
+
+.place-selected-text {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.place-clear {
+  color: var(--el-text-color-secondary);
+  flex-shrink: 0;
 }
 
 /* Time row */

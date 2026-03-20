@@ -7,6 +7,7 @@ import { ApiRoute } from '@/constants/ApiRoute'
 import { getCategoryEmoji } from '@/constants/TravelCategories'
 import OtpInput from '@/components/common/OtpInput.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import TravelMapView from '@/components/views/travel/TravelMapView.vue'
 import { useTravelDayGroups } from '@/composables/useTravelDayGroups'
 import { useTravelExport } from '@/composables/useTravelExport'
 import { useCityLabel } from '@/composables/useCityLabel'
@@ -178,6 +179,20 @@ const hasAccommodation = computed(() =>
 )
 
 const bookingsCollapsed = ref(false)
+const mapCollapsed = ref(false)
+
+const allCollapsed = computed(() =>
+  groupedByDate.value.length > 0 &&
+  groupedByDate.value.every((g) => collapsedDays.value.has(g.date)),
+)
+
+function toggleAllDays() {
+  if (allCollapsed.value) {
+    collapsedDays.value = new Set()
+  } else {
+    collapsedDays.value = new Set(groupedByDate.value.map((g) => g.date))
+  }
+}
 
 // ── Mobile ────────────────────────────────────────────────────────────────────
 const isMobile = computed(() => window.innerWidth <= 600)
@@ -265,11 +280,31 @@ const isMobile = computed(() => window.innerWidth <= 600)
         </div>
       </header>
 
+      <!-- ── Trip Map Section ──────────────────────────────────────────── -->
+      <div v-if="(itinerary?.agendaItems ?? []).length > 0" class="viewer-map-section">
+        <div class="viewer-map-header" @click="mapCollapsed = !mapCollapsed">
+          <span class="viewer-map-title">Trip Map</span>
+          <span class="viewer-map-chevron" :class="{ collapsed: mapCollapsed }">⌄</span>
+        </div>
+        <TravelMapView
+          v-show="!mapCollapsed"
+          :agenda-items="(itinerary.agendaItems ?? []) as any"
+          class="viewer-map"
+        />
+      </div>
+
       <!-- Empty agenda -->
       <EmptyState v-if="groupedByDate.length === 0" icon="🗺️" title="No agenda items yet." />
 
+      <!-- Timeline controls -->
+      <div v-if="groupedByDate.length > 0" class="timeline-controls">
+        <button class="timeline-toggle-all" @click="toggleAllDays">
+          {{ allCollapsed ? 'Expand All' : 'Collapse All' }}
+        </button>
+      </div>
+
       <!-- Timeline -->
-      <div v-else class="timeline">
+      <div v-if="groupedByDate.length > 0" class="timeline">
         <div v-for="(group, gi) in groupedByDate" :key="group.date" class="timeline-day">
 
           <!-- Day heading -->
@@ -450,6 +485,65 @@ const isMobile = computed(() => window.innerWidth <= 600)
 </template>
 
 <style scoped>
+/* ── Trip Map ── */
+.viewer-map-section {
+  margin-top: 36px;
+  margin-bottom: 32px;
+}
+
+.timeline-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.timeline-toggle-all {
+  font-size: 0.78rem;
+  color: var(--el-text-color-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.12s;
+}
+
+.timeline-toggle-all:hover {
+  color: #E8795A;
+}
+
+.viewer-map-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 12px;
+}
+
+.viewer-map-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.viewer-map-chevron {
+  font-size: 1rem;
+  color: var(--el-text-color-secondary);
+  transition: transform 0.2s;
+}
+
+.viewer-map-chevron.collapsed {
+  transform: rotate(-90deg);
+}
+
+.viewer-map {
+  height: 420px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
 /* ── Challenge gate ── */
 .gate-body {
   display: flex;

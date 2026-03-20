@@ -8,6 +8,8 @@ interface AgendaItem {
   desc?: string
   cityRaw?: string[]
   city?: string
+  coordinates?: { lat: number; lng: number }
+  placeDisplay?: string
   durationTimingRaw?: string[]
   startTime?: string
   endTime?: string
