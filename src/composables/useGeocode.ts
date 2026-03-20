@@ -1,8 +1,4 @@
-const BASE = 'https://nominatim.openstreetmap.org'
-const HEADERS = {
-  'User-Agent': 'Awense/1.0 (com.awense.mobile)',
-  'Accept-Language': 'en',
-}
+import HttpClient from '@/interceptors/HttpClient'
 
 export interface Place {
   displayName: string
@@ -29,11 +25,10 @@ function parseResult(r: Record<string, unknown>): Place {
 
 export async function searchPlaces(query: string): Promise<Place[]> {
   if (!query.trim()) return []
-  const url = `${BASE}/search?q=${encodeURIComponent(query)}&format=json&limit=10&addressdetails=0`
-  const res = await fetch(url, { headers: HEADERS })
-  if (!res.ok) return []
-  const data = (await res.json()) as Record<string, unknown>[]
-  return data.map(parseResult)
+  const res = await HttpClient.get<{ data: Record<string, unknown>[] }>('/api/geocode', {
+    params: { q: query },
+  })
+  return (res.data.data ?? []).map(parseResult)
 }
 
 const POI_CATEGORY_MAP: Record<POICategory, string[]> = {
@@ -56,13 +51,13 @@ export async function nearbyPOIs(
     const amenity = amenities[i]
     if (i > 0) await new Promise((r) => setTimeout(r, 300))
     const url =
-      `${BASE}/search?format=json&limit=5` +
+      `https://nominatim.openstreetmap.org/search?format=json&limit=5` +
       `&amenity=${amenity}` +
       `&lat=${lat}&lon=${lng}` +
       `&bounded=1` +
       `&viewbox=${lng - radiusKm / 100},${lat + radiusKm / 100},${lng + radiusKm / 100},${lat - radiusKm / 100}`
     try {
-      const res = await fetch(url, { headers: HEADERS })
+      const res = await fetch(url, { headers: { 'User-Agent': 'Awense/1.0 (com.awense.mobile)', 'Accept-Language': 'en' } })
       if (!res.ok) continue
       const data = (await res.json()) as Record<string, unknown>[]
       results.push(...data.map(parseResult))
