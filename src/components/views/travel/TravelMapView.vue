@@ -68,7 +68,26 @@ const props = defineProps<{ agendaItems: AgendaItem[] }>()
 let mapInstance: LeafletMap | null = null
 let markerGroup: FeatureGroup | null = null
 let routeLine: Polyline | null = null
+let tipEl: HTMLDivElement | null = null
 const resolving = ref(false)
+
+function showTip(text: string, anchor: HTMLElement) {
+  if (!tipEl) {
+    tipEl = document.createElement('div')
+    tipEl.className = 'popup-loc-tooltip'
+    document.body.appendChild(tipEl)
+  }
+  tipEl.textContent = text
+  const rect = anchor.getBoundingClientRect()
+  tipEl.style.left = `${rect.left}px`
+  tipEl.style.top = `${rect.top - 6}px`
+  tipEl.style.transform = 'translateY(-100%)'
+  tipEl.style.display = 'block'
+}
+
+function hideTip() {
+  if (tipEl) tipEl.style.display = 'none'
+}
 
 interface ResolvedItem extends AgendaItem {
   _coords: { lat: number; lng: number }
@@ -226,8 +245,15 @@ function renderMap(items: ResolvedItem[]) {
       const dateLabel = item.date
         ? `Day ${item._day} · ${new Date(`${item.date}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`
         : `Day ${item._day}`
+      const resolvedCityRaw: string[] = item.cityRaw?.length
+        ? item.cityRaw
+        : (() => { try { return JSON.parse((item as any).city ?? '[]') } catch { return [] } })()
+      const locationLabel = item.placeDisplay || resolvedCityRaw[0] || ''
+      const locationLine = locationLabel
+        ? `<div class="popup-loc-tip" data-tip="${locationLabel}" style="font-size:0.75rem;color:#888;margin-top:1px;cursor:default"><span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">📍 ${locationLabel}</span></div>`
+        : ''
       const sep = idx > 0 ? '<hr style="margin:5px 0;border:none;border-top:1px solid #eee">' : ''
-      return `${sep}<div style="font-size:0.88rem;font-weight:600;color:#111"><span style="opacity:0.45;font-weight:400">#${seq[idx]}</span> ${emoji} ${item.title}</div><div style="font-size:0.78rem;color:#666;margin-top:2px">${dateLabel}${timeLabel}</div>`
+      return `${sep}<div style="font-size:0.88rem;font-weight:600;color:#111"><span style="opacity:0.45;font-weight:400">#${seq[idx]}</span> ${emoji} ${item.title}</div><div style="font-size:0.78rem;color:#666;margin-top:2px">${dateLabel}${timeLabel}</div>${locationLine}`
     }).join('')
 
     const marker = L.marker([first._coords.lat, first._coords.lng], { icon })
@@ -270,12 +296,33 @@ onMounted(() => {
     attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
   }).addTo(mapInstance)
 
+  mapInstance.on('popupopen', () => {
+    setTimeout(() => {
+      document.querySelectorAll('.popup-loc-tip').forEach((el) => {
+        const htmlEl = el as HTMLElement
+        const fullText = htmlEl.dataset.tip ?? ''
+        htmlEl.addEventListener('mouseenter', () => showTip(fullText, htmlEl))
+        htmlEl.addEventListener('mouseleave', hideTip)
+        htmlEl.addEventListener('click', (e) => {
+          e.stopPropagation()
+          tipEl?.style.display === 'block' ? hideTip() : showTip(fullText, htmlEl)
+        })
+      })
+    }, 50)
+  })
+
+  mapInstance.on('popupclose', hideTip)
+
   refresh(props.agendaItems)
 })
 
 onUnmounted(() => {
   mapInstance?.remove()
   mapInstance = null
+  if (tipEl?.parentNode) {
+    tipEl.parentNode.removeChild(tipEl)
+    tipEl = null
+  }
 })
 
 watch(() => props.agendaItems, (items) => refresh(items), { deep: true })
@@ -418,6 +465,21 @@ watch(() => props.agendaItems, (items) => refresh(items), { deep: true })
   justify-content: center;
   border: 2px solid #fff;
   box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.popup-loc-tooltip {
+  display: none;
+  position: fixed;
+  background: rgba(30, 30, 30, 0.92);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  max-width: 260px;
+  white-space: normal;
+  line-height: 1.4;
+  z-index: 10000;
+  pointer-events: none;
 }
 
 .travel-pin--stacked {
