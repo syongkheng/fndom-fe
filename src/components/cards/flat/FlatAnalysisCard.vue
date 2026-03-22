@@ -34,6 +34,8 @@ const googleMapsUrl = computed(() =>
   `https://www.google.com/maps/search/?api=1&query=${props.result.LATITUDE},${props.result.LONGITUDE}`
 )
 
+function openMaps() { window.open(googleMapsUrl.value, '_blank') }
+
 const retrieveBusstops = async () => {
   try {
     const response = await HttpClient.post(ApiRoute.PPHS.GET_NEAREST_BUSSTOPS, {
@@ -104,7 +106,7 @@ onMounted(() => {
         <div class="coords">{{ result.LATITUDE }}, {{ result.LONGITUDE }}</div>
       </div>
       <div class="card-side">
-        <el-button size="small" @click="() => window.open(googleMapsUrl, '_blank')">Maps ↗</el-button>
+        <el-button size="small" @click="openMaps">Maps ↗</el-button>
         <div class="postal-chip">
           <span class="postal-label">Postal</span>
           <span class="postal-value">{{ result.POSTAL }}</span>

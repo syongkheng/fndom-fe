@@ -8,7 +8,7 @@ import { getCategoryEmoji } from '@/constants/TravelCategories'
 import OtpInput from '@/components/common/OtpInput.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import TravelMapView from '@/components/views/travel/TravelMapView.vue'
-import { useTravelDayGroups } from '@/composables/useTravelDayGroups'
+import { useTravelDayGroups, type AgendaRow } from '@/composables/useTravelDayGroups'
 import { useTravelExport } from '@/composables/useTravelExport'
 import { useCityLabel } from '@/composables/useCityLabel'
 import type { ItineraryBooking } from '@/interfaces/forms/itinerary/ItineraryBooking'
@@ -19,23 +19,6 @@ const nav = useNav()
 
 const shortCode = route.params.shortCode as string
 
-interface AgendaRow {
-  id?: number
-  category?: string
-  title: string
-  desc?: string | null
-  // Both camelCase (new) and snake_case (existing DB records) are handled
-  city?: string | null
-  cityRaw?: string[] | null
-  city_raw?: string | null
-  startTime?: string | number | null
-  start_time?: string | number | null
-  endTime?: string | number | null
-  unknownTime?: boolean | number | null
-  unknown_time?: boolean | number | null
-  date?: string | null
-  budget?: number | null
-}
 
 interface ItineraryData {
   sessionTitle: string

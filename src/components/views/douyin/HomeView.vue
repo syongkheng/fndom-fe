@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import Hls from 'hls.js'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
 import { StorageUtils, StorageKey } from '@/utilities/StorageUtils'
@@ -38,7 +39,7 @@ interface RecentSearch {
 
 const MAX_RECENT = 5
 const LIVE_INTERVAL = 30
-const RANK_INTERVAL = 30
+const RANK_INTERVAL = 60
 
 const authStore = useAuthenticationStore()
 
@@ -115,6 +116,9 @@ const check = async () => {
   loading.value = true
   result.value = null
   rankList.value = []
+  showPlayer.value = false
+  destroyPlayer()
+  playerError.value = ''
   stopRankTimer()
   stopLiveTimer()
 
@@ -177,6 +181,124 @@ const fetchRankList = async () => {
   }
 }
 
+// ── stream player ─────────────────────────────────────────────────────────────
+const showPlayer = ref(false)
+const videoEl = ref<HTMLVideoElement | null>(null)
+const playerError = ref('')
+let hlsInstance: Hls | null = null
+
+const canRecord = ref(false)
+const savingHighlight = ref(false)
+const BUFFER_SECONDS = 60
+let mediaRecorder: MediaRecorder | null = null
+let recordChunks: { data: Blob; ts: number }[] = []
+let onVideoPlay: (() => void) | null = null
+
+function startBuffer() {
+  const video = videoEl.value
+  if (!video || typeof MediaRecorder === 'undefined') return
+  const stream = (video as any).captureStream?.()
+  if (!stream) return
+
+  canRecord.value = true
+  recordChunks = []
+
+  const mimeType = MediaRecorder.isTypeSupported('video/webm; codecs=vp8')
+    ? 'video/webm; codecs=vp8'
+    : ''
+  mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
+  mediaRecorder.ondataavailable = (e) => {
+    if (e.data.size > 0) {
+      const now = Date.now()
+      recordChunks.push({ data: e.data, ts: now })
+      const cutoff = now - BUFFER_SECONDS * 1000
+      recordChunks = recordChunks.filter(c => c.ts >= cutoff)
+    }
+  }
+  mediaRecorder.start(1000)
+}
+
+function stopBuffer() {
+  if (onVideoPlay && videoEl.value) {
+    videoEl.value.removeEventListener('play', onVideoPlay)
+    onVideoPlay = null
+  }
+  mediaRecorder?.stop()
+  mediaRecorder = null
+  recordChunks = []
+  canRecord.value = false
+}
+
+function saveHighlight(ext: 'webm' | 'mp4' = 'webm') {
+  if (!recordChunks.length) {
+    playerError.value = 'No buffer data yet — wait a few seconds for the stream to play, then try again.'
+    setTimeout(() => (playerError.value = ''), 4000)
+    return
+  }
+  savingHighlight.value = true
+  const blob = new Blob(recordChunks.map(c => c.data), { type: 'video/webm' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `highlight_${Date.now()}.${ext}`
+  a.click()
+  URL.revokeObjectURL(url)
+  setTimeout(() => (savingHighlight.value = false), 1500)
+}
+
+function destroyPlayer() {
+  stopBuffer()
+  hlsInstance?.destroy()
+  hlsInstance = null
+  if (videoEl.value) videoEl.value.src = ''
+}
+
+function initPlayer() {
+  playerError.value = ''
+  const video = videoEl.value
+  const url = result.value?.streamUrl
+  if (!video || !url) return
+
+  destroyPlayer()
+
+  if (Hls.isSupported()) {
+    hlsInstance = new Hls()
+    hlsInstance.loadSource(url)
+    hlsInstance.attachMedia(video)
+    hlsInstance.on(Hls.Events.ERROR, (_evt, data) => {
+      if (data.fatal) {
+        playerError.value = 'Could not load stream. The CDN may block cross-origin playback — use "Copy HLS" and open in VLC.'
+        destroyPlayer()
+      }
+    })
+  } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = url
+  } else {
+    playerError.value = 'HLS playback not supported in this browser.'
+    return
+  }
+
+  onVideoPlay = () => startBuffer()
+  video.addEventListener('play', onVideoPlay, { once: true })
+}
+
+function togglePlayer() {
+  showPlayer.value = !showPlayer.value
+  if (showPlayer.value) {
+    nextTick(() => initPlayer())
+  } else {
+    destroyPlayer()
+  }
+}
+
+watch(() => result.value?.isLive, (isLive) => {
+  if (!isLive) {
+    showPlayer.value = false
+    destroyPlayer()
+    playerError.value = ''
+  }
+})
+
 // ── misc ─────────────────────────────────────────────────────────────────────
 const copied = ref(false)
 
@@ -192,7 +314,7 @@ const openLivePage = () => {
 }
 
 onMounted(() => loadRecent())
-onUnmounted(() => { stopLiveTimer(); stopRankTimer() })
+onUnmounted(() => { stopLiveTimer(); stopRankTimer(); destroyPlayer() })
 </script>
 
 <template>
@@ -261,12 +383,34 @@ onUnmounted(() => { stopLiveTimer(); stopRankTimer() })
             <el-button v-if="result.isLive && result.streamUrl" type="primary" link @click="copyStreamUrl">
               {{ copied ? 'Copied!' : 'Copy HLS' }}
             </el-button>
+            <el-button v-if="result.isLive && result.streamUrl" link @click="togglePlayer">
+              {{ showPlayer ? 'Close Player' : '▶ Watch' }}
+            </el-button>
           </div>
         </div>
       </div>
 
-      <!-- Right: rankings -->
-      <div v-if="result.isLive && result.roomId" class="right-col">
+      <!-- Right: player + rankings -->
+      <div v-if="(result.isLive && result.roomId) || showPlayer" class="right-col">
+        <div v-if="showPlayer && result.isLive && result.streamUrl" class="player-panel">
+          <p v-if="playerError" class="player-error">{{ playerError }}</p>
+          <template v-else>
+            <video ref="videoEl" controls autoplay muted class="stream-video" playsinline />
+            <div v-if="canRecord" class="player-toolbar">
+              <el-dropdown split-button size="small" :disabled="savingHighlight" @click="saveHighlight('webm')" @command="saveHighlight">
+                {{ savingHighlight ? 'Saving…' : '⏺ Save Last Min' }}
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="webm">Download as .webm</el-dropdown-item>
+                    <el-dropdown-item command="mp4">Download as .mp4 <span class="fmt-note">(WebM-encoded)</span></el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+              <span class="buffer-hint">Buffering last {{ BUFFER_SECONDS }}s</span>
+            </div>
+          </template>
+        </div>
+
         <div v-if="rankLoading && !rankList.length" class="state-block">
           <el-skeleton :rows="3" animated />
         </div>
@@ -298,6 +442,7 @@ onUnmounted(() => { stopLiveTimer(); stopRankTimer() })
         </div>
       </div>
     </div>
+
   </div>
 </template>
 
@@ -364,19 +509,17 @@ onUnmounted(() => { stopLiveTimer(); stopRankTimer() })
 /* ── two-column layout ─────────────────── */
 .content-area {
   display: flex;
+  flex-direction: column;
   gap: 16px;
   margin-top: 20px;
-  align-items: flex-start;
 }
 
 .left-col {
-  flex: 0 0 260px;
-  min-width: 0;
+  width: 100%;
 }
 
 .right-col {
-  flex: 1;
-  min-width: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -392,7 +535,7 @@ onUnmounted(() => { stopLiveTimer(); stopRankTimer() })
 
 .cover-img {
   width: 100%;
-  max-height: 140px;
+  max-height: 220px;
   object-fit: cover;
   border-radius: 6px;
   margin-bottom: 10px;
@@ -550,9 +693,50 @@ onUnmounted(() => { stopLiveTimer(); stopRankTimer() })
   text-align: right;
 }
 
+/* ── stream player ─────────────────────── */
+.player-panel {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #000;
+}
+
+.stream-video {
+  width: 100%;
+  max-height: 480px;
+  display: block;
+}
+
+.player-error {
+  padding: 16px;
+  font-size: 0.83rem;
+  color: var(--el-color-warning);
+  background: var(--color-background-soft);
+  margin: 0;
+}
+
+.player-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--color-background-soft);
+  border-top: 1px solid var(--color-border);
+}
+
+.buffer-hint {
+  font-size: 0.75rem;
+  color: var(--color-text);
+  opacity: 0.45;
+}
+
+.fmt-note {
+  font-size: 0.72rem;
+  opacity: 0.5;
+  margin-left: 4px;
+}
+
 @media (max-width: 640px) {
-  .content-area { flex-direction: column; }
-  .left-col { flex: none; width: 100%; }
   .douyin-title { font-size: 1.15rem; }
 }
 </style>

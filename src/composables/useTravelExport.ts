@@ -3,7 +3,7 @@ import type { Ref, ComputedRef } from 'vue'
 interface AgendaRow {
   id?: string | number
   category?: string
-  title: string
+  title?: string
   desc?: string | null
   city?: string | null
   cityRaw?: string[] | null

@@ -16,7 +16,7 @@ import PrivacyDialog from '@/components/views/travel/PrivacyDialog.vue'
 import AgendaDrawer from '@/components/views/travel/AgendaDrawer.vue'
 import BookingDrawer from '@/components/views/travel/BookingDrawer.vue'
 import type { ItineraryBooking } from '@/interfaces/forms/itinerary/ItineraryBooking'
-import { useTravelDayGroups } from '@/composables/useTravelDayGroups'
+import { useTravelDayGroups, type AgendaRow } from '@/composables/useTravelDayGroups'
 import { useTravelExport } from '@/composables/useTravelExport'
 import { useCityLabel } from '@/composables/useCityLabel'
 import { Edit, Delete, ArrowDown } from '@element-plus/icons-vue'
@@ -178,20 +178,20 @@ const openAddDrawer = (presetDate?: string) => {
   drawerVisible.value = true
 }
 
-const openEditDrawer = (item: AgendaItem) => {
+const openEditDrawer = (row: AgendaRow) => {
   if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
+  const item = row as AgendaItem
   drawerIsNew.value = false
   drawerEditKey.value = item.id ?? item._localIndex
-  const a = item as any
   const cityRaw: string[] =
     item.cityRaw?.length
       ? item.cityRaw
-      : (() => { try { return JSON.parse(a.city_raw ?? '[]') } catch { return [] } })()
+      : (() => { try { return JSON.parse((row.city_raw ?? row.city) ?? '[]') } catch { return [] } })()
   drawerItem.value = {
     ...item,
-    startTime: item.startTime ?? a.start_time ?? undefined,
-    endTime: item.endTime ?? a.end_time ?? undefined,
-    unknownTime: item.unknownTime !== undefined ? item.unknownTime : !!a.unknown_time,
+    startTime: item.startTime ?? (row.start_time as string | undefined) ?? undefined,
+    endTime: item.endTime ?? (row.end_time as string | undefined) ?? undefined,
+    unknownTime: item.unknownTime !== undefined ? item.unknownTime : !!(row.unknown_time),
     cityRaw,
     coordinates: item.coordinates ?? undefined,
   }
@@ -212,7 +212,7 @@ const onDrawerSave = (item: AgendaItem) => {
 
 // ── Form mode helpers ─────────────────────────────────────────────────────────
 
-const getCardTime = (item: AgendaItem) => {
+const getCardTime = (item: AgendaRow) => {
   const unknownTime = item.unknownTime || !!(item as any).unknown_time
   const st = item.startTime ?? (item as any).start_time
   if (unknownTime || !st) return null

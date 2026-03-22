@@ -2,8 +2,8 @@ import { ref, computed } from 'vue'
 import type { Ref, ComputedRef } from 'vue'
 
 // Minimal shape needed by the composable — compatible with both AgendaItem
-// (planner) and AgendaRow (viewer)
-interface AgendaRow {
+// (planner) and AgendaRow (viewer). Exported so callers can type their helpers.
+export interface AgendaRow {
   id?: string | number
   _localIndex?: string
   date?: string | null
