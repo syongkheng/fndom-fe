@@ -92,6 +92,19 @@ export function useTravelDayGroups(items: Ref<AgendaRow[]> | ComputedRef<AgendaR
     })
   })
 
+  const allCollapsed = computed(() =>
+    groupedByDate.value.length > 0 &&
+    groupedByDate.value.every(g => collapsedDays.value.has(g.date))
+  )
+
+  const collapseAll = () => {
+    collapsedDays.value = new Set(groupedByDate.value.map(g => g.date))
+  }
+
+  const expandAll = () => {
+    collapsedDays.value = new Set()
+  }
+
   return {
     toLocalDateKey,
     formatDate,
@@ -99,5 +112,8 @@ export function useTravelDayGroups(items: Ref<AgendaRow[]> | ComputedRef<AgendaR
     groupedByDate,
     collapsedDays,
     toggleDay,
+    allCollapsed,
+    collapseAll,
+    expandAll,
   }
 }

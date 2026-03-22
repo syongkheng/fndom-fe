@@ -42,7 +42,7 @@ const { getCardCity } = useCityLabel()
 
 // ── Collapsible days + grouping ───────────────────────────────────────────────
 const agendaItemsRef = computed(() => itinerary.value.agendaItems ?? [])
-const { collapsedDays, toggleDay, groupedByDate, formatDate: formatGroupDate, toLocalDateKey } = useTravelDayGroups(agendaItemsRef)
+const { collapsedDays, toggleDay, groupedByDate, formatDate: formatGroupDate, toLocalDateKey, collapseAll, expandAll, allCollapsed } = useTravelDayGroups(agendaItemsRef)
 
 // ── Export ────────────────────────────────────────────────────────────────────
 const itineraryAsNullable = computed(() => itinerary.value as any)
@@ -53,6 +53,15 @@ const { width } = useBreakpointManager()
 const isMobile = computed(() => width.value <= 600)
 const drawerDirection = computed(() => isMobile.value ? 'btt' : 'rtl')
 const drawerSize = computed(() => isMobile.value ? '92%' : '420px')
+
+function scrollToTop() {
+  const wrapper = document.querySelector('.wrapper')
+  if (wrapper && wrapper.scrollTop > 0) {
+    wrapper.scrollTo({ top: 0, behavior: 'smooth' })
+  } else {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}
 
 
 // ── Booking drawer state ───────────────────────────────────────────────────────
@@ -365,7 +374,7 @@ const onPrivacyClose = () => {
             {{ itinerary.challenge ? '🔒' : '🔓' }}
           </el-button>
         </el-tooltip>
-        <el-button type="primary" size="small" :loading="saving" @click="handleSave">Save</el-button>
+        <el-button v-if="!isMobile" type="primary" size="small" :loading="saving" @click="handleSave">Save</el-button>
       </div>
     </div>
 
@@ -396,6 +405,11 @@ const onPrivacyClose = () => {
 
       <!-- Day groups -->
       <div v-else>
+        <div class="day-group-controls">
+          <el-button link size="small" @click="allCollapsed ? expandAll() : collapseAll()">
+            {{ allCollapsed ? '↕ Expand All' : '↕ Collapse All' }}
+          </el-button>
+        </div>
         <div v-for="group in groupedByDate" :key="group.date" class="day-group">
           <div class="day-group-header" @click="toggleDay(group.date)">
             <div v-if="group.dayNumber !== null" class="day-badge">{{ group.dayNumber }}</div>
@@ -406,7 +420,7 @@ const onPrivacyClose = () => {
 
           <div v-show="!collapsedDays.has(group.date)" class="agenda-cards">
             <div v-for="item in group.items" :key="item.id ?? item._localIndex" class="agenda-card"
-              :class="item.id ? 'card--saved' : 'card--new'">
+              :class="(item.id && !item._isDirty) ? 'card--saved' : 'card--new'">
               <div class="card-icon">{{ getCategoryEmoji(item.category) }}</div>
               <div class="card-body">
                 <div class="card-title">{{ item.title || 'Untitled' }}</div>
@@ -436,7 +450,7 @@ const onPrivacyClose = () => {
                   </el-tooltip>
                 </div>
                 <div class="card-save-status">
-                  <span v-if="!item.id" class="status--new">Unsaved</span>
+                  <span v-if="!item.id || item._isDirty" class="status--new">Unsaved</span>
                   <span v-else class="status--saved">Saved</span>
                 </div>
               </div>
@@ -625,7 +639,17 @@ const onPrivacyClose = () => {
     </template>
   </div>
 
-  <el-backtop target=".wrapper" :visibility-height="300" :right="24" :bottom="32" />
+  <!-- Floating action bar -->
+  <div class="mobile-fab-bar">
+    <el-button type="primary" size="small" :loading="saving" @click="handleSave">Save</el-button>
+    <span class="fab-divider"></span>
+    <el-button
+      v-if="editMode === 'form' && groupedByDate.length > 0"
+      size="small"
+      @click="allCollapsed ? expandAll() : collapseAll()"
+    >{{ allCollapsed ? '↕ Expand' : '↕ Collapse' }}</el-button>
+    <el-button size="small" @click="scrollToTop">↑ Top</el-button>
+  </div>
 
   <!-- ── PRIVACY DIALOG ───────────────────────────────────────────────── -->
   <PrivacyDialog
@@ -745,6 +769,12 @@ const onPrivacyClose = () => {
 }
 
 /* Day groups */
+.day-group-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
 .day-group {
   margin-bottom: 28px;
 }
@@ -957,6 +987,28 @@ const onPrivacyClose = () => {
   font-size: 2.4rem;
 }
 
+.mobile-fab-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+}
+
+.fab-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--color-border);
+  align-self: center;
+}
+
 .auth-gate-text {
   font-size: 0.9rem;
   color: var(--color-text);
@@ -974,7 +1026,12 @@ const onPrivacyClose = () => {
     width: 100% !important;
   }
 
+  .planner-topbar {
+    flex-wrap: wrap;
+  }
+
   .planner-actions {
+    width: 100%;
     gap: 6px;
   }
 }

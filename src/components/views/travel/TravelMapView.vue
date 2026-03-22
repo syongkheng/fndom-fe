@@ -190,26 +190,48 @@ function renderMap(items: ResolvedItem[]) {
 
   markerGroup = L.featureGroup()
 
+  // Group items sharing the same coordinates into a single marker
+  const coordKey = (c: { lat: number; lng: number }) => `${c.lat.toFixed(5)},${c.lng.toFixed(5)}`
+  const groupMap = new Map<string, { items: ResolvedItem[]; seq: number[] }>()
+  const groupOrder: string[] = []
+
   for (let i = 0; i < items.length; i++) {
-    const item = items[i]
-    const emoji = TRAVEL_CATEGORY_EMOJI[item.category ?? ''] ?? '📋'
-    const timeLabel = !item.unknownTime && item.startTime ? ` · ${item.startTime}` : ''
+    const key = coordKey(items[i]._coords)
+    if (!groupMap.has(key)) {
+      groupMap.set(key, { items: [], seq: [] })
+      groupOrder.push(key)
+    }
+    groupMap.get(key)!.items.push(items[i])
+    groupMap.get(key)!.seq.push(i + 1)
+  }
+
+  for (const key of groupOrder) {
+    const { items: group, seq } = groupMap.get(key)!
+    const first = group[0]
+    const isStacked = group.length > 1
 
     const icon = L.divIcon({
       className: '',
-      html: `<div class="travel-pin">${i + 1}</div>`,
+      html: isStacked
+        ? `<div class="travel-pin travel-pin--stacked">${seq[0]}<span class="pin-badge">+${group.length - 1}</span></div>`
+        : `<div class="travel-pin">${seq[0]}</div>`,
       iconSize: [28, 28],
       iconAnchor: [14, 14],
       popupAnchor: [0, -16],
     })
 
-    const marker = L.marker([item._coords.lat, item._coords.lng], { icon })
-    marker.bindPopup(`
-      <div style="min-width:140px;max-width:220px">
-        <div style="font-size:0.88rem;font-weight:600;color:#111">${emoji} ${item.title}</div>
-        <div style="font-size:0.78rem;color:#666;margin-top:4px">Day ${item._day}${timeLabel}</div>
-      </div>
-    `)
+    const popupRows = group.map((item, idx) => {
+      const emoji = TRAVEL_CATEGORY_EMOJI[item.category ?? ''] ?? '📋'
+      const timeLabel = !item.unknownTime && item.startTime ? ` · ${item.startTime}` : ''
+      const dateLabel = item.date
+        ? `Day ${item._day} · ${new Date(`${item.date}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`
+        : `Day ${item._day}`
+      const sep = idx > 0 ? '<hr style="margin:5px 0;border:none;border-top:1px solid #eee">' : ''
+      return `${sep}<div style="font-size:0.88rem;font-weight:600;color:#111"><span style="opacity:0.45;font-weight:400">#${seq[idx]}</span> ${emoji} ${item.title}</div><div style="font-size:0.78rem;color:#666;margin-top:2px">${dateLabel}${timeLabel}</div>`
+    }).join('')
+
+    const marker = L.marker([first._coords.lat, first._coords.lng], { icon })
+    marker.bindPopup(`<div style="min-width:140px;max-width:220px;max-height:130px;overflow-y:auto">${popupRows}</div>`)
     marker.addTo(markerGroup!)
   }
 
@@ -396,5 +418,23 @@ watch(() => props.agendaItems, (items) => refresh(items), { deep: true })
   justify-content: center;
   border: 2px solid #fff;
   box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.travel-pin--stacked {
+  position: relative;
+}
+
+.pin-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  background: #555;
+  color: #fff;
+  font-size: 0.55rem;
+  font-weight: 700;
+  padding: 1px 3px;
+  border-radius: 8px;
+  line-height: 1.3;
+  white-space: nowrap;
 }
 </style>

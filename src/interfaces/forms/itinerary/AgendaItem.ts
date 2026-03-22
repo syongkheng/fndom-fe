@@ -22,6 +22,7 @@ interface AgendaItem {
   _fileIdsToDelete: string[]
   _fileIdsToInsert: string[]
   _agendaToFileMapping: string[]
+  _isDirty?: boolean
 }
 
 export type { AgendaItem }

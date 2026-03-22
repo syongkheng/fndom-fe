@@ -88,6 +88,7 @@ export const useItineraryStore = defineStore('itinerary', () => {
       agendaToFileMap.forEach(({ agendaId }: { agendaId: number }, index: number) => {
         if (itinerary.agendaItems[index]) {
           itinerary.agendaItems[index].id = String(agendaId)
+          itinerary.agendaItems[index]._isDirty = false
         }
       })
 
@@ -224,6 +225,7 @@ export const useItineraryStore = defineStore('itinerary', () => {
       agendaToFileMap.forEach(({ agendaId }: { agendaId: number }, index: number) => {
         if (itinerary.agendaItems[index]) {
           itinerary.agendaItems[index].id = String(agendaId)
+          itinerary.agendaItems[index]._isDirty = false
         }
       })
 
@@ -379,6 +381,9 @@ export const useItineraryStore = defineStore('itinerary', () => {
 
     if (index !== -1) {
       itinerary.agendaItems.splice(index, 1, updatedItem)
+      if (updatedItem.id) {
+        itinerary.agendaItems[index]._isDirty = true
+      }
     }
   }
 
