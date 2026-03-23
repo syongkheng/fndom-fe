@@ -267,6 +267,7 @@ function initPlayer() {
     hlsInstance.attachMedia(video)
     hlsInstance.on(Hls.Events.ERROR, (_evt, data) => {
       if (data.fatal) {
+        console.error('[HLS] fatal error', data.type, data.details, data)
         playerError.value = 'Could not load stream. The CDN may block cross-origin playback — use "Copy HLS" and open in VLC.'
         destroyPlayer()
       }
