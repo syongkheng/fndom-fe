@@ -640,16 +640,18 @@ const onPrivacyClose = () => {
   </div>
 
   <!-- Floating action bar -->
-  <div class="mobile-fab-bar">
-    <el-button type="primary" size="small" :loading="saving" @click="handleSave">Save</el-button>
-    <span class="fab-divider"></span>
-    <el-button
-      v-if="editMode === 'form' && groupedByDate.length > 0"
-      size="small"
-      @click="allCollapsed ? expandAll() : collapseAll()"
-    >{{ allCollapsed ? '↕ Expand' : '↕ Collapse' }}</el-button>
-    <el-button size="small" @click="scrollToTop">↑ Top</el-button>
-  </div>
+  <Teleport to="body">
+    <div class="mobile-fab-bar">
+      <el-button type="primary" size="small" :loading="saving" @click="handleSave">Save</el-button>
+      <span class="fab-divider"></span>
+      <el-button
+        v-if="editMode === 'form' && groupedByDate.length > 0"
+        size="small"
+        @click="allCollapsed ? expandAll() : collapseAll()"
+      >{{ allCollapsed ? '↕ Expand' : '↕ Collapse' }}</el-button>
+      <el-button size="small" @click="scrollToTop">↑ Top</el-button>
+    </div>
+  </Teleport>
 
   <!-- ── PRIVACY DIALOG ───────────────────────────────────────────────── -->
   <PrivacyDialog
@@ -989,7 +991,7 @@ const onPrivacyClose = () => {
 
 .mobile-fab-bar {
   position: fixed;
-  bottom: 24px;
+  bottom: max(24px, env(safe-area-inset-bottom, 24px));
   left: 50%;
   transform: translateX(-50%);
   display: flex;
