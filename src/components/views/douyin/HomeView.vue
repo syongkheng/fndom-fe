@@ -256,8 +256,9 @@ function destroyPlayer() {
 function initPlayer() {
   playerError.value = ''
   const video = videoEl.value
-  const url = result.value?.streamUrl
-  if (!video || !url) return
+  const rawUrl = result.value?.streamUrl
+  if (!video || !rawUrl) return
+  const url = rawUrl.replace(/^http:\/\//i, 'https://')
 
   destroyPlayer()
 
@@ -305,7 +306,7 @@ const copied = ref(false)
 
 const copyStreamUrl = async () => {
   if (!result.value?.streamUrl) return
-  await navigator.clipboard.writeText(result.value.streamUrl)
+  await navigator.clipboard.writeText(result.value.streamUrl.replace(/^http:\/\//i, 'https://'))
   copied.value = true
   setTimeout(() => (copied.value = false), 2000)
 }
