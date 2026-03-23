@@ -188,6 +188,7 @@ const playerError = ref('')
 let hlsInstance: Hls | null = null
 
 const canRecord = ref(false)
+const recordingUnsupported = ref(false)
 const savingHighlight = ref(false)
 const BUFFER_SECONDS = 60
 let mediaRecorder: MediaRecorder | null = null
@@ -196,9 +197,15 @@ let onVideoPlay: (() => void) | null = null
 
 function startBuffer() {
   const video = videoEl.value
-  if (!video || typeof MediaRecorder === 'undefined') return
+  if (!video || typeof MediaRecorder === 'undefined') {
+    recordingUnsupported.value = true
+    return
+  }
   const stream = (video as any).captureStream?.()
-  if (!stream) return
+  if (!stream) {
+    recordingUnsupported.value = true
+    return
+  }
 
   canRecord.value = true
   recordChunks = []
@@ -227,6 +234,7 @@ function stopBuffer() {
   mediaRecorder = null
   recordChunks = []
   canRecord.value = false
+  recordingUnsupported.value = false
 }
 
 function saveHighlight(ext: 'webm' | 'mp4' = 'webm') {
@@ -398,17 +406,25 @@ onUnmounted(() => { stopLiveTimer(); stopRankTimer(); destroyPlayer() })
           <p v-if="playerError" class="player-error">{{ playerError }}</p>
           <template v-else>
             <video ref="videoEl" controls autoplay muted class="stream-video" playsinline />
-            <div v-if="canRecord" class="player-toolbar">
-              <el-dropdown split-button size="small" :disabled="savingHighlight" @click="saveHighlight('webm')" @command="saveHighlight">
-                {{ savingHighlight ? 'Saving…' : '⏺ Save Last Min' }}
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item command="webm">Download as .webm</el-dropdown-item>
-                    <el-dropdown-item command="mp4">Download as .mp4 <span class="fmt-note">(WebM-encoded)</span></el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
-              <span class="buffer-hint">Buffering last {{ BUFFER_SECONDS }}s</span>
+            <div class="player-toolbar">
+              <template v-if="recordingUnsupported">
+                <span class="buffer-hint">⚠ Recording not supported on this browser</span>
+              </template>
+              <template v-else-if="canRecord">
+                <el-dropdown split-button size="small" :disabled="savingHighlight" @click="saveHighlight('webm')" @command="saveHighlight">
+                  {{ savingHighlight ? 'Saving…' : '⏺ Save Last Min' }}
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item command="webm">Download as .webm</el-dropdown-item>
+                      <el-dropdown-item command="mp4">Download as .mp4 <span class="fmt-note">(WebM-encoded)</span></el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+                <span class="buffer-hint">Buffering last {{ BUFFER_SECONDS }}s</span>
+              </template>
+              <template v-else>
+                <span class="buffer-hint">Starting buffer…</span>
+              </template>
             </div>
           </template>
         </div>
