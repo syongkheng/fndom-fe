@@ -69,6 +69,13 @@ const modules = [
     icon: '💍',
     path: '/wedding',
   },
+  {
+    key: 'expense',
+    title: 'Expense',
+    description: 'Track your budget, spendings and earnings',
+    icon: '💰',
+    path: '/expense',
+  },
   // {
   //   key: 'habit',
   //   title: 'Habit',

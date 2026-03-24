@@ -73,6 +73,16 @@ export const ApiRoute = {
     TABLES_DELETE: `/api/wedding/tables/delete`,
     TABLES_ASSIGN: `/api/wedding/tables/assign`,
   },
+  EXPENSE: {
+    INIT:               `/api/expense`,
+    UPDATE_BALANCE:     `/api/expense/balance`,
+    CREATE_TRANSACTION: `/api/expense/transaction`,
+    UPDATE_TRANSACTION: `/api/expense/transaction/update`,
+    DELETE_TRANSACTION: `/api/expense/transaction/delete`,
+    CREATE_CARD:        `/api/expense/card`,
+    UPDATE_CARD:        `/api/expense/card/update`,
+    DELETE_CARD:        `/api/expense/card/delete`,
+  },
   DATA_GOV_SG: {
     // HDB Resale Flat Prices (Jan 2017 onwards) — update resource ID here if dataset changes
     HDB_RESALE_PRICES: `https://data.gov.sg/api/action/datastore_search`,
