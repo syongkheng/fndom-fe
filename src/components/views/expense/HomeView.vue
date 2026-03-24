@@ -989,6 +989,7 @@ onMounted(fetchData)
               <button
                 v-for="color in CARD_COLOR_PRESETS"
                 :key="color"
+                type="button"
                 class="color-swatch"
                 :class="{ 'color-swatch--active': cardForm.color === color }"
                 :style="{ background: color }"
