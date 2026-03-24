@@ -1117,8 +1117,8 @@ onMounted(fetchData)
 .projection-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 0.83rem; border-top: 1px solid var(--color-border); }
 .proj-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .proj-name { flex: 1; color: var(--color-text); font-weight: 500; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.proj-bill { font-weight: 700; color: var(--el-color-danger); flex-shrink: 0; }
-.proj-due { font-size: 0.75rem; color: var(--color-text); opacity: 0.5; flex-shrink: 0; }
+.proj-bill { font-weight: 700; color: var(--el-color-danger); flex-shrink: 0; min-width: 52px; text-align: right; }
+.proj-due { font-size: 0.75rem; color: var(--color-text); opacity: 0.5; flex-shrink: 0; min-width: 72px; text-align: right; }
 .proj-arrow { opacity: 0.3; flex-shrink: 0; }
 .proj-after { font-weight: 700; flex-shrink: 0; }
 
@@ -1288,4 +1288,13 @@ onMounted(fetchData)
 .cal-balance--neg { color: var(--el-color-danger); }
 .cal-balance--na { opacity: 0.25; }
 .cal-cc-dot { width: 5px; height: 5px; border-radius: 50%; position: absolute; bottom: 4px; right: 4px; flex-shrink: 0; }
+
+@media (max-width: 480px) {
+  .controls-row { flex-wrap: wrap; gap: 8px; }
+  .add-buttons { margin-left: auto; }
+  .summary-card { padding: 10px 8px; }
+  .summary-card__amount { font-size: 0.9rem; }
+  .projection-row { gap: 5px; }
+  .proj-due { min-width: 62px; }
+}
 </style>
