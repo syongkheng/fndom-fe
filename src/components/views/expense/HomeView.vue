@@ -79,23 +79,45 @@ function getCardColor(id: number): string {
 
 // Billing cycle helpers
 function getCardDueDate(card: CreditCard, today: Date): Date {
-  const day = today.getDate()
-  const m = today.getMonth()
   const y = today.getFullYear()
-  // If today ≤ cycleEndDay: cycle ends this month, payment due next month
-  // If today > cycleEndDay: cycle ends next month, payment due month after
-  return day <= card.cycleEndDay
-    ? new Date(y, m + 1, card.dueDay)
-    : new Date(y, m + 2, card.dueDay)
+  const m = today.getMonth()
+  const d = today.getDate()
+
+  if (d <= card.cycleEndDay) {
+    // Cycle closes later this month (or today) → bill due next month
+    return new Date(y, m + 1, card.dueDay)
+  }
+
+  // Cycle closed earlier this month.
+  // Show its bill (due next month on dueDay) until that date passes.
+  const closedCycleDue = new Date(y, m + 1, card.dueDay)
+  if (closedCycleDue > today) {
+    return closedCycleDue
+  }
+
+  // Bill for the closed cycle has passed → next cycle closes next month → bill due m+2
+  return new Date(y, m + 2, card.dueDay)
 }
 
 function getCardCycleStart(card: CreditCard, today: Date): Date {
-  const day = today.getDate()
-  const m = today.getMonth()
   const y = today.getFullYear()
-  return day <= card.cycleEndDay
-    ? new Date(y, m - 1, card.cycleEndDay + 1)
-    : new Date(y, m, card.cycleEndDay + 1)
+  const m = today.getMonth()
+  const d = today.getDate()
+
+  if (d <= card.cycleEndDay) {
+    // Current cycle started last month
+    return new Date(y, m - 1, card.cycleEndDay + 1)
+  }
+
+  // Cycle closed this month
+  const closedCycleDue = new Date(y, m + 1, card.dueDay)
+  if (closedCycleDue > today) {
+    // Showing closed cycle's bill → that cycle started last month
+    return new Date(y, m - 1, card.cycleEndDay + 1)
+  }
+
+  // Showing next open cycle → started this month after the cycle end
+  return new Date(y, m, card.cycleEndDay + 1)
 }
 
 function getCardCycleBill(card: CreditCard, today: Date): number {
@@ -441,8 +463,11 @@ const barSlots = computed(() => {
 
 // ─── Balance Calendar ─────────────────────────────────────────────────────────
 
+const carryAcrossMonths = ref(false)
+
 interface TimelinePoint {
   date: string
+  dayDelta: number
   balance: number
   isFuture: boolean
   card: CreditCard | null
@@ -451,7 +476,8 @@ interface TimelinePoint {
 interface CalendarDay {
   date: string | null
   day: number
-  balance: number | null
+  dayDelta: number
+  balance: number
   isFuture: boolean
   isToday: boolean
   isCurrentMonth: boolean
@@ -473,40 +499,36 @@ const balanceTimeline = computed((): TimelinePoint[] => {
   // Build delta map: date → net cash flow
   const delta: Record<string, number> = {}
   for (const t of transactions.value) {
+    if (t.type === 'expense' && t.cardId != null) continue // cash leaves on due date, not swipe date
     delta[t.date] = (delta[t.date] ?? 0) + (t.type === 'earning' ? t.amount : -t.amount)
   }
-  // Add CC bills on their due dates as large negatives
+  // Add CC bills on their due dates
   for (const p of cardProjections.value) {
     const ds = p.dueDate.toISOString().slice(0, 10)
     delta[ds] = (delta[ds] ?? 0) - p.bill
   }
 
-  const todayStr = today.toISOString().slice(0, 10)
-
-  // Collect forward: today → end
-  const forward: TimelinePoint[] = []
-  let d = new Date(today)
-  let running = currentBalance.value
+  const points: TimelinePoint[] = []
+  let d = new Date(start)
   while (d <= end) {
     const ds = d.toISOString().slice(0, 10)
-    if (ds !== todayStr) running += (delta[ds] ?? 0)
     const card = cardProjections.value.find((p) => p.dueDate.toISOString().slice(0, 10) === ds)?.card ?? null
-    forward.push({ date: ds, balance: running, isFuture: d > today, card })
+    points.push({ date: ds, dayDelta: delta[ds] ?? 0, balance: 0, isFuture: d > today, card })
     d = new Date(d.getTime() + 86400000)
   }
 
-  // Collect backward: yesterday → start
-  d = new Date(today.getTime() - 86400000)
-  running = currentBalance.value
-  const back: TimelinePoint[] = []
-  while (d >= start) {
-    const ds = d.toISOString().slice(0, 10)
-    running -= (delta[ds] ?? 0)
-    back.unshift({ date: ds, balance: running, isFuture: false, card: null })
-    d = new Date(d.getTime() - 86400000)
+  // Compute running balance: cumulative net, optionally carrying in from prior months
+  const startStr = start.toISOString().slice(0, 10)
+  const carryIn = carryAcrossMonths.value
+    ? Object.entries(delta).filter(([ds]) => ds < startStr).reduce((s, [, v]) => s + v, 0)
+    : 0
+  let running = carryIn
+  for (const p of points) {
+    running += p.dayDelta
+    p.balance = running
   }
 
-  return [...back, ...forward]
+  return points
 })
 
 const calendarDays = computed((): CalendarDay[] => {
@@ -524,7 +546,7 @@ const calendarDays = computed((): CalendarDay[] => {
   const cells: CalendarDay[] = []
 
   for (let i = 0; i < leadingBlanks; i++)
-    cells.push({ date: null, day: 0, balance: null, isFuture: false, isToday: false, isCurrentMonth: false, card: null })
+    cells.push({ date: null, day: 0, dayDelta: 0, balance: 0, isFuture: false, isToday: false, isCurrentMonth: false, card: null })
 
   for (let day = 1; day <= daysInMonth; day++) {
     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
@@ -532,7 +554,8 @@ const calendarDays = computed((): CalendarDay[] => {
     const dt = new Date(year, month - 1, day)
     cells.push({
       date: dateStr, day,
-      balance: pt?.balance ?? null,
+      dayDelta: pt?.dayDelta ?? 0,
+      balance:  pt?.balance  ?? 0,
       isFuture: dt > today,
       isToday: dateStr === todayStr,
       isCurrentMonth: true,
@@ -541,7 +564,7 @@ const calendarDays = computed((): CalendarDay[] => {
   }
 
   while (cells.length % 7 !== 0)
-    cells.push({ date: null, day: 0, balance: null, isFuture: false, isToday: false, isCurrentMonth: false, card: null })
+    cells.push({ date: null, day: 0, dayDelta: 0, balance: 0, isFuture: false, isToday: false, isCurrentMonth: false, card: null })
 
   return cells
 })
@@ -561,7 +584,7 @@ const selectedDayTransactions = computed(() =>
 
 const selectedDayBalance = computed(() =>
   selectedDayDate.value
-    ? (balanceTimeline.value.find((p) => p.date === selectedDayDate.value)?.balance ?? null)
+    ? (balanceTimeline.value.find((p) => p.date === selectedDayDate.value)?.dayDelta ?? null)
     : null,
 )
 
@@ -604,14 +627,8 @@ onMounted(fetchData)
 <template>
   <div class="page-container">
 
-    <!-- Sticky header: month nav + view tabs -->
+    <!-- Sticky header: view tabs -->
     <div class="sticky-header">
-      <div class="month-nav">
-        <el-button text @click="shiftMonth(-1)">‹</el-button>
-        <span class="month-label">{{ monthLabel }}</span>
-        <el-button text @click="shiftMonth(1)">›</el-button>
-        <el-button text size="small" class="this-month-btn" @click="goToThisMonth">This Month</el-button>
-      </div>
       <div class="view-toggle">
         <button class="view-tab" :class="{ 'view-tab--active': viewMode === 'transactions' }" @click="viewMode = 'transactions'">Transactions</button>
         <button class="view-tab" :class="{ 'view-tab--active': viewMode === 'charts' }" @click="viewMode = 'charts'">Charts</button>
@@ -771,7 +788,15 @@ onMounted(fetchData)
 
       <!-- Balance Calendar -->
       <div class="chart-card">
-        <div class="chart-card__title">Balance Calendar</div>
+        <div class="chart-card__title chart-card__title--row">
+          Balance Calendar
+          <el-button
+            size="small"
+            :type="carryAcrossMonths ? 'primary' : ''"
+            text
+            @click="carryAcrossMonths = !carryAcrossMonths"
+          >{{ carryAcrossMonths ? 'Carry on' : 'Carry off' }}</el-button>
+        </div>
         <div class="cal-grid">
           <!-- Day-of-week headers -->
           <div v-for="h in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']" :key="h" class="cal-header">{{ h }}</div>
@@ -791,16 +816,21 @@ onMounted(fetchData)
             <template v-if="cell.isCurrentMonth">
               <span class="cal-day">{{ cell.day }}</span>
               <span
-                v-if="cell.balance !== null"
                 class="cal-balance"
-                :class="cell.balance >= 0 ? 'cal-balance--pos' : 'cal-balance--neg'"
-                :style="cell.card ? { color: cell.card.color } : {}"
+                :class="{
+                  'cal-balance--pos': cell.dayDelta > 0,
+                  'cal-balance--neg': cell.dayDelta < 0,
+                }"
               >
-                {{ Math.abs(cell.balance) >= 1000
-                  ? `$${(cell.balance / 1000).toFixed(1)}k`
-                  : `$${cell.balance.toFixed(0)}` }}
+                {{ cell.dayDelta > 0 ? '+' : cell.dayDelta < 0 ? '-' : '' }}${{ Math.abs(cell.dayDelta) >= 1000
+                  ? `${(Math.abs(cell.dayDelta) / 1000).toFixed(1)}k`
+                  : Math.abs(cell.dayDelta).toFixed(0) }}
               </span>
-              <span v-else class="cal-balance cal-balance--na">—</span>
+              <span class="cal-balance-sub">
+                {{ cell.balance < 0 ? '-' : '' }}${{ Math.abs(cell.balance) >= 1000
+                  ? `${(Math.abs(cell.balance) / 1000).toFixed(1)}k`
+                  : Math.abs(cell.balance).toFixed(0) }}
+              </span>
               <span v-if="cell.card" class="cal-cc-dot" :style="{ background: cell.card.color }" />
             </template>
           </div>
@@ -899,12 +929,13 @@ onMounted(fetchData)
         <!-- Paid with (expense only) -->
         <el-form-item v-if="form.type === 'expense'" label="Paid with">
           <div class="payment-pills">
-            <button class="payment-pill" :class="{ 'payment-pill--active': form.cardId === null }" @click="form.cardId = null">
+            <button type="button" class="payment-pill" :class="{ 'payment-pill--active': form.cardId === null }" @click="form.cardId = null">
               💳 Cash / Debit
             </button>
             <button
               v-for="card in creditCards"
               :key="card.id"
+              type="button"
               class="payment-pill"
               :class="{ 'payment-pill--active': form.cardId === card.id }"
               :style="form.cardId === card.id ? { borderColor: card.color, color: card.color, background: card.color + '18' } : {}"
@@ -920,6 +951,7 @@ onMounted(fetchData)
             <button
               v-for="cat in currentCategories"
               :key="cat.value"
+              type="button"
               class="category-pill"
               :class="{ 'category-pill--selected': form.category === cat.value }"
               :style="form.category === cat.value ? { borderColor: CATEGORY_COLORS[cat.value] ?? '#94a3b8', color: CATEGORY_COLORS[cat.value] ?? '#94a3b8' } : {}"
@@ -1018,11 +1050,11 @@ onMounted(fetchData)
       width="360px"
       @close="expandedId = null; confirmDeleteId = null"
     >
-      <!-- Balance line -->
-      <div v-if="selectedDayBalance !== null" class="day-detail-balance">
-        <span>Balance</span>
-        <span :class="selectedDayBalance >= 0 ? 'amount--earning' : 'amount--expense'">
-          ${{ formatAmount(selectedDayBalance) }}
+      <!-- Net line -->
+      <div v-if="selectedDayBalance !== null && selectedDayBalance !== 0" class="day-detail-balance">
+        <span>Net</span>
+        <span :class="selectedDayBalance > 0 ? 'amount--earning' : 'amount--expense'">
+          {{ selectedDayBalance > 0 ? '+' : '' }}${{ formatAmount(selectedDayBalance) }}
         </span>
       </div>
 
@@ -1081,18 +1113,28 @@ onMounted(fetchData)
       </template>
     </el-dialog>
 
+    <!-- Month FAB -->
+    <div class="month-fab">
+      <el-button text class="month-fab__btn" @click="shiftMonth(-1)">‹</el-button>
+      <span class="month-fab__label">{{ monthLabel }}</span>
+      <el-button text class="month-fab__btn" @click="shiftMonth(1)">›</el-button>
+      <el-button text size="small" class="month-fab__this" @click="goToThisMonth">This Month</el-button>
+    </div>
+
   </div>
 </template>
 
 <style scoped>
-.page-container { max-width: 640px; width: 100%; margin: 0 auto; padding-bottom: 2rem; }
+.page-container { max-width: 640px; width: 100%; margin: 0 auto; padding-bottom: 80px; }
 
 /* Sticky header */
 .sticky-header { position: sticky; top: 0; z-index: 10; background: var(--color-background); backdrop-filter: blur(8px); padding-top: 12px; margin-bottom: 4px; }
 
-.month-nav { display: flex; align-items: center; justify-content: center; gap: 4px; padding-bottom: 8px; }
-.month-label { font-size: 1.1rem; font-weight: 700; color: var(--color-heading); min-width: 90px; text-align: center; }
-.this-month-btn { font-size: 0.75rem; color: var(--color-text); opacity: 0.55; margin-left: 4px; }
+/* Month FAB */
+.month-fab { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; align-items: center; gap: 2px; background: var(--color-background-soft); border: 1px solid var(--color-border); border-radius: 999px; padding: 6px 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); backdrop-filter: blur(8px); }
+.month-fab__label { font-size: 1rem; font-weight: 700; color: var(--color-heading); min-width: 86px; text-align: center; }
+.month-fab__btn   { font-size: 1.1rem; }
+.month-fab__this  { font-size: 0.72rem; color: var(--color-text); opacity: 0.5; margin-left: 4px; }
 
 .view-toggle { display: flex; border: 1px solid var(--color-border); border-radius: 10px; overflow: hidden; margin-bottom: 12px; }
 .view-tab { flex: 1; padding: 7px; border: none; background: transparent; font-size: 0.875rem; color: var(--color-text); cursor: pointer; transition: all 0.15s; }
@@ -1207,6 +1249,7 @@ onMounted(fetchData)
 /* Chart cards */
 .chart-card { border: 1px solid var(--color-border); border-radius: 12px; padding: 18px 16px; background: var(--color-background-soft); margin-bottom: 16px; }
 .chart-card__title { font-size: 0.85rem; font-weight: 700; color: var(--color-heading); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px; opacity: 0.7; }
+.chart-card__title--row { display: flex; align-items: center; justify-content: space-between; }
 .donut-layout { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
 .donut-svg { width: 160px; height: 160px; flex-shrink: 0; }
 .donut-center-label { font-size: 10px; fill: var(--color-text); opacity: 0.5; }
@@ -1284,9 +1327,9 @@ onMounted(fetchData)
 .cal-day { font-size: 0.68rem; font-weight: 700; color: var(--color-heading); align-self: flex-start; line-height: 1; }
 .cal-cell--today .cal-day { color: #22c55e; }
 .cal-balance { font-size: 0.62rem; font-weight: 600; line-height: 1; text-align: center; margin-top: 2px; }
-.cal-balance--pos { color: var(--color-text); opacity: 0.8; }
+.cal-balance--pos { color: #22c55e; }
 .cal-balance--neg { color: var(--el-color-danger); }
-.cal-balance--na { opacity: 0.25; }
+.cal-balance-sub { font-size: 0.55rem; font-weight: 500; line-height: 1; text-align: center; margin-top: 1px; color: var(--color-text); opacity: 0.45; }
 .cal-cc-dot { width: 5px; height: 5px; border-radius: 50%; position: absolute; bottom: 4px; right: 4px; flex-shrink: 0; }
 
 @media (max-width: 480px) {
