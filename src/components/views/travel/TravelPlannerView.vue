@@ -279,8 +279,13 @@ onMounted(async () => {
     loading.value = false
     return
   }
-  await itineraryStore.retrieveItineraryForUpdate(sessionId)
+  const loadResult = await itineraryStore.retrieveItineraryForUpdate(sessionId)
   loading.value = false
+  if (loadResult.forbidden) {
+    ElMessage.error("This itinerary doesn't belong to you. Please create a new trip.")
+    nav.redirectTo('/travel')
+    return
+  }
   if (!sessionStorage.getItem(privacySeenKey) && !itinerary.value.challenge) {
     privacyDialogVisible.value = true
   }

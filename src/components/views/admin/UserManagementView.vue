@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
 import { GRANTABLE_ROLES, MODULE_COLORS, type RoleDefinition } from '@/constants/Roles'
+
+const router = useRouter()
 
 interface UserRecord {
   id: number
@@ -107,6 +110,7 @@ onMounted(fetchUsers)
     <!-- Header -->
     <div class="admin-header">
       <div>
+        <el-button text size="small" @click="router.push('/admin')" class="admin-back">← Admin</el-button>
         <h1 class="admin-title">User Management</h1>
         <p class="admin-subtitle">Grant and revoke module roles across all registered users.</p>
       </div>
@@ -250,6 +254,14 @@ onMounted(fetchUsers)
   justify-content: space-between;
   padding: 24px 0 16px;
   gap: 12px;
+}
+
+.admin-back {
+  align-self: flex-start;
+  padding: 0;
+  margin-bottom: 6px;
+  font-size: 0.8rem;
+  opacity: 0.55;
 }
 
 .admin-title {

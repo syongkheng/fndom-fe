@@ -37,6 +37,10 @@ export const ApiRoute = {
   ADMIN: {
     LIST_USERS: `/api/auth/admin/users`,
     UPDATE_USER_ROLES: (id: number) => `/api/auth/admin/users/${id}/roles`,
+    LIST_FLAGS:   `/api/feature/admin`,
+    CREATE_FLAG:  `/api/feature/create`,
+    UPDATE_FLAG:  (key: string) => `/api/feature/${key}/update`,
+    TOGGLE_FLAG:  (key: string) => `/api/feature/${key}/toggle`,
   },
   FILE: {
     CREATE: `/api/file`,
@@ -59,6 +63,14 @@ export const ApiRoute = {
     UPLOAD_PHOTO: `/api/meal/photo`,
     DELETE_PHOTO: `/api/meal/photo/delete`,
   },
+  SLEEP: {
+    GET_ALL:          `/api/sleep`,
+    CREATE:           `/api/sleep`,
+    UPDATE:           `/api/sleep/update`,
+    DELETE:           `/api/sleep/delete`,
+    BULK:             `/api/sleep/bulk`,
+    PARSE_SCREENSHOT: `/api/sleep/parse-screenshot`,
+  },
   WEDDING: {
     EVENTS_GET_ALL: `/api/wedding/events`,
     EVENTS_CREATE: `/api/wedding/events`,
@@ -72,6 +84,15 @@ export const ApiRoute = {
     TABLES_CREATE: `/api/wedding/tables`,
     TABLES_DELETE: `/api/wedding/tables/delete`,
     TABLES_ASSIGN: `/api/wedding/tables/assign`,
+    DATES_GET_SESSIONS: `/api/wedding`,
+    DATES_CREATE_SESSION: `/api/wedding/session`,
+    DATES_DELETE_SESSION: `/api/wedding/session/delete`,
+    DATES_ADD_DATE: `/api/wedding/date`,
+    DATES_UPDATE_DATE: `/api/wedding/date/update`,
+    DATES_DELETE_DATE: `/api/wedding/date/delete`,
+    DATES_DELETE_COMMENT: `/api/wedding/comment/delete`,
+    DATES_GET_PUBLIC: (shortCode: string) => `/api/wedding/${shortCode}`,
+    DATES_ADD_COMMENT: (shortCode: string) => `/api/wedding/${shortCode}/comment`,
   },
   EXPENSE: {
     INIT:               `/api/expense`,

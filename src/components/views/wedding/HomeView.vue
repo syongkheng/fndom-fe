@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
 import { ElMessage } from 'element-plus'
+import { getLunarInfo } from '@/utilities/lunarCalendar'
 
 type EventCategory = 'venue' | 'catering' | 'attire' | 'ceremony' | 'admin' | 'other'
 type EventStatus = 'pending' | 'done'
@@ -382,6 +383,204 @@ async function addTable() {
     ElMessage.error('Failed to add table')
   }
 }
+
+// ── Date Picker Tab ───────────────────────────────────────────────────────────
+
+type CeremonyType = '过大礼' | '结婚' | '回门' | 'custom'
+type DateStatus = 'pending' | 'accepted' | 'rejected'
+
+interface WeddingDateComment {
+  id: number
+  dateId: number
+  commenterName: string
+  comment: string
+  createdAt: number
+}
+
+interface WeddingDateEntry {
+  id: number
+  sessionId: number
+  date: string
+  ceremonyType: string
+  auspiciousNotes: string | null
+  status: DateStatus
+  createdAt: number
+  comments: WeddingDateComment[]
+}
+
+interface WeddingSession {
+  id: number
+  shortCode: string
+  title: string
+  createdAt: number
+}
+
+const sessions = ref<WeddingSession[]>([])
+const expandedSessionId = ref<number | null>(null)
+const expandedSessionDates = ref<WeddingDateEntry[]>([])
+const sessionsLoading = ref(false)
+const datesLoading = ref(false)
+
+const showAddSessionDialog = ref(false)
+const addSessionForm = ref({ title: '' })
+
+const showAddDateDialog = ref(false)
+const addDateForm = ref({ sessionId: 0, date: '', ceremonyType: '结婚' as CeremonyType, auspiciousNotes: '' })
+
+const showCommentsDialog = ref(false)
+const selectedDateComments = ref<WeddingDateComment[]>([])
+const selectedDateTitle = ref('')
+const activeCommentDateEntry = ref<WeddingDateEntry | null>(null)
+
+const CEREMONY_TYPE_OPTIONS = [
+  { label: '过大礼 (Betrothal)', value: '过大礼' },
+  { label: '结婚 (Wedding Day)', value: '结婚' },
+  { label: '回门 (Return Visit)', value: '回门' },
+  { label: 'Custom', value: 'custom' },
+]
+
+const DATE_STATUS_COLORS: Record<string, string> = {
+  pending:  '#f59e0b',
+  accepted: '#10b981',
+  rejected: '#ef4444',
+}
+
+const WEDDING_YI = ['嫁娶', '纳采', '订盟', '会亲友', '冠笄']
+
+function getDateLunar(dateStr: string) {
+  return getLunarInfo(dateStr)
+}
+
+onMounted(fetchSessions)
+
+async function fetchSessions() {
+  sessionsLoading.value = true
+  try {
+    const { data } = await HttpClient.get(ApiRoute.WEDDING.DATES_GET_SESSIONS)
+    sessions.value = data.data.sessions ?? []
+  } catch {
+    ElMessage.error('Failed to load date sessions')
+  } finally {
+    sessionsLoading.value = false
+  }
+}
+
+async function toggleSessionExpand(sessionId: number) {
+  if (expandedSessionId.value === sessionId) {
+    expandedSessionId.value = null
+    expandedSessionDates.value = []
+    return
+  }
+  expandedSessionId.value = sessionId
+  datesLoading.value = true
+  try {
+    const session = sessions.value.find(s => s.id === sessionId)
+    if (!session) return
+    const { data } = await HttpClient.get(ApiRoute.WEDDING.DATES_GET_PUBLIC(session.shortCode))
+    expandedSessionDates.value = data.data.session?.dates ?? []
+  } catch {
+    ElMessage.error('Failed to load dates')
+  } finally {
+    datesLoading.value = false
+  }
+}
+
+async function createSession() {
+  if (!addSessionForm.value.title.trim()) return
+  try {
+    const { data } = await HttpClient.post(ApiRoute.WEDDING.DATES_CREATE_SESSION, {
+      title: addSessionForm.value.title.trim(),
+    })
+    sessions.value.unshift(data.data.session)
+    showAddSessionDialog.value = false
+    addSessionForm.value = { title: '' }
+  } catch {
+    ElMessage.error('Failed to create session')
+  }
+}
+
+async function deleteSession(id: number) {
+  try {
+    await HttpClient.post(ApiRoute.WEDDING.DATES_DELETE_SESSION, { id })
+    sessions.value = sessions.value.filter(s => s.id !== id)
+    if (expandedSessionId.value === id) {
+      expandedSessionId.value = null
+      expandedSessionDates.value = []
+    }
+  } catch {
+    ElMessage.error('Failed to delete session')
+  }
+}
+
+function openAddDateDialog(sessionId: number) {
+  addDateForm.value = { sessionId, date: '', ceremonyType: '结婚', auspiciousNotes: '' }
+  showAddDateDialog.value = true
+}
+
+async function addDate() {
+  if (!addDateForm.value.date || !addDateForm.value.ceremonyType) return
+  try {
+    const { data } = await HttpClient.post(ApiRoute.WEDDING.DATES_ADD_DATE, {
+      session_id:       addDateForm.value.sessionId,
+      date:             addDateForm.value.date,
+      ceremony_type:    addDateForm.value.ceremonyType,
+      auspicious_notes: addDateForm.value.auspiciousNotes.trim() || null,
+    })
+    if (expandedSessionId.value === addDateForm.value.sessionId) {
+      expandedSessionDates.value.push({ ...data.data.date, comments: [] })
+      expandedSessionDates.value.sort((a, b) => a.date.localeCompare(b.date))
+    }
+    showAddDateDialog.value = false
+  } catch {
+    ElMessage.error('Failed to add date')
+  }
+}
+
+async function updateDateStatus(entry: WeddingDateEntry, status: DateStatus) {
+  const prev = entry.status
+  entry.status = status
+  try {
+    await HttpClient.post(ApiRoute.WEDDING.DATES_UPDATE_DATE, { id: entry.id, status })
+  } catch {
+    entry.status = prev
+    ElMessage.error('Failed to update status')
+  }
+}
+
+async function deleteDate(id: number) {
+  try {
+    await HttpClient.post(ApiRoute.WEDDING.DATES_DELETE_DATE, { id })
+    expandedSessionDates.value = expandedSessionDates.value.filter(d => d.id !== id)
+  } catch {
+    ElMessage.error('Failed to delete date')
+  }
+}
+
+async function deleteComment(commentId: number) {
+  try {
+    await HttpClient.post(ApiRoute.WEDDING.DATES_DELETE_COMMENT, { id: commentId })
+    if (activeCommentDateEntry.value) {
+      activeCommentDateEntry.value.comments = activeCommentDateEntry.value.comments.filter(c => c.id !== commentId)
+    }
+    selectedDateComments.value = selectedDateComments.value.filter(c => c.id !== commentId)
+  } catch {
+    ElMessage.error('Failed to delete comment')
+  }
+}
+
+function openComments(entry: WeddingDateEntry) {
+  activeCommentDateEntry.value = entry
+  selectedDateComments.value = [...entry.comments]
+  selectedDateTitle.value = `${formatDate(entry.date)} — ${entry.ceremonyType}`
+  showCommentsDialog.value = true
+}
+
+function copyShareLink(shortCode: string) {
+  const url = `${window.location.origin}/wedding/dates/v/${shortCode}`
+  navigator.clipboard.writeText(url)
+    .then(() => ElMessage.success('Share link copied!'))
+    .catch(() => ElMessage.error('Failed to copy link'))
+}
 </script>
 
 <template>
@@ -630,6 +829,87 @@ async function addTable() {
           </div>
         </div>
       </el-tab-pane>
+
+      <!-- ── Tab 4: Date Picker ─────────────────────────────── -->
+      <el-tab-pane label="Date Picker">
+        <div class="tab-header">
+          <div>
+            <h2 class="tab-title">Auspicious Dates</h2>
+            <p class="tab-subtitle">Propose and compare dates for each ceremony</p>
+          </div>
+          <el-button type="primary" size="small" @click="showAddSessionDialog = true">+ New Session</el-button>
+        </div>
+
+        <div v-if="sessionsLoading" class="dp-empty">Loading…</div>
+        <div v-else-if="sessions.length === 0" class="dp-empty">
+          No sessions yet. Create one to start proposing dates.
+        </div>
+
+        <div v-else class="dp-sessions-list">
+          <div v-for="session in sessions" :key="session.id" class="dp-session-card">
+            <div class="dp-session-header" @click="toggleSessionExpand(session.id)">
+              <div class="dp-session-meta">
+                <span class="dp-session-title">{{ session.title }}</span>
+                <span class="dp-session-code">{{ session.shortCode }}</span>
+              </div>
+              <div class="dp-session-actions" @click.stop>
+                <el-button text size="small" @click="copyShareLink(session.shortCode)">🔗 Share</el-button>
+                <el-button text size="small" @click="openAddDateDialog(session.id)">+ Date</el-button>
+                <el-button text size="small" type="danger" @click="deleteSession(session.id)">🗑</el-button>
+              </div>
+            </div>
+
+            <div v-if="expandedSessionId === session.id" class="dp-dates-body">
+              <div v-if="datesLoading" class="dp-empty">Loading dates…</div>
+              <div v-else-if="expandedSessionDates.length === 0" class="dp-empty">
+                No dates yet — click "+ Date" to add one.
+              </div>
+              <div v-else class="dp-date-list">
+                <div
+                  v-for="entry in expandedSessionDates"
+                  :key="entry.id"
+                  class="dp-date-row"
+                  :class="`dp-date-row--${entry.status}`"
+                >
+                  <div class="dp-date-top">
+                    <span class="date-badge" :class="dateBadgeClass(entry.date)">{{ formatDate(entry.date) }}</span>
+                    <span class="dp-ceremony-chip">{{ entry.ceremonyType }}</span>
+                    <span
+                      class="dp-status-chip"
+                      :style="{
+                        color: DATE_STATUS_COLORS[entry.status],
+                        borderColor: DATE_STATUS_COLORS[entry.status] + '55',
+                        background: DATE_STATUS_COLORS[entry.status] + '18',
+                      }"
+                    >{{ entry.status }}</span>
+                    <div class="dp-date-actions">
+                      <el-button v-if="entry.status !== 'accepted'" text size="small" type="success" @click="updateDateStatus(entry, 'accepted')">✓ Accept</el-button>
+                      <el-button v-if="entry.status !== 'rejected'" text size="small" type="danger"  @click="updateDateStatus(entry, 'rejected')">✗ Reject</el-button>
+                      <el-button v-if="entry.status !== 'pending'"  text size="small"               @click="updateDateStatus(entry, 'pending')">↺ Reset</el-button>
+                      <el-button text size="small" @click="openComments(entry)">💬 {{ entry.comments.length }}</el-button>
+                      <el-button text size="small" type="danger" @click="deleteDate(entry.id)">🗑</el-button>
+                    </div>
+                  </div>
+                  <div class="dp-lunar-row">
+                    <span class="dp-lunar-year">{{ getDateLunar(entry.date).yearStr }}</span>
+                    <span class="dp-lunar-date">{{ getDateLunar(entry.date).dateStr }}</span>
+                    <span class="dp-lunar-sb">{{ getDateLunar(entry.date).sb }}</span>
+                    <span class="dp-lunar-officer">{{ getDateLunar(entry.date).officer }}日</span>
+                    <span
+                      v-for="tag in getDateLunar(entry.date).yi"
+                      :key="tag"
+                      class="dp-yi-tag"
+                      :class="{ 'dp-yi-tag--wedding': WEDDING_YI.includes(tag) }"
+                    >{{ tag }}</span>
+                  </div>
+                  <p v-if="entry.auspiciousNotes" class="dp-auspicious-notes">{{ entry.auspiciousNotes }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </el-tab-pane>
+
     </el-tabs>
 
     <!-- ── Add Event Dialog ─────────────────────────────────────── -->
@@ -697,6 +977,58 @@ async function addTable() {
         <el-button type="primary" :disabled="!addTableForm.name.trim()" @click="addTable">Add</el-button>
       </template>
     </el-dialog>
+
+    <!-- ── Add Session Dialog ───────────────────────────────────── -->
+    <el-dialog v-model="showAddSessionDialog" title="New Date Session" width="360px" :close-on-click-modal="false">
+      <el-form label-position="top" @submit.prevent="createSession">
+        <el-form-item label="Session Title">
+          <el-input v-model="addSessionForm.title" placeholder="e.g. Wei & Lin 2026" maxlength="255" autofocus />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showAddSessionDialog = false">Cancel</el-button>
+        <el-button type="primary" :disabled="!addSessionForm.title.trim()" @click="createSession">Create</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- ── Add Date Dialog ──────────────────────────────────────── -->
+    <el-dialog v-model="showAddDateDialog" title="Add Proposed Date" width="380px" :close-on-click-modal="false">
+      <el-form label-position="top" @submit.prevent="addDate">
+        <el-form-item label="Date">
+          <el-date-picker v-model="addDateForm.date" type="date" value-format="YYYY-MM-DD" placeholder="Pick a date" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="Ceremony Type">
+          <el-select v-model="addDateForm.ceremonyType" style="width: 100%">
+            <el-option v-for="opt in CEREMONY_TYPE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="Auspicious Notes (optional)">
+          <el-input v-model="addDateForm.auspiciousNotes" type="textarea" :rows="3" maxlength="1000" placeholder="e.g. 宜嫁娶，吉日。农历六月初六。" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showAddDateDialog = false">Cancel</el-button>
+        <el-button type="primary" :disabled="!addDateForm.date" @click="addDate">Add</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- ── Comments Dialog ──────────────────────────────────────── -->
+    <el-dialog v-model="showCommentsDialog" :title="`Comments — ${selectedDateTitle}`" width="420px">
+      <div v-if="selectedDateComments.length === 0" class="dp-empty" style="padding: 16px 0">No comments yet.</div>
+      <div v-else class="dp-comments-list">
+        <div v-for="c in selectedDateComments" :key="c.id" class="dp-comment-item">
+          <div class="dp-comment-top">
+            <span class="dp-comment-author">{{ c.commenterName }}</span>
+            <el-button text size="small" type="danger" @click="deleteComment(c.id)">🗑</el-button>
+          </div>
+          <p class="dp-comment-text">{{ c.comment }}</p>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="showCommentsDialog = false">Close</el-button>
+      </template>
+    </el-dialog>
+
   </div>
 </template>
 
@@ -1328,5 +1660,211 @@ async function addTable() {
   border-color: var(--el-color-primary);
   border-style: solid;
   background: var(--el-color-primary-light-9);
+}
+
+/* ── Date Picker ── */
+.dp-empty {
+  text-align: center;
+  padding: 24px 0;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  opacity: 0.5;
+}
+
+.dp-sessions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dp-session-card {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--color-background-soft);
+}
+
+.dp-session-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  cursor: pointer;
+  gap: 8px;
+  user-select: none;
+}
+
+.dp-session-header:hover { background: var(--color-background-mute); }
+
+.dp-session-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.dp-session-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dp-session-code {
+  font-size: 0.72rem;
+  font-family: monospace;
+  color: var(--color-text);
+  opacity: 0.45;
+}
+
+.dp-session-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.dp-dates-body {
+  border-top: 1px solid var(--color-border);
+  padding: 12px 16px;
+}
+
+.dp-date-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dp-date-row {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--color-background);
+  transition: opacity 0.2s, border-color 0.2s;
+}
+
+.dp-date-row--accepted { border-color: #10b98155; }
+.dp-date-row--rejected { opacity: 0.55; }
+
+.dp-date-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.dp-ceremony-chip {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-background-mute);
+  color: var(--color-text);
+}
+
+.dp-status-chip {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid;
+  text-transform: capitalize;
+}
+
+.dp-date-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.dp-lunar-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+  font-size: 0.73rem;
+  opacity: 0.75;
+}
+
+.dp-lunar-year {
+  color: var(--color-text);
+  opacity: 0.7;
+}
+
+.dp-lunar-date {
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.dp-lunar-sb {
+  color: var(--color-text);
+}
+
+.dp-lunar-officer {
+  color: var(--color-text);
+  opacity: 0.8;
+}
+
+.dp-yi-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #e8f5ee;
+  color: #0a6640;
+  border: 1px solid #b8dfca;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+.dp-yi-tag--wedding {
+  background: #fff3cd;
+  color: #92400e;
+  border-color: #fcd34d;
+  font-weight: 600;
+}
+
+.dp-auspicious-notes {
+  font-size: 0.8rem;
+  color: var(--color-text);
+  opacity: 0.65;
+  margin: 6px 0 0;
+  font-style: italic;
+}
+
+.dp-comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dp-comment-item {
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 10px;
+}
+
+.dp-comment-item:last-child { border-bottom: none; }
+
+.dp-comment-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.dp-comment-author {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-heading);
+}
+
+.dp-comment-text {
+  font-size: 0.82rem;
+  color: var(--color-text);
+  margin: 0;
 }
 </style>

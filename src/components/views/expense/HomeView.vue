@@ -291,7 +291,11 @@ const groupedTransactions = computed(() => {
 
 const totalIn  = computed(() => monthTransactions.value.filter((t) => t.type === 'earning').reduce((s, t) => s + t.amount, 0))
 const totalOut = computed(() => monthTransactions.value.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0))
-const balance  = computed(() => transactions.value.reduce((s, t) => t.type === 'earning' ? s + t.amount : s - t.amount, 0))
+const todayStr = new Date().toISOString().slice(0, 10)
+const balance  = computed(() => transactions.value
+  .filter((t) => t.date <= todayStr)
+  .filter((t) => !(t.type === 'expense' && t.cardId != null)) // CC cash leaves on due date
+  .reduce((s, t) => t.type === 'earning' ? s + t.amount : s - t.amount, 0))
 const netThisMonth = computed(() => totalIn.value - totalOut.value)
 const savingsRate   = computed(() => totalIn.value > 0 ? Math.round((netThisMonth.value / totalIn.value) * 100) : null)
 

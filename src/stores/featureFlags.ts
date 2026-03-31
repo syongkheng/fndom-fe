@@ -21,7 +21,8 @@ export const useFeatureFlagStore = defineStore('featureFlags', {
     },
 
     isEnabled(key: string): boolean {
-      return this.flags[key] ?? false
+      if (!(key in this.flags)) return true  // no flag in DB = always on
+      return this.flags[key]
     },
   },
 })

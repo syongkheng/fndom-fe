@@ -393,39 +393,46 @@ export const useItineraryStore = defineStore('itinerary', () => {
         return res.data.data
       })
       .catch((err) => {
+        if (err.response?.status === 403) throw err
         console.error('Error: ', err)
         return null
       })
   }
 
-  const retrieveItineraryForUpdate = async (sessionId: string | undefined) => {
-    if (sessionId === undefined) return
-    const retrievedItinerary = await retrieveItinerary(sessionId)
-    const clonedRetrievedItinerary = { ...retrievedItinerary }
-    itinerary.id = clonedRetrievedItinerary.id
-    itinerary.sessionId = clonedRetrievedItinerary.sessionId
-    itinerary.sessionTitle = clonedRetrievedItinerary.sessionTitle
-    itinerary.unknownDate = clonedRetrievedItinerary.unknownDate
-    itinerary.durationInDays = clonedRetrievedItinerary.durationInDays
-    itinerary.numberOfPax = clonedRetrievedItinerary.numberOfPax
-    itinerary.agendaItems = clonedRetrievedItinerary.agendaItems
-    itinerary.destinationRaw = clonedRetrievedItinerary.destinationRaw
-      ? JSON.parse(clonedRetrievedItinerary.destinationRaw)
-      : undefined
-    itinerary.itineraryDateRaw = clonedRetrievedItinerary.itineraryDateRaw
-      ? JSON.parse(clonedRetrievedItinerary.itineraryDateRaw)
-      : undefined
-    itinerary.startDate = clonedRetrievedItinerary.itineraryDateRaw
-      ? clonedRetrievedItinerary.startDate
-      : undefined
-    itinerary.endDate = clonedRetrievedItinerary.itineraryDateRaw
-      ? clonedRetrievedItinerary.endDate
-      : undefined
-    itinerary.shortCode = clonedRetrievedItinerary.shortCode
-    itinerary.challenge = clonedRetrievedItinerary.challenge
-    itinerary.bookings = clonedRetrievedItinerary.bookings ?? []
-    itinerary.paxNames = clonedRetrievedItinerary.paxNames ?? []
-    itinerary._bookingIdsToDelete = []
+  const retrieveItineraryForUpdate = async (sessionId: string | undefined): Promise<{ success: boolean; forbidden: boolean }> => {
+    if (sessionId === undefined) return { success: false, forbidden: false }
+    try {
+      const retrievedItinerary = await retrieveItinerary(sessionId)
+      const clonedRetrievedItinerary = { ...retrievedItinerary }
+      itinerary.id = clonedRetrievedItinerary.id
+      itinerary.sessionId = clonedRetrievedItinerary.sessionId
+      itinerary.sessionTitle = clonedRetrievedItinerary.sessionTitle
+      itinerary.unknownDate = clonedRetrievedItinerary.unknownDate
+      itinerary.durationInDays = clonedRetrievedItinerary.durationInDays
+      itinerary.numberOfPax = clonedRetrievedItinerary.numberOfPax
+      itinerary.agendaItems = clonedRetrievedItinerary.agendaItems
+      itinerary.destinationRaw = clonedRetrievedItinerary.destinationRaw
+        ? JSON.parse(clonedRetrievedItinerary.destinationRaw)
+        : undefined
+      itinerary.itineraryDateRaw = clonedRetrievedItinerary.itineraryDateRaw
+        ? JSON.parse(clonedRetrievedItinerary.itineraryDateRaw)
+        : undefined
+      itinerary.startDate = clonedRetrievedItinerary.itineraryDateRaw
+        ? clonedRetrievedItinerary.startDate
+        : undefined
+      itinerary.endDate = clonedRetrievedItinerary.itineraryDateRaw
+        ? clonedRetrievedItinerary.endDate
+        : undefined
+      itinerary.shortCode = clonedRetrievedItinerary.shortCode
+      itinerary.challenge = clonedRetrievedItinerary.challenge
+      itinerary.bookings = clonedRetrievedItinerary.bookings ?? []
+      itinerary.paxNames = clonedRetrievedItinerary.paxNames ?? []
+      itinerary._bookingIdsToDelete = []
+      return { success: true, forbidden: false }
+    } catch (err: any) {
+      if (err.response?.status === 403) return { success: false, forbidden: true }
+      return { success: false, forbidden: false }
+    }
   }
 
   return {

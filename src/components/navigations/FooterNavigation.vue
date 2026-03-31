@@ -1,14 +1,30 @@
 <script lang="ts" setup>
+import { computed } from 'vue'
 import { useNav } from '@/hooks/useNav'
+import { useFeatureFlagStore } from '@/stores/featureFlags'
 
 const { redirectTo } = useNav()
+const flagStore = useFeatureFlagStore()
 
 const year = new Date().getFullYear()
 
-const toolSections = [
-  { label: 'PPHS Explorer', path: '/pphs' },
-  { label: 'Travel Planner', path: '/travel' },
+const publicModules = [
+  { label: 'Kingshot',      path: '/ks',    featureKey: 'kingshot' },
+  { label: 'PPHS',          path: '/pphs',  featureKey: 'pphs' },
+  { label: 'Flat Analysis', path: '/flat',  featureKey: 'flat-analysis' },
 ]
+
+const personalModules = [
+  { label: 'Travel',    path: '/travel',  featureKey: 'travel' },
+  { label: 'Sleep',     path: '/sleep',   featureKey: 'sleep' },
+  { label: 'Meal Prep', path: '/meal',    featureKey: 'meal' },
+  { label: 'Douyin',    path: '/douyin',  featureKey: 'douyin' },
+  { label: 'Wedding',   path: '/wedding', featureKey: 'wedding' },
+  { label: 'Expense',   path: '/expense', featureKey: 'expense' },
+]
+
+const visiblePublic   = computed(() => publicModules.filter(m => flagStore.isEnabled(m.featureKey)))
+const visiblePersonal = computed(() => personalModules.filter(m => flagStore.isEnabled(m.featureKey)))
 </script>
 
 <template>
@@ -27,10 +43,19 @@ const toolSections = [
       <!-- Sitemap -->
       <div class="footer-sitemap">
 
-        <div class="footer-col">
-          <div class="col-heading">Tools</div>
+        <div class="footer-col" v-if="visiblePublic.length">
+          <div class="col-heading">Modules</div>
           <ul class="col-links">
-            <li v-for="item in toolSections" :key="item.path">
+            <li v-for="item in visiblePublic" :key="item.path">
+              <button class="footer-link" @click="redirectTo(item.path)">{{ item.label }}</button>
+            </li>
+          </ul>
+        </div>
+
+        <div class="footer-col" v-if="visiblePersonal.length">
+          <div class="col-heading">Personal</div>
+          <ul class="col-links">
+            <li v-for="item in visiblePersonal" :key="item.path">
               <button class="footer-link" @click="redirectTo(item.path)">{{ item.label }}</button>
             </li>
           </ul>
@@ -128,7 +153,7 @@ const toolSections = [
   display: flex;
   flex-direction: column;
   gap: 10px;
-  min-width: 130px;
+  min-width: 110px;
 }
 
 .col-heading {

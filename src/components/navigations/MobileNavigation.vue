@@ -1,21 +1,22 @@
 <script lang="ts" setup>
-import { ElDialog, ElDivider, ElIcon, ElMessage } from 'element-plus'
-import { HomeFilled, Bell, Operation, MoonNight, Notification, User, Star, House, StarFilled } from '@element-plus/icons-vue'
+import { computed } from 'vue'
+import { ElDialog, ElDivider, ElMessage } from 'element-plus'
 import { useLayoutStateStore } from '@/stores/layoutState'
 import { useNav } from '@/hooks/useNav'
 import { useAuthenticationStore } from '@/stores/authentication'
+import { useFeatureFlagStore } from '@/stores/featureFlags'
 import { storeToRefs } from 'pinia'
 
 const authStore = useAuthenticationStore()
 const layoutStore = useLayoutStateStore()
+const flagStore = useFeatureFlagStore()
 const navigate = useNav()
 
 const { isAuthenticated } = storeToRefs(authStore)
 
-// ✅ a small wrapper to close after any click
 const handleMenuClick = (action: () => void) => {
   action()
-  layoutStore.mobileNavMenu.setFalse?.() // safely call if method exists
+  layoutStore.mobileNavMenu.setFalse?.()
 }
 
 const handleLogout = () => {
@@ -24,79 +25,74 @@ const handleLogout = () => {
   ElMessage.success('Logout Successfully')
 }
 
-const handleSetting = () => {
-  ElMessage.info('Page Coming Soon')
-}
+const publicModules = [
+  { label: 'Kingshot',      path: '/ks',    featureKey: 'kingshot' },
+  { label: 'PPHS',          path: '/pphs',  featureKey: 'pphs' },
+  { label: 'Flat Analysis', path: '/flat',  featureKey: 'flat-analysis' },
+]
+
+const personalModules = [
+  { label: 'Travel',    path: '/travel',  featureKey: 'travel' },
+  { label: 'Sleep',     path: '/sleep',   featureKey: 'sleep' },
+  { label: 'Meal Prep', path: '/meal',    featureKey: 'meal' },
+  { label: 'Douyin',    path: '/douyin',  featureKey: 'douyin' },
+  { label: 'Wedding',   path: '/wedding', featureKey: 'wedding' },
+  { label: 'Expense',   path: '/expense', featureKey: 'expense' },
+]
+
+const visiblePublic   = computed(() => publicModules.filter(m => flagStore.isEnabled(m.featureKey)))
+const visiblePersonal = computed(() => personalModules.filter(m => flagStore.isEnabled(m.featureKey)))
 </script>
 
 <template>
   <el-dialog v-model="layoutStore.mobileNavMenu.isVisible" width="280px" align-center class="mobile-menu-dialog">
     <div class="menu-container">
+
       <span class="menu-item" @click="handleMenuClick(() => layoutStore.loginDialog.toggle())" v-if="!isAuthenticated">
-        <el-icon>
-          <Star />
-        </el-icon>
         <span class="menu-label">Login</span>
       </span>
+
       <span class="menu-item" @click="handleMenuClick(() => navigate.redirectToLanding())">
-        <el-icon>
-          <House />
-        </el-icon>
         <span class="menu-label">Home</span>
       </span>
 
-      <span class="menu-item" @click="handleMenuClick(() => navigate.redirectToPphs())">
-        <el-icon>
-          <HomeFilled />
-        </el-icon>
-        <span class="menu-label">PPHS</span>
-      </span>
+      <template v-if="visiblePublic.length">
+        <el-divider class="menu-divider" />
+        <span
+          v-for="mod in visiblePublic"
+          :key="mod.path"
+          class="menu-item"
+          @click="handleMenuClick(() => navigate.redirectTo(mod.path))"
+        >
+          <span class="menu-label">{{ mod.label }}</span>
+        </span>
+      </template>
 
-      <!-- <span class="menu-item" @click="handleMenuClick(() => navigate.redirectToSchedule())">
-        <el-icon>
-          <Bell />
-        </el-icon>
-        <span class="menu-label">Events</span>
-      </span> -->
-
-      <el-divider class="menu-divider" />
+      <template v-if="isAuthenticated && visiblePersonal.length">
+        <el-divider class="menu-divider" />
+        <span
+          v-for="mod in visiblePersonal"
+          :key="mod.path"
+          class="menu-item"
+          @click="handleMenuClick(() => navigate.redirectTo(mod.path))"
+        >
+          <span class="menu-label">{{ mod.label }}</span>
+        </span>
+      </template>
 
       <template v-if="isAuthenticated">
-        <span class="menu-item" @click="handleMenuClick(navigate.redirectToWedding)">
-          <el-icon>
-            <StarFilled />
-          </el-icon>
-          <span class="menu-label">Wedding</span>
-        </span>
-        <span class="menu-item" @click="handleMenuClick(navigate.redirectToDashboard)">
-          <el-icon>
-            <Notification />
-          </el-icon>
-          <span class="menu-label">{{ 'Dashboard' }}</span>
-        </span>
-        <span class="menu-item" @click="handleMenuClick(handleSetting)">
-          <el-icon>
-            <Operation />
-          </el-icon>
-          <span class="menu-label">Settings</span>
-        </span>
+        <el-divider class="menu-divider" />
         <span class="menu-item" @click="handleMenuClick(navigate.redirectToProfile)">
-          <el-icon>
-            <User />
-          </el-icon>
           <span class="menu-label">Profile</span>
         </span>
-        <span class="menu-item" @click="handleMenuClick(handleLogout)">
-          <el-icon>
-            <MoonNight />
-          </el-icon>
+        <span class="menu-item menu-item--danger" @click="handleMenuClick(handleLogout)">
           <span class="menu-label">Logout</span>
         </span>
       </template>
+
     </div>
   </el-dialog>
 </template>
-
 
 <style scoped>
 .mobile-menu-dialog {
@@ -104,7 +100,6 @@ const handleSetting = () => {
   --menu-hover: #f5f5f5;
   --menu-active: var(--el-color-primary-light-9);
   --menu-text: #333;
-  --menu-icon: #666;
   --menu-radius: 8px;
 
   .el-dialog__body {
@@ -122,13 +117,12 @@ const handleSetting = () => {
 .menu-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
+  padding: 11px 20px;
   color: var(--menu-text);
-  font-size: 1rem;
+  font-size: 0.95rem;
   cursor: pointer;
   user-select: none;
-  transition: all 0.2s ease;
+  transition: background 0.15s;
 }
 
 .menu-item:hover {
@@ -139,12 +133,17 @@ const handleSetting = () => {
   background-color: var(--menu-active);
 }
 
+.menu-item--danger {
+  color: var(--el-color-danger);
+  opacity: 0.8;
+}
+
 .menu-label {
   flex: 1;
   font-weight: 500;
 }
 
 .menu-divider {
-  margin: 8px 0;
+  margin: 6px 0;
 }
 </style>

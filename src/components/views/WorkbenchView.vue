@@ -1,13 +1,21 @@
 <script setup lang="ts">
+import { computed, onMounted } from 'vue'
 import { useNav } from '@/hooks/useNav'
 import { usePermission } from '@/composables/usePermission'
+import { useFeatureFlagStore } from '@/stores/featureFlags'
 
 const nav = useNav()
 const { hasModuleAccess } = usePermission()
+const flagStore = useFeatureFlagStore()
+
+onMounted(async () => {
+  if (!flagStore.loaded) await flagStore.fetchFlags()
+})
 
 const modules = [
   {
     key: 'kingshot',
+    featureKey: 'kingshot',
     title: 'Kingshot',
     description: 'Kingdom 236 · KoP scheduling and coordination',
     icon: '⚔️',
@@ -29,6 +37,7 @@ const modules = [
   // },
   {
     key: 'pphs',
+    featureKey: 'pphs',
     title: 'PPHS',
     description: 'Public housing info, bus stops and MRT proximity',
     icon: '🏢',
@@ -36,6 +45,7 @@ const modules = [
   },
   {
     key: 'flat',
+    featureKey: 'flat-analysis',
     title: 'Flat Analysis',
     description: 'Search by postal code · MRT and bus stop proximity',
     icon: '🏠',
@@ -43,6 +53,7 @@ const modules = [
   },
   {
     key: 'travel',
+    featureKey: 'travel',
     title: 'Travel',
     description: 'Itinerary planning and collaboration',
     icon: '✈️',
@@ -50,13 +61,23 @@ const modules = [
   },
   {
     key: 'douyin',
+    featureKey: 'douyin',
     title: 'Douyin Live',
     description: 'Check if a Douyin user is livestreaming',
     icon: '📺',
     path: '/douyin',
   },
   {
+    key: 'sleep',
+    featureKey: 'sleep',
+    title: 'Sleep',
+    description: 'Track nightly sleep stages, SpO2 and body battery',
+    icon: '😴',
+    path: '/sleep',
+  },
+  {
     key: 'meal',
+    featureKey: 'meal',
     title: 'Meal Prep',
     description: 'Plan meals and log what you actually ate',
     icon: '🍱',
@@ -64,6 +85,7 @@ const modules = [
   },
   {
     key: 'wedding',
+    featureKey: 'wedding',
     title: 'Wedding',
     description: 'Events, guest list and table planner',
     icon: '💍',
@@ -71,6 +93,7 @@ const modules = [
   },
   {
     key: 'expense',
+    featureKey: 'expense',
     title: 'Expense',
     description: 'Track your budget, spendings and earnings',
     icon: '💰',
@@ -84,6 +107,10 @@ const modules = [
   //   path: '/habit',
   // },
 ]
+
+const visibleModules = computed(() =>
+  modules.filter(m => flagStore.isEnabled(m.featureKey))
+)
 </script>
 
 <template>
@@ -94,7 +121,7 @@ const modules = [
     </section>
 
     <div class="module-grid">
-      <div v-for="mod in modules" :key="mod.key" class="module-tile" @click="nav.redirectTo(mod.path)">
+      <div v-for="mod in visibleModules" :key="mod.key" class="module-tile" @click="nav.redirectTo(mod.path)">
         <span class="module-icon">{{ mod.icon }}</span>
         <div class="module-text">
           <div class="module-title">{{ mod.title }}</div>
@@ -105,12 +132,12 @@ const modules = [
       <div
         v-if="hasModuleAccess('SYSTEM', 5)"
         class="module-tile module-tile--admin"
-        @click="nav.redirectTo('/dashboard')"
+        @click="nav.redirectTo('/admin')"
       >
         <span class="module-icon">⚙️</span>
         <div class="module-text">
-          <div class="module-title">User Management</div>
-          <div class="module-desc">Grant and revoke module roles</div>
+          <div class="module-title">Admin</div>
+          <div class="module-desc">Manage users, roles, and feature flags</div>
         </div>
       </div>
     </div>
