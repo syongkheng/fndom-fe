@@ -37,7 +37,8 @@ const personalModules = [
   { label: 'Meal Prep', path: '/meal',    featureKey: 'meal' },
   { label: 'Douyin',    path: '/douyin',  featureKey: 'douyin' },
   { label: 'Wedding',   path: '/wedding', featureKey: 'wedding' },
-  { label: 'Expense',   path: '/expense', featureKey: 'expense' },
+  { label: 'Expense',          path: '/expense',  featureKey: 'expense' },
+  { label: 'Telegram Storage', path: '/telegram', featureKey: 'telegram' },
 ]
 
 const visiblePublic   = computed(() => publicModules.filter(m => flagStore.isEnabled(m.featureKey)))

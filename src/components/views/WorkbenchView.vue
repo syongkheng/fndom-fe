@@ -99,6 +99,14 @@ const modules = [
     icon: '💰',
     path: '/expense',
   },
+  {
+    key: 'telegram',
+    featureKey: 'telegram',
+    title: 'Telegram Storage',
+    description: 'Upload media via Telegram bot and retrieve by ID',
+    icon: '📦',
+    path: '/telegram',
+  },
   // {
   //   key: 'habit',
   //   title: 'Habit',

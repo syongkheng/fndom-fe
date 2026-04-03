@@ -1,9 +1,13 @@
 <script lang="ts" setup>
 import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import type { UploadFile, UploadUserFile } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
 import { TRAVEL_CATEGORIES } from '@/constants/TravelCategories'
 import { searchPlaces, type Place } from '@/composables/useGeocode'
 import type { AgendaItem } from '@/interfaces/forms/itinerary/AgendaItem'
+import { FileWithPreview } from '@/interfaces/forms/itinerary/FileWithPreview'
+import { FileUtils } from '@/utilities/FileUtils'
 
 const props = defineProps<{
   modelValue: boolean
@@ -73,13 +77,34 @@ const clearPlace = () => {
   placeOptions.value = []
 }
 
+const FILE_LIMIT = 2
+const FILE_MAX_BYTES = 5 * 1024 * 1024
+
 const drawerForm = ref<AgendaItem>(makeBlankDraft())
+const uploadFileList = ref<UploadUserFile[]>([])
+const uidToUuidMap = new Map<number, string>()
+
+const syncUploadList = (files: FileWithPreview[]) => {
+  uidToUuidMap.clear()
+  uploadFileList.value = files.map((f, i) => {
+    const uid = Date.now() + i
+    uidToUuidMap.set(uid, f.uuid)
+    return {
+      uid,
+      name: f.name,
+      url: f.blob ?? f.previewUrl,
+      status: (f.status === 'uploaded' ? 'success' : 'ready') as UploadUserFile['status'],
+    }
+  })
+}
 
 watch(() => props.item, (newItem) => {
   if (newItem) {
     drawerForm.value = { ...newItem }
+    syncUploadList(newItem.files ?? [])
   } else {
     drawerForm.value = makeBlankDraft()
+    syncUploadList([])
   }
 }, { immediate: true })
 
@@ -87,10 +112,59 @@ watch(() => props.modelValue, (val) => {
   if (!val) return
   if (props.item) {
     drawerForm.value = { ...props.item }
+    syncUploadList(props.item.files ?? [])
   } else {
     drawerForm.value = makeBlankDraft()
+    syncUploadList([])
   }
 })
+
+const validateImageFile = (file: File): boolean => {
+  if (!file.type.startsWith('image/')) {
+    ElMessage.error('Only image files are allowed')
+    return false
+  }
+  if (file.size > FILE_MAX_BYTES) {
+    ElMessage.error(`${file.name} exceeds 5 MB`)
+    return false
+  }
+  return true
+}
+
+const handleBeforeUpload = (file: File): boolean => validateImageFile(file)
+
+const handleFileChange = async (uploadFile: UploadFile) => {
+  if (!uploadFile.raw) return
+  if (!validateImageFile(uploadFile.raw)) {
+    uploadFileList.value = uploadFileList.value.filter((f) => f.uid !== uploadFile.uid)
+    return
+  }
+
+  const fwp = new FileWithPreview(uploadFile.raw)
+  fwp.blob = await FileUtils.convertFileToBase64(uploadFile.raw)
+
+  uidToUuidMap.set(uploadFile.uid, fwp.uuid)
+  drawerForm.value.files = [...drawerForm.value.files, fwp]
+  drawerForm.value._fileIdsToInsert = [...drawerForm.value._fileIdsToInsert, fwp.uuid]
+}
+
+const handleFileRemove = (uploadFile: UploadFile) => {
+  const uuid = uidToUuidMap.get(uploadFile.uid) ?? String(uploadFile.uid)
+  const removing = drawerForm.value.files.find((f) => f.uuid === uuid)
+
+  if (removing?.status === 'uploaded') {
+    drawerForm.value._fileIdsToDelete = [...drawerForm.value._fileIdsToDelete, removing.uuid]
+  } else {
+    drawerForm.value._fileIdsToInsert = drawerForm.value._fileIdsToInsert.filter((id) => id !== uuid)
+  }
+
+  drawerForm.value.files = drawerForm.value.files.filter((f) => f.uuid !== uuid)
+  uidToUuidMap.delete(uploadFile.uid)
+}
+
+const handleExceed = () => {
+  ElMessage.warning(`Maximum ${FILE_LIMIT} images per agenda item`)
+}
 
 
 const drawerDisabledDate = (time: Date) => {
@@ -213,6 +287,27 @@ const cancel = () => {
       <div class="form-section">
         <div class="form-label">Budget</div>
         <el-input-number v-model="drawerForm.budget" :min="0" style="width: 100%" size="large" placeholder="0.00" />
+      </div>
+
+      <!-- Images -->
+      <div class="form-section">
+        <div class="form-label">Images</div>
+        <el-upload
+          v-model:file-list="uploadFileList"
+          list-type="picture-card"
+          :auto-upload="false"
+          accept="image/*"
+          :limit="FILE_LIMIT"
+          :before-upload="handleBeforeUpload"
+          :on-change="handleFileChange"
+          :on-remove="handleFileRemove"
+          :on-exceed="handleExceed"
+        >
+          <el-icon><Plus /></el-icon>
+          <template #tip>
+            <div class="el-upload__tip">Images only · max {{ FILE_LIMIT }} · 5 MB each</div>
+          </template>
+        </el-upload>
       </div>
 
       <!-- Actions -->

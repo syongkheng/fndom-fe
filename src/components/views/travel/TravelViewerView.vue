@@ -70,11 +70,28 @@ const verifyChallenge = async () => {
     itinerary.value = res.data.data
     challengeVerified.value = true
     challengeRequired.value = false
+    fetchFileBlobs(res.data.data.agendaItems ?? [])
   } else {
     challengeError.value = true
     challengeDigits.value = ['', '', '', '', '', '']
     nextTick(() => otpRef.value?.focus())
   }
+}
+
+const fileBlobs = ref<Map<string, string>>(new Map())
+
+const fetchFileBlobs = async (items: AgendaRow[]) => {
+  const allFiles = (items ?? []).flatMap((item: AgendaRow) => item.files ?? [])
+  if (!allFiles.length) return
+  await Promise.allSettled(
+    allFiles.map(async (file: any) => {
+      if (!file.uuid) return
+      const res = await HttpClient.get(ApiRoute.FILE.GET(file.uuid)).catch(() => null)
+      if (res?.data?.data?.blob) {
+        fileBlobs.value.set(file.uuid, atob(res.data.data.blob))
+      }
+    })
+  )
 }
 
 onMounted(async () => {
@@ -84,6 +101,7 @@ onMounted(async () => {
       challengeRequired.value = true
     } else {
       itinerary.value = res.data.data
+      await fetchFileBlobs(res.data.data.agendaItems ?? [])
     }
   } else {
     error.value = true
@@ -183,35 +201,18 @@ const isMobile = computed(() => window.innerWidth <= 600)
 
 <template>
   <!-- Challenge gate -->
-  <el-dialog
-    v-model="challengeRequired"
-    title="Protected Itinerary"
-    width="340px"
-    :close-on-click-modal="false"
-    :close-on-press-escape="false"
-    :show-close="false"
-    align-center
-  >
+  <el-dialog v-model="challengeRequired" title="Protected Itinerary" width="340px" :close-on-click-modal="false"
+    :close-on-press-escape="false" :show-close="false" align-center>
     <div class="gate-body">
       <div class="gate-icon">🔒</div>
       <p class="gate-desc">This itinerary is protected. Enter the 6-digit access code to view it.</p>
-      <OtpInput
-        ref="otpRef"
-        v-model="challengeDigits"
-        :error="challengeError"
-        @update:model-value="onOtpUpdate"
-        @complete="verifyChallenge"
-      />
+      <OtpInput ref="otpRef" v-model="challengeDigits" :error="challengeError" @update:model-value="onOtpUpdate"
+        @complete="verifyChallenge" />
       <div v-if="challengeError" class="gate-error">Incorrect code. Please try again.</div>
     </div>
     <template #footer>
-      <el-button
-        type="primary"
-        style="width: 100%"
-        :loading="verifyingChallenge"
-        :disabled="challengeInput.length !== 6 || verifyingChallenge"
-        @click="verifyChallenge"
-      >
+      <el-button type="primary" style="width: 100%" :loading="verifyingChallenge"
+        :disabled="challengeInput.length !== 6 || verifyingChallenge" @click="verifyChallenge">
         Unlock
       </el-button>
     </template>
@@ -269,11 +270,7 @@ const isMobile = computed(() => window.innerWidth <= 600)
           <span class="viewer-map-title">Trip Map</span>
           <span class="viewer-map-chevron" :class="{ collapsed: mapCollapsed }">⌄</span>
         </div>
-        <TravelMapView
-          v-show="!mapCollapsed"
-          :agenda-items="(itinerary.agendaItems ?? []) as any"
-          class="viewer-map"
-        />
+        <TravelMapView v-show="!mapCollapsed" :agenda-items="(itinerary.agendaItems ?? []) as any" class="viewer-map" />
       </div>
 
       <!-- Empty agenda -->
@@ -294,24 +291,18 @@ const isMobile = computed(() => window.innerWidth <= 600)
           <div class="day-heading" @click="toggleDay(group.date)">
             <div v-if="group.dayNumber !== null" class="day-badge">{{ group.dayNumber }}</div>
             <div class="day-label">{{ formatDate(group.date) }}</div>
-            <span class="day-item-count" v-if="collapsedDays.has(group.date)">{{ group.items.length }} item{{ group.items.length === 1 ? '' : 's' }}</span>
+            <span class="day-item-count" v-if="collapsedDays.has(group.date)">{{ group.items.length }} item{{
+              group.items.length === 1 ? '' : 's' }}</span>
             <span class="day-chevron">{{ collapsedDays.has(group.date) ? '›' : '⌄' }}</span>
           </div>
 
           <!-- Items -->
           <div v-show="!collapsedDays.has(group.date)" class="day-items">
-            <div
-              v-for="(item, ii) in group.items"
-              :key="item.id ?? ii"
-              class="timeline-item"
-            >
+            <div v-for="(item, ii) in group.items" :key="item.id ?? ii" class="timeline-item">
               <!-- Spine: category emoji + connecting line -->
               <div class="item-spine">
                 <div class="item-emoji">{{ getCategoryEmoji(item.category) }}</div>
-                <div
-                  v-if="ii < group.items.length - 1 || gi < groupedByDate.length - 1"
-                  class="item-line"
-                />
+                <div v-if="ii < group.items.length - 1 || gi < groupedByDate.length - 1" class="item-line" />
               </div>
 
               <!-- Content -->
@@ -325,6 +316,11 @@ const isMobile = computed(() => window.innerWidth <= 600)
                 <div v-if="item.desc" class="item-desc">{{ item.desc }}</div>
                 <div v-if="item.budget" class="item-budget">
                   <span class="budget-pill">💰 {{ item.budget.toLocaleString() }}</span>
+                </div>
+                <div v-if="item.files?.length" class="item-images">
+                  <el-image v-for="(file, fi) in item.files" :key="fi" :src="fileBlobs.get(file.uuid)"
+                    :preview-src-list="item.files.map((f: any) => fileBlobs.get(f.uuid)).filter(Boolean)"
+                    :initial-index="fi" fit="cover" class="item-image-thumb" preview-teleported />
                 </div>
               </div>
             </div>
@@ -354,11 +350,7 @@ const isMobile = computed(() => window.innerWidth <= 600)
         <div v-show="!bookingsCollapsed">
           <!-- Mobile: card list -->
           <div v-if="isMobile" class="booking-cards">
-            <div
-              v-for="booking in viewerBookings"
-              :key="booking.id"
-              class="booking-card"
-            >
+            <div v-for="booking in viewerBookings" :key="booking.id" class="booking-card">
               <div class="booking-card-header">
                 <span class="booking-cat-emoji">{{ getBookingEmoji(booking.category) }}</span>
                 <span class="booking-card-item">{{ booking.item }}</span>
@@ -396,11 +388,8 @@ const isMobile = computed(() => window.innerWidth <= 600)
             <el-table-column label="Payment" width="100">
               <template #default="{ row }">
                 <template v-if="parsePayment(row.payment) as any">
-                  <el-tooltip
-                    v-if="parsePayment(row.payment)!.date"
-                    :content="parsePayment(row.payment)!.date"
-                    placement="top"
-                  >
+                  <el-tooltip v-if="parsePayment(row.payment)!.date" :content="parsePayment(row.payment)!.date"
+                    placement="top">
                     <el-tag :type="parsePayment(row.payment)!.type" size="small" effect="light" style="cursor:default">
                       {{ parsePayment(row.payment)!.label }}
                     </el-tag>
@@ -412,12 +401,7 @@ const isMobile = computed(() => window.innerWidth <= 600)
                 <span v-else class="dim">—</span>
               </template>
             </el-table-column>
-            <el-table-column
-              v-for="name in viewerPaxNames"
-              :key="name"
-              :label="name"
-              width="80"
-            >
+            <el-table-column v-for="name in viewerPaxNames" :key="name" :label="name" width="80">
               <template #default="{ row }">
                 <span v-if="row.paxBreakdown?.[name] != null">{{ row.paxBreakdown[name].toFixed(0) }}</span>
                 <span v-else class="dim">—</span>
@@ -432,7 +416,8 @@ const isMobile = computed(() => window.innerWidth <= 600)
             <el-table-column label="Dates" width="150">
               <template #default="{ row }">
                 <span v-if="row.startDate || row.endDate">
-                  {{ row.startDate ?? '' }}<template v-if="row.startDate && row.endDate"> → </template>{{ row.endDate ?? '' }}
+                  {{ row.startDate ?? '' }}<template v-if="row.startDate && row.endDate"> → </template>{{ row.endDate
+                    ?? '' }}
                   <template v-if="row.nights"> ({{ row.nights }}N)</template>
                 </span>
                 <span v-else class="dim">—</span>
@@ -794,6 +779,29 @@ const isMobile = computed(() => window.innerWidth <= 600)
 
 .item-budget {
   margin-top: 6px;
+}
+
+.item-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.item-image-thumb {
+  width: 72px;
+  height: 72px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  cursor: zoom-in;
+  flex-shrink: 0;
+}
+
+.item-image-thumb :deep(img) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .budget-pill {

@@ -116,6 +116,12 @@ const router = createRouter({
       beforeEnter: async (to, from, next) => useRouteGuards().authAndFeatureGuard({ next, featureKey: 'expense' }),
     },
     {
+      path: '/telegram',
+      name: 'telegram',
+      component: () => import('../components/views/telegram/HomeView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authAndFeatureGuard({ next, featureKey: 'telegram' }),
+    },
+    {
       path: '/admin',
       name: 'admin',
       component: () => import('../components/views/admin/AdminView.vue'),

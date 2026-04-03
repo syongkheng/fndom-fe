@@ -45,6 +45,7 @@ export const ApiRoute = {
   FILE: {
     CREATE: `/api/file`,
     DELETE: `/api/file/delete`,
+    GET: (uuid: string) => `/api/file/${uuid}`,
   },
   FEATURE: {
     GET_ALL: `/api/feature`,
@@ -103,6 +104,15 @@ export const ApiRoute = {
     CREATE_CARD:        `/api/expense/card`,
     UPDATE_CARD:        `/api/expense/card/update`,
     DELETE_CARD:        `/api/expense/card/delete`,
+  },
+  TELEGRAM: {
+    LINK_STATUS:  `/api/telegram/link-status`,
+    LINK_TOKEN:   `/api/telegram/link-token`,
+    MEDIA_LIST:   `/api/telegram/media`,
+    MEDIA_BY_ID:  (id: string) => `/api/telegram/media/${id}`,
+    MEDIA_DOWNLOAD: (id: string) => `/api/telegram/media/${id}/download`,
+    MEDIA_DELETE: (id: string) => `/api/telegram/media/${id}/delete`,
+    MEDIA_EXPIRE: (id: string) => `/api/telegram/media/${id}/expire`,
   },
   DATA_GOV_SG: {
     // HDB Resale Flat Prices (Jan 2017 onwards) — update resource ID here if dataset changes
