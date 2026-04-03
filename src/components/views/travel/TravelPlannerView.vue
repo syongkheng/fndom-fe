@@ -46,7 +46,7 @@ const { collapsedDays, toggleDay, groupedByDate, formatDate: formatGroupDate, to
 
 // ── Export ────────────────────────────────────────────────────────────────────
 const itineraryAsNullable = computed(() => itinerary.value as any)
-const { exportJSON, exportCSV } = useTravelExport(itineraryAsNullable, groupedByDate, getCardCity)
+const { exportJSON, exportCSV, exportICS } = useTravelExport(itineraryAsNullable, groupedByDate, getCardCity)
 
 // ── Responsive drawer ─────────────────────────────────────────────────────────
 const { width } = useBreakpointManager()
@@ -364,12 +364,13 @@ const onPrivacyClose = () => {
       <div class="planner-actions">
         <el-segmented v-model="editMode" size="small"
           :options="[{ label: '📋 Form', value: 'form' }, { label: '🗺️ Map', value: 'map' }]" />
-        <el-dropdown size="small" trigger="click" @command="(cmd: string) => cmd === 'json' ? exportJSON() : exportCSV()">
+        <el-dropdown size="small" trigger="click" @command="(cmd: string) => cmd === 'json' ? exportJSON() : cmd === 'csv' ? exportCSV() : exportICS()">
           <el-button size="small">Export ↓</el-button>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="json">Export as JSON</el-dropdown-item>
               <el-dropdown-item command="csv">Export as CSV</el-dropdown-item>
+              <el-dropdown-item command="ics">Export Apple Calendar (.ics)</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>

@@ -117,7 +117,7 @@ const agendaItemsRef = computed(() => itinerary.value?.agendaItems ?? [])
 const { collapsedDays, toggleDay, groupedByDate, formatDate, formatHeaderRange } = useTravelDayGroups(agendaItemsRef)
 
 // ── Export ────────────────────────────────────────────────────────────────────
-const { exportJSON, exportCSV } = useTravelExport(itinerary, groupedByDate, getCity)
+const { exportJSON, exportCSV, exportICS } = useTravelExport(itinerary, groupedByDate, getCity)
 
 // ── Agenda helpers ────────────────────────────────────────────────────────────
 const toHHMM = (val: any): string | null => {
@@ -252,12 +252,13 @@ const isMobile = computed(() => window.innerWidth <= 600)
           </span>
         </div>
         <div class="trip-header-actions">
-          <el-dropdown trigger="click" @command="(cmd: string) => cmd === 'json' ? exportJSON() : exportCSV()">
+          <el-dropdown trigger="click" @command="(cmd: string) => cmd === 'json' ? exportJSON() : cmd === 'csv' ? exportCSV() : exportICS()">
             <el-button size="small">Export ↓</el-button>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="json">Export JSON</el-dropdown-item>
                 <el-dropdown-item command="csv">Export CSV</el-dropdown-item>
+                <el-dropdown-item command="ics">Export Apple Calendar (.ics)</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
