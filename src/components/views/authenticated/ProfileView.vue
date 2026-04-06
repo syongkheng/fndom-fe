@@ -37,7 +37,6 @@ const handleFileChange = async (event: Event) => {
   if (!file) return
   selectedFile.value = file
   profile.value.avatar = URL.createObjectURL(file)
-  console.log(">>", profile.value.avatar)
   const blobString = await FileUtils.convertFileToBase64(file)
   try {
     await updateUserPhoto({ blobString, mimeType: file.type, sizeInBytes: file.size, fileName: file.name })
@@ -206,8 +205,8 @@ onMounted(async () => {
               <label class="info-label" for="current-password">Current Password</label>
               <div class="pw-row">
                 <el-input id="current-password" v-model="passwordForm.currentPassword"
-                  placeholder="Enter current password" show-password :prefix-icon="Lock"
-                  :disabled="isPasswordValidated" autocomplete="current-password" />
+                  placeholder="Enter current password" show-password :prefix-icon="Lock" :disabled="isPasswordValidated"
+                  autocomplete="current-password" />
                 <el-button :type="isPasswordValidated ? 'success' : 'default'" :loading="isValidating"
                   :disabled="isPasswordValidated" @click="handleValidatePassword">
                   <el-icon v-if="isPasswordValidated">
@@ -228,9 +227,8 @@ onMounted(async () => {
                 placeholder="Min. 12 chars, upper, number, special" show-password :prefix-icon="Lock"
                 :disabled="!isPasswordValidated" autocomplete="new-password" style="margin-bottom: 10px" />
               <label class="info-label" for="confirm-password">Confirm Password</label>
-              <el-input id="confirm-password" v-model="passwordForm.confirmPassword"
-                placeholder="Repeat new password" show-password :prefix-icon="Lock"
-                :disabled="!isPasswordValidated" autocomplete="new-password" />
+              <el-input id="confirm-password" v-model="passwordForm.confirmPassword" placeholder="Repeat new password"
+                show-password :prefix-icon="Lock" :disabled="!isPasswordValidated" autocomplete="new-password" />
               <el-button type="primary" native-type="submit" :disabled="!isPasswordValidated"
                 @click="handleChangePassword" style="width: 100%; margin-top: 14px">
                 Update Password
