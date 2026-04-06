@@ -313,7 +313,7 @@ const { t } = useI18n()
                 <div class="item-meta-row">
                   <span v-if="getTime(item)" class="item-time">{{ getTime(item) }}</span>
                   <span v-if="getCity(item)" class="item-city">{{ getCity(item) }}</span>
-                  <span v-if="item.category" class="item-category-tag">{{ item.category }}</span>
+                  <span v-if="item.category" class="item-category-tag">{{ t(`travel.category.${item.category}`) }}</span>
                 </div>
                 <div class="item-title">{{ item.title || t('travel.viewer.untitled') }}</div>
                 <div v-if="item.desc" class="item-desc">{{ item.desc }}</div>

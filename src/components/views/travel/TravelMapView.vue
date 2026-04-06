@@ -12,7 +12,7 @@
             :class="{ excluded: excludedCategories.has(cat) }"
             @click="toggleCategory(cat)"
           >
-            {{ TRAVEL_CATEGORY_EMOJI[cat] ?? '📋' }} {{ cat.charAt(0).toUpperCase() + cat.slice(1) }}
+            {{ TRAVEL_CATEGORY_EMOJI[cat] ?? '📋' }} {{ t(`travel.category.${cat}`) }}
           </button>
         </div>
       </div>
@@ -51,6 +51,7 @@
 
 <script lang="ts" setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import L from 'leaflet'
 import type { Map as LeafletMap, FeatureGroup, Polyline } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -62,6 +63,7 @@ const TRAVEL_CATEGORY_EMOJI: Record<string, string> = {
   transport: '🚌', shopping: '🛍️', entertainment: '🎭', nature: '🌿', other: '📋',
 }
 
+const { t } = useI18n()
 const props = defineProps<{ agendaItems: AgendaItem[] }>()
 
 // Use plain variables for Leaflet instances to avoid Vue ref type incompatibility
