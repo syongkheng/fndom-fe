@@ -8,11 +8,14 @@ import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
 import { GeneratorUtils } from '@/utilities/GeneratorUtils'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 
 const nav = useNav()
 const layoutStore = useLayoutStateStore()
 const authStore = useAuthenticationStore()
 const { isAuthenticated } = storeToRefs(authStore)
+
+const { t } = useI18n()
 
 interface TripCard {
   id: number
@@ -61,7 +64,7 @@ watch(isAuthenticated, (val) => {
 })
 
 const formatDateRange = (startDate?: number, endDate?: number) => {
-  if (!startDate) return 'Dates TBC'
+  if (!startDate) return t('travel.list.datesTbc')
   const fmt = (ts: number) =>
     new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
   return endDate ? `${fmt(startDate)} – ${fmt(endDate)}` : fmt(startDate)
@@ -76,7 +79,7 @@ const openNewTripDialog = () => {
 const handleCreate = async () => {
   if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
   if (!newTrip.value.sessionTitle.trim()) {
-    ElMessage.warning('Please enter a trip title.')
+    ElMessage.warning(t('travel.list.noTitle'))
     return
   }
   creating.value = true
@@ -100,7 +103,7 @@ const handleCreate = async () => {
   creating.value = false
 
   if (!res?.data?.data?.sessionId) {
-    ElMessage.error('Failed to create trip. Please try again.')
+    ElMessage.error(t('travel.list.failed'))
     return
   }
 
@@ -111,14 +114,14 @@ const handleCreate = async () => {
 const copyShareLink = (shortCode: string) => {
   const url = `${window.location.origin}/travel/v/${shortCode}`
   navigator.clipboard.writeText(url)
-  ElMessage.success('Share link copied!')
+  ElMessage.success(t('travel.list.linkCopied'))
 }
 
 const confirmDelete = (trip: TripCard) => {
   if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
-  ElMessageBox.confirm(`Delete "${trip.sessionTitle}"? This cannot be undone.`, 'Delete Trip', {
-    confirmButtonText: 'Delete',
-    cancelButtonText: 'Cancel',
+  ElMessageBox.confirm(t('travel.list.deleteConfirm', { title: trip.sessionTitle }), t('travel.list.deleteTitle'), {
+    confirmButtonText: t('travel.list.delete'),
+    cancelButtonText: t('travel.list.cancel'),
     type: 'warning',
     confirmButtonClass: 'el-button--danger',
   }).then(() => deleteTrip(trip.sessionId)).catch(() => {})
@@ -127,11 +130,11 @@ const confirmDelete = (trip: TripCard) => {
 const deleteTrip = async (sessionId: string) => {
   const res = await HttpClient.post(ApiRoute.ITINERARY.DELETE(sessionId), {}).catch(() => null)
   if (!res?.data?.data?.deleted) {
-    ElMessage.error('Failed to delete trip.')
+    ElMessage.error(t('travel.list.failedDelete'))
     return
   }
   myTrips.value = myTrips.value.filter((t) => t.sessionId !== sessionId)
-  ElMessage.success('Trip deleted.')
+  ElMessage.success(t('travel.list.deleted'))
 }
 </script>
 
@@ -141,29 +144,29 @@ const deleteTrip = async (sessionId: string) => {
     <!-- Auth gate -->
     <div v-if="!isAuthenticated" class="auth-gate">
       <div class="auth-gate-icon">🔒</div>
-      <p class="auth-gate-text">Please log in to view your trips.</p>
-      <el-button type="primary" @click="layoutStore.loginDialog.setTrue()">Log In</el-button>
+      <p class="auth-gate-text">{{ t('travel.list.loginPrompt') }}</p>
+      <el-button type="primary" @click="layoutStore.loginDialog.setTrue()">{{ t('travel.list.login') }}</el-button>
     </div>
 
     <template v-else>
     <header class="list-header">
       <div>
-        <h1 class="list-title">My Trips</h1>
-        <p class="list-subtitle">Plan, organise, and share your travel itineraries</p>
+        <h1 class="list-title">{{ t('travel.list.title') }}</h1>
+        <p class="list-subtitle">{{ t('travel.list.subtitle') }}</p>
       </div>
-      <el-button type="primary" @click="openNewTripDialog">+ New Trip</el-button>
+      <el-button type="primary" @click="openNewTripDialog">{{ t('travel.list.newTrip') }}</el-button>
     </header>
 
     <!-- My Trips -->
     <section class="trip-section">
-      <h2 class="section-label">My Trips</h2>
+      <h2 class="section-label">{{ t('travel.list.myTrips') }}</h2>
 
       <div v-if="loading" class="empty-state">
         <el-skeleton :rows="3" animated />
       </div>
 
       <div v-else-if="myTrips.length === 0" class="empty-state">
-        <p class="empty-text">No trips yet. Create your first one!</p>
+        <p class="empty-text">{{ t('travel.list.noTrips') }}</p>
       </div>
 
       <div v-else class="trip-grid">
@@ -174,15 +177,15 @@ const deleteTrip = async (sessionId: string) => {
           @click="nav.redirectTo(`/travel/${trip.sessionId}`)"
         >
           <div class="trip-card-body">
-            <div class="trip-destination">{{ trip.destination || 'Destination TBC' }}</div>
+            <div class="trip-destination">{{ trip.destination || t('travel.list.destinationTbc') }}</div>
             <div class="trip-title">{{ trip.sessionTitle }}</div>
             <div class="trip-meta">
               <span>{{ formatDateRange(trip.startDate, trip.endDate) }}</span>
-              <span v-if="trip.numberOfPax">· {{ trip.numberOfPax }} pax</span>
+              <span v-if="trip.numberOfPax">· {{ t('travel.list.pax', { n: trip.numberOfPax }) }}</span>
             </div>
           </div>
           <div class="trip-card-actions" @click.stop>
-            <el-tooltip content="View trip" placement="top">
+            <el-tooltip :content="t('travel.list.viewTrip')" placement="top">
               <el-button
                 v-if="trip.shortCode"
                 circle
@@ -192,7 +195,7 @@ const deleteTrip = async (sessionId: string) => {
                 <span style="font-size: 0.75rem">👁️</span>
               </el-button>
             </el-tooltip>
-            <el-tooltip content="Copy share link" placement="top">
+            <el-tooltip :content="t('travel.list.copyLink')" placement="top">
               <el-button
                 v-if="trip.shortCode"
                 circle
@@ -202,7 +205,7 @@ const deleteTrip = async (sessionId: string) => {
                 <span style="font-size: 0.75rem">🔗</span>
               </el-button>
             </el-tooltip>
-            <el-tooltip content="Delete trip" placement="top">
+            <el-tooltip :content="t('travel.list.deleteTrip')" placement="top">
               <el-button
                 circle
                 size="small"
@@ -218,10 +221,10 @@ const deleteTrip = async (sessionId: string) => {
 
     <!-- Shared with Me -->
     <section class="trip-section">
-      <h2 class="section-label">Shared with Me</h2>
+      <h2 class="section-label">{{ t('travel.list.sharedWithMe') }}</h2>
 
       <div v-if="sharedTrips.length === 0" class="empty-state">
-        <p class="empty-text">No shared trips yet.</p>
+        <p class="empty-text">{{ t('travel.list.noShared') }}</p>
       </div>
 
       <div v-else class="trip-grid">
@@ -232,11 +235,11 @@ const deleteTrip = async (sessionId: string) => {
           @click="nav.redirectTo(`/travel/${trip.sessionId}`)"
         >
           <div class="trip-card-body">
-            <div class="trip-destination">{{ trip.destination || 'Destination TBC' }}</div>
+            <div class="trip-destination">{{ trip.destination || t('travel.list.destinationTbc') }}</div>
             <div class="trip-title">{{ trip.sessionTitle }}</div>
             <div class="trip-meta">
               <span>{{ formatDateRange(trip.startDate, trip.endDate) }}</span>
-              <span v-if="trip.numberOfPax">· {{ trip.numberOfPax }} pax</span>
+              <span v-if="trip.numberOfPax">· {{ t('travel.list.pax', { n: trip.numberOfPax }) }}</span>
             </div>
           </div>
         </div>
@@ -244,33 +247,33 @@ const deleteTrip = async (sessionId: string) => {
     </section>
 
     <!-- New Trip Dialog -->
-    <el-dialog v-model="showNewTripDialog" title="New Trip" width="420px" align-center>
+    <el-dialog v-model="showNewTripDialog" :title="t('travel.list.dialog.title')" width="420px" align-center>
       <div class="dialog-form">
-        <label class="dlabel">Trip Title <span class="req">*</span></label>
-        <el-input v-model="newTrip.sessionTitle" placeholder="e.g. Tokyo Spring 2026" size="large" />
+        <label class="dlabel">{{ t('travel.list.dialog.tripTitle') }} <span class="req">*</span></label>
+        <el-input v-model="newTrip.sessionTitle" :placeholder="t('travel.list.dialog.tripTitlePlaceholder')" size="large" />
 
-        <label class="dlabel">Destination</label>
-        <el-input v-model="newTrip.destination" placeholder="e.g. Tokyo, Japan" size="large" />
+        <label class="dlabel">{{ t('travel.list.dialog.destination') }}</label>
+        <el-input v-model="newTrip.destination" :placeholder="t('travel.list.dialog.destinationPlaceholder')" size="large" />
 
-        <label class="dlabel">Travel Dates</label>
+        <label class="dlabel">{{ t('travel.list.dialog.travelDates') }}</label>
         <el-date-picker
           v-model="newTrip.dateRange"
           type="daterange"
-          range-separator="to"
-          start-placeholder="Start date"
-          end-placeholder="End date"
+          :range-separator="t('travel.list.dialog.to')"
+          :start-placeholder="t('travel.list.dialog.startDate')"
+          :end-placeholder="t('travel.list.dialog.endDate')"
           style="width: 100%"
           size="large"
           value-format="YYYY-MM-DD"
         />
 
-        <label class="dlabel">Number of Travellers</label>
+        <label class="dlabel">{{ t('travel.list.dialog.numberOfTravellers') }}</label>
         <el-input-number v-model="newTrip.numberOfPax" :min="1" style="width: 100%" size="large" />
       </div>
 
       <template #footer>
-        <el-button @click="showNewTripDialog = false">Cancel</el-button>
-        <el-button type="primary" :loading="creating" @click="handleCreate">Create Trip</el-button>
+        <el-button @click="showNewTripDialog = false">{{ t('travel.list.cancel') }}</el-button>
+        <el-button type="primary" :loading="creating" @click="handleCreate">{{ t('travel.list.createTrip') }}</el-button>
       </template>
     </el-dialog>
 
@@ -433,4 +436,5 @@ const deleteTrip = async (sessionId: string) => {
     grid-template-columns: 1fr;
   }
 }
+
 </style>

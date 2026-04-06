@@ -9,6 +9,7 @@ import { useBreakpointManager } from '@/hooks/useBreakpointManager'
 import { Breakpoint } from '@/constants/Breakpoint'
 import { computed } from 'vue'
 import { useThemeStore } from '@/stores/theme'
+import { useLocale } from '@/composables/useLocale'
 
 const { redirectToDashboard, redirectToLanding, redirectToProfile } = useNav()
 const themeStore = useThemeStore()
@@ -18,6 +19,8 @@ const authStore = useAuthenticationStore()
 const { isAuthenticated } = storeToRefs(authStore) // Preserves reactivity
 const { isScreensizeBelow } = useBreakpointManager()
 const mobileDropdownMenu = computed(() => isScreensizeBelow(Breakpoint.M))
+
+const { locale, setLocale } = useLocale()
 
 const isAdminViewEnabled = computed({
   get() {
@@ -66,6 +69,10 @@ const handleMenuExpansion = () => {
         </div>
       </div>
       <div class="nav-links">
+        <div class="lang-toggle">
+          <button type="button" :class="{ active: locale === 'en' }" @click="setLocale('en')">EN</button>
+          <button type="button" :class="{ active: locale === 'zh' }" @click="setLocale('zh')">中</button>
+        </div>
         <el-button circle size="small" class="theme-toggle" @click="themeStore.toggle()">
           <span>{{ themeStore.isDark ? '☀️' : '🌙' }}</span>
         </el-button>
@@ -177,6 +184,31 @@ const handleMenuExpansion = () => {
 
 .theme-toggle {
   font-size: 0.85rem;
+}
+
+.lang-toggle {
+  display: flex;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.lang-toggle button {
+  padding: 4px 9px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text);
+  opacity: 0.5;
+  line-height: 1;
+}
+
+.lang-toggle button.active {
+  background: var(--el-color-primary);
+  color: #fff;
+  opacity: 1;
 }
 
 /* Search & Engagement */

@@ -1,4 +1,5 @@
 import type { Ref, ComputedRef } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 interface AgendaRow {
   id?: string | number
@@ -50,6 +51,7 @@ export function useTravelExport(
   groupedByDate: ComputedRef<DayGroup[]>,
   getCityFn: (item: AgendaRow) => string | null,
 ) {
+  const { t } = useI18n()
   const exportJSON = (): void => {
     if (!itinerary.value) return
     const data = {
@@ -78,7 +80,11 @@ export function useTravelExport(
 
   const exportCSV = (): void => {
     if (!itinerary.value) return
-    const headers = ['Day', 'Date', 'Title', 'Category', 'Start Time', 'End Time', 'City', 'Budget', 'Description']
+    const headers = [
+      t('travel.export.day'), t('travel.export.date'), t('travel.export.title'),
+      t('travel.export.category'), t('travel.export.startTime'), t('travel.export.endTime'),
+      t('travel.export.city'), t('travel.export.budget'), t('travel.export.description'),
+    ]
     const q = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`
     const rows = groupedByDate.value.flatMap((group) =>
       group.items.map((item) =>

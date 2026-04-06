@@ -26,6 +26,8 @@ interface CreditCard {
   cycleEndDay: number  // day of month cycle ends (1–28)
   dueDay: number       // day of month payment is due (of month after cycle end)
   color: string
+  cycleStartDate?: string | null  // YYYY-MM-DD manual override for cycle start
+  dueDate?: string | null          // YYYY-MM-DD manual override for due date
 }
 
 const EXPENSE_CATEGORIES: { value: ExpenseCategory; label: string; icon: string }[] = [
@@ -79,6 +81,8 @@ function getCardColor(id: number): string {
 
 // Billing cycle helpers
 function getCardDueDate(card: CreditCard, today: Date): Date {
+  if (card.dueDate) return new Date(card.dueDate + 'T00:00:00')
+
   const y = today.getFullYear()
   const m = today.getMonth()
   const d = today.getDate()
@@ -100,6 +104,8 @@ function getCardDueDate(card: CreditCard, today: Date): Date {
 }
 
 function getCardCycleStart(card: CreditCard, today: Date): Date {
+  if (card.cycleStartDate) return new Date(card.cycleStartDate + 'T00:00:00')
+
   const y = today.getFullYear()
   const m = today.getMonth()
   const d = today.getDate()
@@ -183,30 +189,45 @@ const projectedBalance = computed(() =>
 const showCardManager = ref(false)
 const cardManagerMode = ref<'list' | 'form'>('list')
 const editingCard = ref<CreditCard | null>(null)
-const cardForm = ref({ name: '', cycleEndDay: 25, dueDay: 15, color: CARD_COLOR_PRESETS[0] })
+const cardForm = ref({
+  name: '', cycleEndDay: 25, dueDay: 15, color: CARD_COLOR_PRESETS[0],
+  manualMode: false, cycleStartDate: null as string | null, dueDate: null as string | null,
+})
 
-const canSaveCard = computed(() =>
-  !!cardForm.value.name.trim() &&
-  cardForm.value.cycleEndDay >= 1 && cardForm.value.cycleEndDay <= 28 &&
-  cardForm.value.dueDay >= 1 && cardForm.value.dueDay <= 28
-)
+const canSaveCard = computed(() => {
+  if (!cardForm.value.name.trim()) return false
+  if (cardForm.value.manualMode) return !!cardForm.value.cycleStartDate && !!cardForm.value.dueDate
+  return cardForm.value.cycleEndDay >= 1 && cardForm.value.cycleEndDay <= 28 &&
+    cardForm.value.dueDay >= 1 && cardForm.value.dueDay <= 28
+})
 
 function openAddCard() {
   editingCard.value = null
-  cardForm.value = { name: '', cycleEndDay: 25, dueDay: 15, color: CARD_COLOR_PRESETS[0] }
+  cardForm.value = { name: '', cycleEndDay: 25, dueDay: 15, color: CARD_COLOR_PRESETS[0], manualMode: false, cycleStartDate: null, dueDate: null }
   cardManagerMode.value = 'form'
   showCardManager.value = true
 }
 
 function openEditCard(card: CreditCard) {
   editingCard.value = card
-  cardForm.value = { name: card.name, cycleEndDay: card.cycleEndDay, dueDay: card.dueDay, color: card.color }
+  const hasManual = !!(card.cycleStartDate || card.dueDate)
+  cardForm.value = {
+    name: card.name, cycleEndDay: card.cycleEndDay, dueDay: card.dueDay, color: card.color,
+    manualMode: hasManual, cycleStartDate: card.cycleStartDate ?? null, dueDate: card.dueDate ?? null,
+  }
   cardManagerMode.value = 'form'
 }
 
 async function saveCard() {
   if (!canSaveCard.value) return
-  const payload = { name: cardForm.value.name.trim(), cycleEndDay: cardForm.value.cycleEndDay, dueDay: cardForm.value.dueDay, color: cardForm.value.color }
+  const payload = {
+    name: cardForm.value.name.trim(),
+    cycleEndDay: cardForm.value.cycleEndDay,
+    dueDay: cardForm.value.dueDay,
+    color: cardForm.value.color,
+    cycleStartDate: cardForm.value.manualMode ? cardForm.value.cycleStartDate : null,
+    dueDate: cardForm.value.manualMode ? cardForm.value.dueDate : null,
+  }
   try {
     if (editingCard.value) {
       const { data } = await HttpClient.post(ApiRoute.EXPENSE.UPDATE_CARD, { id: editingCard.value.id, ...payload })
@@ -1000,7 +1021,10 @@ onMounted(fetchData)
             <span class="card-row__dot" :style="{ background: card.color }" />
             <div class="card-row__info">
               <span class="card-row__name">{{ card.name }}</span>
-              <span class="card-row__sub">Cycle ends {{ card.cycleEndDay }}th · Due {{ card.dueDay }}th of next month</span>
+              <span v-if="card.cycleStartDate || card.dueDate" class="card-row__sub">
+                {{ card.cycleStartDate ? `From ${card.cycleStartDate}` : '' }}{{ card.cycleStartDate && card.dueDate ? ' · ' : '' }}{{ card.dueDate ? `Due ${card.dueDate}` : '' }}
+              </span>
+              <span v-else class="card-row__sub">Cycle ends {{ card.cycleEndDay }}th · Due {{ card.dueDay }}th of next month</span>
             </div>
             <el-button size="small" text @click="openEditCard(card)">Edit</el-button>
             <el-button size="small" text type="danger" @click="deleteCard(card.id)">Del</el-button>
@@ -1014,12 +1038,28 @@ onMounted(fetchData)
           <el-form-item label="Card Name">
             <el-input v-model="cardForm.name" placeholder="e.g. DBS Altitude" maxlength="40" autofocus />
           </el-form-item>
-          <el-form-item label="Billing Cycle Ends On (day of month)">
-            <el-input-number v-model="cardForm.cycleEndDay" :min="1" :max="28" :step="1" :precision="0" style="width:100%" />
+          <el-form-item label="Date Mode">
+            <div class="date-mode-toggle">
+              <button type="button" class="date-mode-btn" :class="{ 'date-mode-btn--active': !cardForm.manualMode }" @click="cardForm.manualMode = false">Auto</button>
+              <button type="button" class="date-mode-btn" :class="{ 'date-mode-btn--active': cardForm.manualMode }" @click="cardForm.manualMode = true">Manual</button>
+            </div>
           </el-form-item>
-          <el-form-item label="Payment Due On (day of following month)">
-            <el-input-number v-model="cardForm.dueDay" :min="1" :max="28" :step="1" :precision="0" style="width:100%" />
-          </el-form-item>
+          <template v-if="!cardForm.manualMode">
+            <el-form-item label="Billing Cycle Ends On (day of month)">
+              <el-input-number v-model="cardForm.cycleEndDay" :min="1" :max="28" :step="1" :precision="0" style="width:100%" />
+            </el-form-item>
+            <el-form-item label="Payment Due On (day of following month)">
+              <el-input-number v-model="cardForm.dueDay" :min="1" :max="28" :step="1" :precision="0" style="width:100%" />
+            </el-form-item>
+          </template>
+          <template v-else>
+            <el-form-item label="Cycle Start Date">
+              <el-date-picker v-model="cardForm.cycleStartDate" type="date" placeholder="Pick cycle start" format="DD MMM YYYY" value-format="YYYY-MM-DD" style="width:100%" />
+            </el-form-item>
+            <el-form-item label="Payment Due Date">
+              <el-date-picker v-model="cardForm.dueDate" type="date" placeholder="Pick due date" format="DD MMM YYYY" value-format="YYYY-MM-DD" style="width:100%" />
+            </el-form-item>
+          </template>
           <el-form-item label="Color">
             <div class="color-picker">
               <button
@@ -1308,6 +1348,11 @@ onMounted(fetchData)
 .color-swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform 0.1s; }
 .color-swatch:hover { transform: scale(1.15); }
 .color-swatch--active { border-color: var(--color-heading); transform: scale(1.15); }
+
+/* Date mode toggle */
+.date-mode-toggle { display: flex; border: 1px solid var(--color-border); border-radius: 6px; overflow: hidden; }
+.date-mode-btn { flex: 1; padding: 6px 12px; font-size: 0.8rem; font-weight: 600; background: transparent; border: none; cursor: pointer; color: var(--color-text); opacity: 0.5; }
+.date-mode-btn--active { background: var(--el-color-primary); color: #fff; opacity: 1; }
 
 /* Expand transition */
 .expand-enter-active, .expand-leave-active { transition: max-height 0.2s ease, opacity 0.15s ease; overflow: hidden; }

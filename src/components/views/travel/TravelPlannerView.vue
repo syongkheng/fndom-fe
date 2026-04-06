@@ -21,6 +21,7 @@ import { useTravelExport } from '@/composables/useTravelExport'
 import { useCityLabel } from '@/composables/useCityLabel'
 import { Edit, Delete, ArrowDown } from '@element-plus/icons-vue'
 import TravelMapView from '@/components/views/travel/TravelMapView.vue'
+import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
 const nav = useNav()
@@ -47,6 +48,7 @@ const { collapsedDays, toggleDay, groupedByDate, formatDate: formatGroupDate, to
 // ── Export ────────────────────────────────────────────────────────────────────
 const itineraryAsNullable = computed(() => itinerary.value as any)
 const { exportJSON, exportCSV, exportICS } = useTravelExport(itineraryAsNullable, groupedByDate, getCardCity)
+const { t } = useI18n()
 
 // ── Responsive drawer ─────────────────────────────────────────────────────────
 const { width } = useBreakpointManager()
@@ -282,7 +284,7 @@ onMounted(async () => {
   const loadResult = await itineraryStore.retrieveItineraryForUpdate(sessionId)
   loading.value = false
   if (loadResult.forbidden) {
-    ElMessage.error("This itinerary doesn't belong to you. Please create a new trip.")
+    ElMessage.error(t('travel.planner.notYours'))
     nav.redirectTo('/travel')
     return
   }
@@ -297,23 +299,23 @@ const handleSave = async () => {
   const result = await itineraryStore.updateItinerary()
   saving.value = false
   if (result.isSuccess) {
-    ElMessage.success('Trip saved.')
+    ElMessage.success(t('travel.planner.tripSaved'))
   } else if (result.error === 'auth') {
-    ElMessage.warning('Please log in to save.')
+    ElMessage.warning(t('travel.planner.loginToSave'))
   } else {
-    ElMessage.error('Failed to save. Please try again.')
+    ElMessage.error(t('travel.planner.saveFailed'))
   }
 }
 
 const handleShare = () => {
   if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
   if (!itinerary.value.shortCode) {
-    ElMessage.info('Save the trip first to generate a share link.')
+    ElMessage.info(t('travel.planner.saveFirst'))
     return
   }
   const url = `${window.location.origin}/travel/v/${itinerary.value.shortCode}`
   navigator.clipboard.writeText(url)
-  ElMessage.success('Share link copied!')
+  ElMessage.success(t('travel.list.linkCopied'))
 }
 
 // ── Privacy / challenge ───────────────────────────────────────────────────────
@@ -335,8 +337,8 @@ const onPrivacySave = (code: string | undefined) => {
   sessionStorage.setItem(privacySeenKey, '1')
   ElMessage.success(
     code
-      ? 'Access code set. Save your trip to apply.'
-      : 'No access code set — trip remains public.',
+      ? t('travel.planner.accessCodeApplied')
+      : t('travel.planner.noAccessCodeSet'),
   )
 }
 
@@ -352,47 +354,47 @@ const onPrivacyClose = () => {
     <!-- Auth gate -->
     <div v-if="!isAuthenticated" class="planner-auth-gate">
       <div class="auth-gate-icon">🔒</div>
-      <p class="auth-gate-text">Please log in to edit this trip.</p>
-      <el-button type="primary" @click="layoutStore.loginDialog.setTrue()">Log In</el-button>
+      <p class="auth-gate-text">{{ t('travel.planner.loginPrompt') }}</p>
+      <el-button type="primary" @click="layoutStore.loginDialog.setTrue()">{{ t('travel.planner.login') }}</el-button>
     </div>
 
     <template v-else>
 
     <!-- Top bar -->
     <div class="planner-topbar">
-      <el-button link @click="nav.redirectTo('/travel')" class="back-btn">← Trips</el-button>
+      <el-button link @click="nav.redirectTo('/travel')" class="back-btn">{{ t('travel.planner.back') }}</el-button>
       <div class="planner-actions">
         <el-segmented v-model="editMode" size="small"
-          :options="[{ label: '📋 Form', value: 'form' }, { label: '🗺️ Map', value: 'map' }]" />
+          :options="[{ label: t('travel.planner.form'), value: 'form' }, { label: t('travel.planner.map'), value: 'map' }]" />
         <el-dropdown size="small" trigger="click" @command="(cmd: string) => cmd === 'json' ? exportJSON() : cmd === 'csv' ? exportCSV() : exportICS()">
-          <el-button size="small">Export ↓</el-button>
+          <el-button size="small">{{ t('travel.planner.exportBtn') }}</el-button>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="json">Export as JSON</el-dropdown-item>
-              <el-dropdown-item command="csv">Export as CSV</el-dropdown-item>
-              <el-dropdown-item command="ics">Export Apple Calendar (.ics)</el-dropdown-item>
+              <el-dropdown-item command="json">{{ t('travel.planner.exportJson') }}</el-dropdown-item>
+              <el-dropdown-item command="csv">{{ t('travel.planner.exportCsv') }}</el-dropdown-item>
+              <el-dropdown-item command="ics">{{ t('travel.planner.exportIcs') }}</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-        <el-button size="small" @click="handleShare">Share 🔗</el-button>
-        <el-tooltip :content="itinerary.challenge ? 'Access code set' : 'No access code'" placement="bottom">
+        <el-button size="small" @click="handleShare">{{ t('travel.planner.share') }}</el-button>
+        <el-tooltip :content="itinerary.challenge ? t('travel.planner.accessCodeSet') : t('travel.planner.noAccessCode')" placement="bottom">
           <el-button size="small" @click="openPrivacyDialog">
             {{ itinerary.challenge ? '🔒' : '🔓' }}
           </el-button>
         </el-tooltip>
-        <el-button v-if="!isMobile" type="primary" size="small" :loading="saving" @click="handleSave">Save</el-button>
+        <el-button v-if="!isMobile" type="primary" size="small" :loading="saving" @click="handleSave">{{ t('travel.planner.save') }}</el-button>
       </div>
     </div>
 
     <!-- Trip header -->
     <div class="planner-header">
-      <el-input v-model="itinerary.sessionTitle" class="title-input" placeholder="Trip title" :border="false" />
+      <el-input v-model="itinerary.sessionTitle" class="title-input" :placeholder="t('travel.planner.tripTitle')" :border="false" />
       <div class="header-meta">
-        <el-input v-model="itinerary.destination" placeholder="Destination" size="small" style="width: 200px" />
-        <el-date-picker :model-value="itinerary.itineraryDateRaw" type="daterange" range-separator="to"
-          start-placeholder="Start" end-placeholder="End" size="small" value-format="YYYY-MM-DD"
+        <el-input v-model="itinerary.destination" :placeholder="t('travel.planner.destination')" size="small" style="width: 200px" />
+        <el-date-picker :model-value="itinerary.itineraryDateRaw" type="daterange" :range-separator="t('travel.list.dialog.to')"
+          :start-placeholder="t('travel.planner.start')" :end-placeholder="t('travel.planner.end')" size="small" value-format="YYYY-MM-DD"
           @update:model-value="(v: string[]) => itineraryStore.onItineraryDateSelection(v)" />
-        <el-input-number v-model="itinerary.numberOfPax" :min="1" size="small" style="width: 110px" placeholder="Pax" />
+        <el-input-number v-model="itinerary.numberOfPax" :min="1" size="small" style="width: 110px" :placeholder="t('travel.planner.pax')" />
       </div>
     </div>
 
@@ -405,22 +407,22 @@ const onPrivacyClose = () => {
     <div v-else-if="editMode === 'form'" class="form-mode">
 
       <!-- Empty state -->
-      <EmptyState v-if="groupedByDate.length === 0" icon="🗺️" title="No agenda items yet.">
-        <el-button type="primary" @click="openAddDrawer()">+ Add First Item</el-button>
+      <EmptyState v-if="groupedByDate.length === 0" icon="🗺️" :title="t('travel.planner.noItems')">
+        <el-button type="primary" @click="openAddDrawer()">{{ t('travel.planner.addFirstItem') }}</el-button>
       </EmptyState>
 
       <!-- Day groups -->
       <div v-else>
         <div class="day-group-controls">
           <el-button link size="small" @click="allCollapsed ? expandAll() : collapseAll()">
-            {{ allCollapsed ? '↕ Expand All' : '↕ Collapse All' }}
+            {{ allCollapsed ? '↕ ' + t('travel.viewer.expandAll') : '↕ ' + t('travel.viewer.collapseAll') }}
           </el-button>
         </div>
         <div v-for="group in groupedByDate" :key="group.date" class="day-group">
           <div class="day-group-header" @click="toggleDay(group.date)">
             <div v-if="group.dayNumber !== null" class="day-badge">{{ group.dayNumber }}</div>
             <div class="day-label">{{ formatGroupDate(group.date) }}</div>
-            <span class="day-item-count" v-if="collapsedDays.has(group.date)">{{ group.items.length }} item{{ group.items.length === 1 ? '' : 's' }}</span>
+            <span class="day-item-count" v-if="collapsedDays.has(group.date)">{{ group.items.length }} {{ group.items.length === 1 ? t('travel.viewer.item') : t('travel.viewer.items') }}</span>
             <span class="day-chevron">{{ collapsedDays.has(group.date) ? '›' : '⌄' }}</span>
           </div>
 
@@ -429,7 +431,7 @@ const onPrivacyClose = () => {
               :class="(item.id && !item._isDirty) ? 'card--saved' : 'card--new'">
               <div class="card-icon">{{ getCategoryEmoji(item.category) }}</div>
               <div class="card-body">
-                <div class="card-title">{{ item.title || 'Untitled' }}</div>
+                <div class="card-title">{{ item.title || t('travel.viewer.untitled') }}</div>
                 <div v-if="getCardTime(item) || getCardCity(item) || item.budget" class="card-meta">
                   <span v-if="getCardTime(item)" class="card-time">{{ getCardTime(item) }}</span>
                   <span v-if="getCardCity(item)" class="card-city">
@@ -444,32 +446,32 @@ const onPrivacyClose = () => {
               </div>
               <div class="card-right">
                 <div class="card-actions">
-                  <el-tooltip content="Edit" placement="top">
+                  <el-tooltip :content="t('travel.planner.editTooltip')" placement="top">
                     <el-button circle size="small" @click="openEditDrawer(item)">
                       <span style="font-size:0.72rem">✏️</span>
                     </el-button>
                   </el-tooltip>
-                  <el-tooltip content="Delete" placement="top">
+                  <el-tooltip :content="t('travel.planner.deleteTooltip')" placement="top">
                     <el-button circle size="small" @click="removeAgendaItem(String(item.id ?? item._localIndex))">
                       <span style="font-size:0.72rem">🗑️</span>
                     </el-button>
                   </el-tooltip>
                 </div>
                 <div class="card-save-status">
-                  <span v-if="!item.id || item._isDirty" class="status--new">Unsaved</span>
-                  <span v-else class="status--saved">Saved</span>
+                  <span v-if="!item.id || item._isDirty" class="status--new">{{ t('travel.planner.unsaved') }}</span>
+                  <span v-else class="status--saved">{{ t('travel.planner.saved') }}</span>
                 </div>
               </div>
             </div>
           </div>
 
           <button v-show="!collapsedDays.has(group.date)" class="add-to-day-btn" @click="openAddDrawer(group.date !== '__tbc__' ? group.date : '')">
-            + Add to {{ group.dayNumber !== null ? `Day ${group.dayNumber}` : 'Date TBC' }}
+            {{ group.dayNumber !== null ? t('travel.planner.addToDay', { n: group.dayNumber }) : t('travel.planner.addToDateTbc') }}
           </button>
         </div>
 
         <div class="form-add-global">
-          <el-button @click="openAddDrawer()">+ Add Item</el-button>
+          <el-button @click="openAddDrawer()">{{ t('travel.planner.addItem') }}</el-button>
         </div>
       </div>
     </div>
@@ -484,10 +486,10 @@ const onPrivacyClose = () => {
       <div class="bookings-section">
         <div class="bookings-header" @click="bookingsCollapsed = !bookingsCollapsed">
           <div class="bookings-header-left">
-            <span class="bookings-title">Bookings</span>
+            <span class="bookings-title">{{ t('travel.planner.bookings') }}</span>
             <div class="bookings-pills">
               <span class="booking-pill">SGD {{ bookingTotal.toFixed(2) }}</span>
-              <span class="booking-pill">{{ bookingBookedCount }} / {{ (itinerary.bookings ?? []).length }} booked</span>
+              <span class="booking-pill">{{ bookingBookedCount }} / {{ (itinerary.bookings ?? []).length }} {{ t('travel.viewer.booked') }}</span>
             </div>
           </div>
           <div class="bookings-header-right">
@@ -496,7 +498,7 @@ const onPrivacyClose = () => {
                 <el-input
                   v-model="paxNamesInput"
                   size="small"
-                  placeholder="Dad, Mum, Me"
+                  :placeholder="t('travel.planner.paxPlaceholder')"
                   style="width: 180px"
                   @keyup.enter="savePaxNames"
                   @blur="savePaxNames"
@@ -516,7 +518,7 @@ const onPrivacyClose = () => {
 
         <div v-show="!bookingsCollapsed">
           <div v-if="!(itinerary.bookings ?? []).length" class="bookings-empty">
-            No bookings yet. Click "+ Add Booking" to get started.
+            {{ t('travel.planner.noBookings') }}
           </div>
           <template v-else>
             <!-- Mobile: card list -->
@@ -529,17 +531,17 @@ const onPrivacyClose = () => {
                 <div class="booking-card-header">
                   <span class="booking-cat-emoji">{{ getBookingEmoji(booking.category) }}</span>
                   <span class="booking-card-item">{{ booking.item }}</span>
-                  <el-tag v-if="booking.booked" type="success" size="small" effect="light">Booked</el-tag>
-                  <el-tag v-else type="info" size="small" effect="light">Pending</el-tag>
+                  <el-tag v-if="booking.booked" type="success" size="small" effect="light">{{ t('travel.viewer.booked') }}</el-tag>
+                  <el-tag v-else type="info" size="small" effect="light">{{ t('travel.viewer.pending') }}</el-tag>
                 </div>
                 <div class="booking-card-meta">
                   <span v-if="booking.remarks">📍 {{ booking.remarks }}</span>
                   <span v-if="booking.price != null">SGD {{ booking.price.toFixed(2) }}</span>
-                  <span v-if="booking.nights">{{ booking.nights }}N</span>
+                  <span v-if="booking.nights">{{ booking.nights }}{{ t('travel.viewer.nights') }}</span>
                 </div>
                 <div class="booking-card-actions">
-                  <el-button size="small" @click="openEditBookingDrawer(booking)">Edit</el-button>
-                  <el-button size="small" type="danger" plain @click="onBookingDelete(booking)">Delete</el-button>
+                  <el-button size="small" @click="openEditBookingDrawer(booking)">{{ t('travel.planner.editTooltip') }}</el-button>
+                  <el-button size="small" type="danger" plain @click="onBookingDelete(booking)">{{ t('travel.planner.deleteTooltip') }}</el-button>
                 </div>
               </div>
             </div>
@@ -551,19 +553,19 @@ const onPrivacyClose = () => {
                   <span>{{ getBookingEmoji(row.category) }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="Item" min-width="160">
+              <el-table-column :label="t('travel.viewer.tableItem')" min-width="160">
                 <template #default="{ row }">
                   <a v-if="row.link" :href="row.link" target="_blank" class="booking-link">{{ row.item }}</a>
                   <span v-else>{{ row.item }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="Remarks" min-width="80">
+              <el-table-column :label="t('travel.viewer.tableRemarks')" min-width="80">
                 <template #default="{ row }">
                   <span v-if="row.remarks">{{ row.remarks }}</span>
                   <span v-else class="dim">—</span>
                 </template>
               </el-table-column>
-              <el-table-column label="Payment" width="100">
+              <el-table-column :label="t('travel.viewer.tablePayment')" width="100">
                 <template #default="{ row }">
                   <template v-if="parsePayment(row.payment) as any">
                     <el-tooltip
@@ -593,17 +595,17 @@ const onPrivacyClose = () => {
                   <span v-else class="dim">—</span>
                 </template>
               </el-table-column>
-              <el-table-column label="Total" width="80">
+              <el-table-column :label="t('travel.viewer.tableTotal')" width="80">
                 <template #default="{ row }">
                   <span v-if="row.price != null">{{ row.price.toFixed(2) }}</span>
                   <span v-else class="dim">—</span>
                 </template>
               </el-table-column>
-              <el-table-column label="Dates" width="150">
+              <el-table-column :label="t('travel.viewer.tableDates')" width="150">
                 <template #default="{ row }">
                   <span v-if="row.startDate || row.endDate">
                     {{ row.startDate ?? '' }}<template v-if="row.startDate && row.endDate"> → </template>{{ row.endDate ?? '' }}
-                    <template v-if="row.nights"> ({{ row.nights }}N)</template>
+                    <template v-if="row.nights"> ({{ row.nights }}{{ t('travel.viewer.nights') }})</template>
                   </span>
                   <span v-else class="dim">—</span>
                 </template>

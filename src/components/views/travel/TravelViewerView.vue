@@ -13,6 +13,7 @@ import { useTravelExport } from '@/composables/useTravelExport'
 import { useCityLabel } from '@/composables/useCityLabel'
 import type { ItineraryBooking } from '@/interfaces/forms/itinerary/ItineraryBooking'
 import { ArrowDown } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
 const nav = useNav()
@@ -197,23 +198,25 @@ function toggleAllDays() {
 
 // ── Mobile ────────────────────────────────────────────────────────────────────
 const isMobile = computed(() => window.innerWidth <= 600)
+const { t } = useI18n()
+
 </script>
 
 <template>
   <!-- Challenge gate -->
-  <el-dialog v-model="challengeRequired" title="Protected Itinerary" width="340px" :close-on-click-modal="false"
+  <el-dialog v-model="challengeRequired" :title="t('travel.viewer.protected')" width="340px" :close-on-click-modal="false"
     :close-on-press-escape="false" :show-close="false" align-center>
     <div class="gate-body">
       <div class="gate-icon">🔒</div>
-      <p class="gate-desc">This itinerary is protected. Enter the 6-digit access code to view it.</p>
+      <p class="gate-desc">{{ t('travel.viewer.protectedDesc') }}</p>
       <OtpInput ref="otpRef" v-model="challengeDigits" :error="challengeError" @update:model-value="onOtpUpdate"
         @complete="verifyChallenge" />
-      <div v-if="challengeError" class="gate-error">Incorrect code. Please try again.</div>
+      <div v-if="challengeError" class="gate-error">{{ t('travel.viewer.wrongCode') }}</div>
     </div>
     <template #footer>
       <el-button type="primary" style="width: 100%" :loading="verifyingChallenge"
         :disabled="challengeInput.length !== 6 || verifyingChallenge" @click="verifyChallenge">
-        Unlock
+        {{ t('travel.viewer.unlock') }}
       </el-button>
     </template>
   </el-dialog>
@@ -228,9 +231,9 @@ const isMobile = computed(() => window.innerWidth <= 600)
     <!-- Error -->
     <div v-else-if="error" class="viewer-error">
       <div class="error-icon">🗺️</div>
-      <h2 class="error-title">Trip not found</h2>
-      <p class="error-desc">This itinerary link may have expired or been removed.</p>
-      <el-button type="primary" @click="nav.redirectTo('/travel')">Go to My Trips</el-button>
+      <h2 class="error-title">{{ t('travel.viewer.notFound') }}</h2>
+      <p class="error-desc">{{ t('travel.viewer.notFoundDesc') }}</p>
+      <el-button type="primary" @click="nav.redirectTo('/travel')">{{ t('travel.viewer.goToTrips') }}</el-button>
     </div>
 
     <!-- Content -->
@@ -245,20 +248,20 @@ const isMobile = computed(() => window.innerWidth <= 600)
             📅 {{ formatHeaderRange(itinerary.startDate, itinerary.endDate) }}
           </span>
           <span v-if="itinerary.numberOfPax" class="meta-pill">
-            👥 {{ itinerary.numberOfPax }} traveller{{ itinerary.numberOfPax === 1 ? '' : 's' }}
+            👥 {{ itinerary.numberOfPax }} {{ itinerary.numberOfPax === 1 ? t('travel.viewer.traveller') : t('travel.viewer.travellers') }}
           </span>
           <span v-if="itinerary.viewCount !== undefined" class="meta-pill">
-            👁 {{ itinerary.viewCount }} view{{ itinerary.viewCount === 1 ? '' : 's' }}
+            👁 {{ itinerary.viewCount }} {{ itinerary.viewCount === 1 ? t('travel.viewer.view') : t('travel.viewer.views') }}
           </span>
         </div>
         <div class="trip-header-actions">
           <el-dropdown trigger="click" @command="(cmd: string) => cmd === 'json' ? exportJSON() : cmd === 'csv' ? exportCSV() : exportICS()">
-            <el-button size="small">Export ↓</el-button>
+            <el-button size="small">{{ t('travel.viewer.exportBtn') }}</el-button>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="json">Export JSON</el-dropdown-item>
-                <el-dropdown-item command="csv">Export CSV</el-dropdown-item>
-                <el-dropdown-item command="ics">Export Apple Calendar (.ics)</el-dropdown-item>
+                <el-dropdown-item command="json">{{ t('travel.viewer.exportJson') }}</el-dropdown-item>
+                <el-dropdown-item command="csv">{{ t('travel.viewer.exportCsv') }}</el-dropdown-item>
+                <el-dropdown-item command="ics">{{ t('travel.viewer.exportIcs') }}</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -268,19 +271,19 @@ const isMobile = computed(() => window.innerWidth <= 600)
       <!-- ── Trip Map Section ──────────────────────────────────────────── -->
       <div v-if="(itinerary?.agendaItems ?? []).length > 0" class="viewer-map-section">
         <div class="viewer-map-header" @click="mapCollapsed = !mapCollapsed">
-          <span class="viewer-map-title">Trip Map</span>
+          <span class="viewer-map-title">{{ t('travel.viewer.map') }}</span>
           <span class="viewer-map-chevron" :class="{ collapsed: mapCollapsed }">⌄</span>
         </div>
         <TravelMapView v-show="!mapCollapsed" :agenda-items="(itinerary.agendaItems ?? []) as any" class="viewer-map" />
       </div>
 
       <!-- Empty agenda -->
-      <EmptyState v-if="groupedByDate.length === 0" icon="🗺️" title="No agenda items yet." />
+      <EmptyState v-if="groupedByDate.length === 0" icon="🗺️" :title="t('travel.viewer.noItems')" />
 
       <!-- Timeline controls -->
       <div v-if="groupedByDate.length > 0" class="timeline-controls">
         <button class="timeline-toggle-all" @click="toggleAllDays">
-          {{ allCollapsed ? 'Expand All' : 'Collapse All' }}
+          {{ allCollapsed ? t('travel.viewer.expandAll') : t('travel.viewer.collapseAll') }}
         </button>
       </div>
 
@@ -292,8 +295,7 @@ const isMobile = computed(() => window.innerWidth <= 600)
           <div class="day-heading" @click="toggleDay(group.date)">
             <div v-if="group.dayNumber !== null" class="day-badge">{{ group.dayNumber }}</div>
             <div class="day-label">{{ formatDate(group.date) }}</div>
-            <span class="day-item-count" v-if="collapsedDays.has(group.date)">{{ group.items.length }} item{{
-              group.items.length === 1 ? '' : 's' }}</span>
+            <span class="day-item-count" v-if="collapsedDays.has(group.date)">{{ group.items.length }} {{ group.items.length === 1 ? t('travel.viewer.item') : t('travel.viewer.items') }}</span>
             <span class="day-chevron">{{ collapsedDays.has(group.date) ? '›' : '⌄' }}</span>
           </div>
 
@@ -313,7 +315,7 @@ const isMobile = computed(() => window.innerWidth <= 600)
                   <span v-if="getCity(item)" class="item-city">{{ getCity(item) }}</span>
                   <span v-if="item.category" class="item-category-tag">{{ item.category }}</span>
                 </div>
-                <div class="item-title">{{ item.title || 'Untitled' }}</div>
+                <div class="item-title">{{ item.title || t('travel.viewer.untitled') }}</div>
                 <div v-if="item.desc" class="item-desc">{{ item.desc }}</div>
                 <div v-if="item.budget" class="item-budget">
                   <span class="budget-pill">💰 {{ item.budget.toLocaleString() }}</span>
@@ -334,10 +336,10 @@ const isMobile = computed(() => window.innerWidth <= 600)
       <div v-if="viewerBookings.length > 0" class="bookings-section">
         <div class="bookings-header" @click="bookingsCollapsed = !bookingsCollapsed">
           <div class="bookings-header-left">
-            <span class="bookings-title">Bookings</span>
+            <span class="bookings-title">{{ t('travel.viewer.bookings') }}</span>
             <div class="bookings-pills">
               <span class="booking-pill">SGD {{ viewerBookingTotal.toFixed(2) }}</span>
-              <span class="booking-pill">{{ viewerBookedCount }} / {{ viewerBookings.length }} booked</span>
+              <span class="booking-pill">{{ viewerBookedCount }} / {{ viewerBookings.length }} {{ t('travel.viewer.booked') }}</span>
             </div>
           </div>
           <div class="bookings-header-right">
@@ -355,13 +357,13 @@ const isMobile = computed(() => window.innerWidth <= 600)
               <div class="booking-card-header">
                 <span class="booking-cat-emoji">{{ getBookingEmoji(booking.category) }}</span>
                 <span class="booking-card-item">{{ booking.item }}</span>
-                <el-tag v-if="booking.booked" type="success" size="small" effect="light">Booked</el-tag>
-                <el-tag v-else type="info" size="small" effect="light">Pending</el-tag>
+                <el-tag v-if="booking.booked" type="success" size="small" effect="light">{{ t('travel.viewer.booked') }}</el-tag>
+                <el-tag v-else type="info" size="small" effect="light">{{ t('travel.viewer.pending') }}</el-tag>
               </div>
               <div class="booking-card-meta">
                 <span v-if="booking.remarks">📍 {{ booking.remarks }}</span>
                 <span v-if="booking.price != null">SGD {{ booking.price.toFixed(2) }}</span>
-                <span v-if="booking.nights">{{ booking.nights }}N</span>
+                <span v-if="booking.nights">{{ booking.nights }}{{ t('travel.viewer.nights') }}</span>
                 <span v-if="booking.freeCancellation">🔄 {{ booking.freeCancellation }}</span>
               </div>
             </div>
@@ -374,19 +376,19 @@ const isMobile = computed(() => window.innerWidth <= 600)
                 <span>{{ getBookingEmoji(row.category) }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="Item" min-width="160">
+            <el-table-column :label="t('travel.viewer.tableItem')" min-width="160">
               <template #default="{ row }">
                 <a v-if="row.link" :href="row.link" target="_blank" class="booking-link">{{ row.item }}</a>
                 <span v-else>{{ row.item }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="Remarks" min-width="80">
+            <el-table-column :label="t('travel.viewer.tableRemarks')" min-width="80">
               <template #default="{ row }">
                 <span v-if="row.remarks">{{ row.remarks }}</span>
                 <span v-else class="dim">—</span>
               </template>
             </el-table-column>
-            <el-table-column label="Payment" width="100">
+            <el-table-column :label="t('travel.viewer.tablePayment')" width="100">
               <template #default="{ row }">
                 <template v-if="parsePayment(row.payment) as any">
                   <el-tooltip v-if="parsePayment(row.payment)!.date" :content="parsePayment(row.payment)!.date"
@@ -408,36 +410,36 @@ const isMobile = computed(() => window.innerWidth <= 600)
                 <span v-else class="dim">—</span>
               </template>
             </el-table-column>
-            <el-table-column label="Total" width="90">
+            <el-table-column :label="t('travel.viewer.tableTotal')" width="90">
               <template #default="{ row }">
                 <span v-if="row.price != null">{{ row.price.toFixed(2) }}</span>
                 <span v-else class="dim">—</span>
               </template>
             </el-table-column>
-            <el-table-column label="Dates" width="150">
+            <el-table-column :label="t('travel.viewer.tableDates')" width="150">
               <template #default="{ row }">
                 <span v-if="row.startDate || row.endDate">
                   {{ row.startDate ?? '' }}<template v-if="row.startDate && row.endDate"> → </template>{{ row.endDate
                     ?? '' }}
-                  <template v-if="row.nights"> ({{ row.nights }}N)</template>
+                  <template v-if="row.nights"> ({{ row.nights }}{{ t('travel.viewer.nights') }})</template>
                 </span>
                 <span v-else class="dim">—</span>
               </template>
             </el-table-column>
-            <el-table-column label="Booked" width="70" align="center">
+            <el-table-column :label="t('travel.viewer.tableBooked')" width="70" align="center">
               <template #default="{ row }">
                 <el-tag :type="row.booked ? 'success' : 'info'" size="small" effect="light">
                   {{ row.booked ? '✓' : '✗' }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="Cancellation" min-width="130">
+            <el-table-column :label="t('travel.viewer.tableCancellation')" min-width="130">
               <template #default="{ row }">
                 <span v-if="row.freeCancellation">{{ row.freeCancellation }}</span>
                 <span v-else class="dim">—</span>
               </template>
             </el-table-column>
-            <el-table-column v-if="hasAccommodation" label="Bfast" width="60" align="center">
+            <el-table-column v-if="hasAccommodation" :label="t('travel.viewer.tableBfast')" width="60" align="center">
               <template #default="{ row }">
                 <span v-if="row.category === 'accommodation'">{{ row.breakfast ? '✓' : '✗' }}</span>
                 <span v-else class="dim">—</span>
@@ -615,6 +617,9 @@ const isMobile = computed(() => window.innerWidth <= 600)
 
 .trip-header-actions {
   margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .meta-pill {

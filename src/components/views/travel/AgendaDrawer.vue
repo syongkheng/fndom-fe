@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import type { UploadFile, UploadUserFile } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { TRAVEL_CATEGORIES } from '@/constants/TravelCategories'
@@ -25,6 +26,8 @@ const emit = defineEmits<{
   'save': [item: AgendaItem]
   'cancel': []
 }>()
+
+const { t } = useI18n()
 
 const makeBlankDraft = (): AgendaItem => ({
   _localIndex: `agenda-${Date.now()}`,
@@ -121,11 +124,11 @@ watch(() => props.modelValue, (val) => {
 
 const validateImageFile = (file: File): boolean => {
   if (!file.type.startsWith('image/')) {
-    ElMessage.error('Only image files are allowed')
+    ElMessage.error(t('travel.agenda.onlyImages'))
     return false
   }
   if (file.size > FILE_MAX_BYTES) {
-    ElMessage.error(`${file.name} exceeds 5 MB`)
+    ElMessage.error(t('travel.agenda.fileTooLarge', { name: file.name, size: 5 }))
     return false
   }
   return true
@@ -163,23 +166,23 @@ const handleFileRemove = (uploadFile: UploadFile) => {
 }
 
 const handleExceed = () => {
-  ElMessage.warning(`Maximum ${FILE_LIMIT} images per agenda item`)
+  ElMessage.warning(t('travel.agenda.maxImages', { n: FILE_LIMIT }))
 }
 
 
 const drawerDisabledDate = (time: Date) => {
   const { startDate, endDate, unknownDate } = props
   if (unknownDate || (!startDate && !endDate)) return false
-  const t = time.getTime()
-  const toMid = (ts: number) => { const d = new Date(ts); d.setHours(0, 0, 0, 0); return d.getTime() }
-  if (startDate && t < toMid(startDate)) return true
-  if (endDate && t > toMid(endDate)) return true
+  const ts = time.getTime()
+  const toMid = (ms: number) => { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime() }
+  if (startDate && ts < toMid(startDate)) return true
+  if (endDate && ts > toMid(endDate)) return true
   return false
 }
 
 const save = () => {
   if (!drawerForm.value.title.trim()) {
-    ElMessage.warning('Please enter a title.')
+    ElMessage.warning(t('travel.agenda.titleRequired'))
     return
   }
   emit('save', { ...drawerForm.value })
@@ -196,7 +199,7 @@ const cancel = () => {
   <el-drawer
     :model-value="modelValue"
     @update:model-value="(v: boolean) => emit('update:modelValue', v)"
-    :title="isNew ? 'New Agenda Item' : 'Edit Item'"
+    :title="isNew ? t('travel.agenda.newItem') : t('travel.agenda.editItem')"
     :direction="drawerDirection"
     :size="drawerSize"
   >
@@ -204,33 +207,33 @@ const cancel = () => {
 
       <!-- Category -->
       <div class="form-section">
-        <div class="form-label">Category</div>
+        <div class="form-label">{{ t('travel.agenda.category') }}</div>
         <div class="category-grid">
           <button v-for="cat in TRAVEL_CATEGORIES" :key="cat.value" class="cat-btn"
             :class="{ active: drawerForm.category === cat.value }" @click="drawerForm.category = cat.value">
             <span class="cat-emoji">{{ cat.emoji }}</span>
-            <span class="cat-label">{{ cat.label }}</span>
+            <span class="cat-label">{{ t(cat.labelKey) }}</span>
           </button>
         </div>
       </div>
 
       <!-- Title -->
       <div class="form-section">
-        <div class="form-label">Title <span class="req">*</span></div>
-        <el-input v-model="drawerForm.title" placeholder="e.g. Lunch at local restaurant" size="large" />
+        <div class="form-label">{{ t('travel.agenda.title') }} <span class="req">*</span></div>
+        <el-input v-model="drawerForm.title" :placeholder="t('travel.agenda.titlePlaceholder')" size="large" />
       </div>
 
       <!-- Date -->
       <div class="form-section">
-        <div class="form-label">Date</div>
-        <el-date-picker v-model="drawerForm.date" type="date" placeholder="Select date" style="width: 100%"
+        <div class="form-label">{{ t('travel.agenda.date') }}</div>
+        <el-date-picker v-model="drawerForm.date" type="date" :placeholder="t('travel.agenda.selectDate')" style="width: 100%"
           value-format="YYYY-MM-DD" :disabled-date="drawerDisabledDate"
           :default-value="startDate ? new Date(startDate) : undefined" size="large" />
       </div>
 
       <!-- Place search -->
       <div class="form-section">
-        <div class="form-label">Place</div>
+        <div class="form-label">{{ t('travel.agenda.place') }}</div>
         <div v-if="drawerForm.placeDisplay" class="place-selected">
           <span class="place-selected-text">📍 {{ drawerForm.placeDisplay }}</span>
           <el-button link size="small" @click="clearPlace" class="place-clear">✕</el-button>
@@ -243,7 +246,7 @@ const cancel = () => {
           remote
           :remote-method="onPlaceSearch"
           :loading="placeLoading"
-          placeholder="Search for a place, landmark, city…"
+          :placeholder="t('travel.agenda.searchPlace')"
           value-key="placeId"
           @change="onPlaceSelect"
         >
@@ -263,35 +266,33 @@ const cancel = () => {
 
       <!-- Time -->
       <div class="form-section">
-        <div class="form-label">Time</div>
+        <div class="form-label">{{ t('travel.agenda.time') }}</div>
         <div class="time-row">
-          <el-time-picker v-model="drawerForm.startTime" placeholder="Start" style="flex: 1" format="HH:mm"
+          <el-time-picker v-model="drawerForm.startTime" :placeholder="t('travel.agenda.start')" style="flex: 1" format="HH:mm"
             value-format="HH:mm" :disabled="drawerForm.unknownTime" size="large" />
           <span class="time-sep">–</span>
-          <el-time-picker v-model="drawerForm.endTime" placeholder="End" style="flex: 1" format="HH:mm"
+          <el-time-picker v-model="drawerForm.endTime" :placeholder="t('travel.agenda.end')" style="flex: 1" format="HH:mm"
             value-format="HH:mm" :disabled="drawerForm.unknownTime" size="large" />
         </div>
-        <el-checkbox v-model="drawerForm.unknownTime" style="margin-top: 6px">
-          Time TBC
-        </el-checkbox>
+        <el-checkbox v-model="drawerForm.unknownTime" style="margin-top: 6px">{{ t('travel.agenda.timeTbc') }}</el-checkbox>
       </div>
 
       <!-- Notes -->
       <div class="form-section">
-        <div class="form-label">Notes</div>
-        <el-input v-model="drawerForm.desc" type="textarea" :rows="3" placeholder="Any notes or details..."
+        <div class="form-label">{{ t('travel.agenda.notes') }}</div>
+        <el-input v-model="drawerForm.desc" type="textarea" :rows="3" :placeholder="t('travel.agenda.notesPlaceholder')"
           size="large" />
       </div>
 
       <!-- Budget -->
       <div class="form-section">
-        <div class="form-label">Budget</div>
+        <div class="form-label">{{ t('travel.agenda.budget') }}</div>
         <el-input-number v-model="drawerForm.budget" :min="0" style="width: 100%" size="large" placeholder="0.00" />
       </div>
 
       <!-- Images -->
       <div class="form-section">
-        <div class="form-label">Images</div>
+        <div class="form-label">{{ t('travel.agenda.images') }}</div>
         <el-upload
           v-model:file-list="uploadFileList"
           list-type="picture-card"
@@ -305,16 +306,16 @@ const cancel = () => {
         >
           <el-icon><Plus /></el-icon>
           <template #tip>
-            <div class="el-upload__tip">Images only · max {{ FILE_LIMIT }} · 5 MB each</div>
+            <div class="el-upload__tip">{{ t('travel.agenda.imagesHint', { n: FILE_LIMIT, size: 5 }) }}</div>
           </template>
         </el-upload>
       </div>
 
       <!-- Actions -->
       <div class="drawer-actions">
-        <el-button style="flex: 1" @click="cancel">Cancel</el-button>
+        <el-button style="flex: 1" @click="cancel">{{ t('travel.agenda.cancel') }}</el-button>
         <el-button style="flex: 1" type="primary" @click="save">
-          {{ isNew ? 'Add Item' : 'Save Changes' }}
+          {{ isNew ? t('travel.agenda.addItem') : t('travel.agenda.saveChanges') }}
         </el-button>
       </div>
 

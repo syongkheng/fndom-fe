@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { ref, computed, watch } from 'vue'
 import type { ItineraryBooking } from '@/interfaces/forms/itinerary/ItineraryBooking'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   modelValue: boolean
@@ -17,11 +18,13 @@ const emit = defineEmits<{
   (e: 'cancel'): void
 }>()
 
+const { t } = useI18n()
+
 const CATEGORIES = [
-  { value: 'flight', label: 'Flight', emoji: '✈️' },
-  { value: 'accommodation', label: 'Hotel', emoji: '🏨' },
-  { value: 'transport', label: 'Transport', emoji: '🚌' },
-  { value: 'other', label: 'Other', emoji: '📦' },
+  { value: 'flight', labelKey: 'travel.booking.flight', emoji: '✈️' },
+  { value: 'accommodation', labelKey: 'travel.booking.hotel', emoji: '🏨' },
+  { value: 'transport', labelKey: 'travel.booking.transport', emoji: '🚌' },
+  { value: 'other', labelKey: 'travel.booking.other', emoji: '📦' },
 ] as const
 
 const makeBlank = (): ItineraryBooking => ({
@@ -136,7 +139,7 @@ function onCategorySelect(val: string) {
   <el-drawer
     :model-value="modelValue"
     @update:model-value="emit('update:modelValue', $event)"
-    :title="isNew ? 'Add Booking' : 'Edit Booking'"
+    :title="isNew ? t('travel.booking.addBooking') : t('travel.booking.editBooking')"
     :direction="drawerDirection ?? 'rtl'"
     :size="drawerSize ?? '420px'"
     class="booking-drawer"
@@ -144,7 +147,7 @@ function onCategorySelect(val: string) {
     <div class="drawer-body">
       <!-- Category -->
       <div class="form-section">
-        <div class="form-label">Category</div>
+        <div class="form-label">{{ t('travel.booking.category') }}</div>
         <div class="category-grid">
           <button
             v-for="cat in CATEGORIES"
@@ -155,32 +158,32 @@ function onCategorySelect(val: string) {
             type="button"
           >
             <span class="cat-emoji">{{ cat.emoji }}</span>
-            <span class="cat-label">{{ cat.label }}</span>
+            <span class="cat-label">{{ t(cat.labelKey) }}</span>
           </button>
         </div>
       </div>
 
       <!-- Item name -->
       <div class="form-section">
-        <div class="form-label">Item <span class="required">*</span></div>
-        <el-input v-model="form.item" placeholder="e.g. Flights, Hotel (CD), Train (成都→乐山)" />
+        <div class="form-label">{{ t('travel.booking.item') }} <span class="required">*</span></div>
+        <el-input v-model="form.item" :placeholder="t('travel.booking.itemPlaceholder')" />
       </div>
 
       <!-- Location -->
       <div class="form-section">
-        <div class="form-label">Remarks</div>
-        <el-input v-model="form.remarks" placeholder="e.g. CD, CQ, near station" />
+        <div class="form-label">{{ t('travel.booking.remarks') }}</div>
+        <el-input v-model="form.remarks" :placeholder="t('travel.booking.remarksPlaceholder')" />
       </div>
 
       <!-- Link -->
       <div class="form-section">
-        <div class="form-label">Booking Link</div>
+        <div class="form-label">{{ t('travel.booking.bookingLink') }}</div>
         <el-input v-model="form.link" placeholder="https://..." />
       </div>
 
       <!-- Per-person costs -->
       <div class="form-section" v-if="paxNames.length > 0">
-        <div class="form-label">Per-Person Cost (SGD)</div>
+        <div class="form-label">{{ t('travel.booking.perPersonCost') }}</div>
         <div class="pax-grid">
           <div v-for="name in paxNames" :key="name" class="pax-row">
             <span class="pax-name">{{ name }}</span>
@@ -199,13 +202,13 @@ function onCategorySelect(val: string) {
 
       <!-- Total price -->
       <div class="form-section">
-        <div class="form-label">Total Price (SGD)</div>
+        <div class="form-label">{{ t('travel.booking.totalPrice') }}</div>
         <el-input-number
           v-model="form.price"
           :min="0"
           :precision="2"
           :controls="false"
-          placeholder="Auto-calculated from per-person"
+          :placeholder="t('travel.booking.autoCalc')"
           class="full-width"
           @change="onPriceChange"
         />
@@ -213,16 +216,16 @@ function onCategorySelect(val: string) {
 
       <!-- Payment timing -->
       <div class="form-section">
-        <div class="form-label">Payment Timing</div>
+        <div class="form-label">{{ t('travel.booking.paymentTiming') }}</div>
         <div class="payment-row">
-          <el-select v-model="paymentType" placeholder="Select..." clearable class="payment-type-select">
-            <el-option label="Instant" value="instant" />
-            <el-option label="Delayed" value="delayed" />
+          <el-select v-model="paymentType" :placeholder="t('travel.booking.selectPayment')" clearable class="payment-type-select">
+            <el-option :label="t('travel.booking.instant')" value="instant" />
+            <el-option :label="t('travel.booking.delayed')" value="delayed" />
           </el-select>
           <el-input
             v-if="paymentType === 'delayed'"
             v-model="paymentDate"
-            placeholder="e.g. Apr 15, Before 18:00 Apr 7"
+            :placeholder="t('travel.booking.paymentDatePlaceholder')"
             class="payment-date-input"
           />
         </div>
@@ -232,22 +235,22 @@ function onCategorySelect(val: string) {
       <template v-if="isAccommodation">
         <div class="form-section form-row">
           <div class="form-col">
-            <div class="form-label">Check-in</div>
+            <div class="form-label">{{ t('travel.booking.checkin') }}</div>
             <el-date-picker
               v-model="form.startDate"
               type="date"
-              placeholder="YYYY-MM-DD"
+              :placeholder="t('travel.booking.datePlaceholder')"
               format="YYYY-MM-DD"
               value-format="YYYY-MM-DD"
               class="full-width"
             />
           </div>
           <div class="form-col">
-            <div class="form-label">Check-out</div>
+            <div class="form-label">{{ t('travel.booking.checkout') }}</div>
             <el-date-picker
               v-model="form.endDate"
               type="date"
-              placeholder="YYYY-MM-DD"
+              :placeholder="t('travel.booking.datePlaceholder')"
               format="YYYY-MM-DD"
               value-format="YYYY-MM-DD"
               class="full-width"
@@ -255,12 +258,12 @@ function onCategorySelect(val: string) {
           </div>
         </div>
         <div class="form-section">
-          <div class="form-label">Nights</div>
+          <div class="form-label">{{ t('travel.booking.nights') }}</div>
           <el-input-number
             v-model="form.nights"
             :min="1"
             :controls="false"
-            placeholder="Auto-calculated"
+            :placeholder="t('travel.booking.autoNights')"
             class="full-width"
           />
         </div>
@@ -268,34 +271,34 @@ function onCategorySelect(val: string) {
 
       <!-- Booked -->
       <div class="form-section form-switch-row">
-        <div class="form-label">Booked</div>
+        <div class="form-label">{{ t('travel.booking.booked') }}</div>
         <el-switch v-model="form.booked" />
       </div>
 
       <!-- Free cancellation (accommodation + booked) -->
       <div class="form-section" v-if="isAccommodation">
-        <div class="form-label">Free Cancellation</div>
-        <el-input v-model="form.freeCancellation" placeholder="e.g. Before 18:00, Apr 7" />
+        <div class="form-label">{{ t('travel.booking.freeCancellation') }}</div>
+        <el-input v-model="form.freeCancellation" :placeholder="t('travel.booking.cancellationPlaceholder')" />
       </div>
 
       <!-- Breakfast (accommodation only) -->
       <div class="form-section form-switch-row" v-if="isAccommodation">
-        <div class="form-label">Breakfast Included</div>
+        <div class="form-label">{{ t('travel.booking.breakfast') }}</div>
         <el-switch v-model="form.breakfast" />
       </div>
 
       <!-- Deposit -->
       <div class="form-section">
-        <div class="form-label">Deposit</div>
-        <el-input v-model="form.deposit" placeholder="e.g. 500 CNY" />
+        <div class="form-label">{{ t('travel.booking.deposit') }}</div>
+        <el-input v-model="form.deposit" :placeholder="t('travel.booking.depositPlaceholder')" />
       </div>
     </div>
 
     <template #footer>
       <div class="drawer-footer">
-        <el-button @click="onCancel">Cancel</el-button>
+        <el-button @click="onCancel">{{ t('travel.booking.cancel') }}</el-button>
         <el-button type="primary" @click="onSave" :disabled="!form.item?.trim()">
-          {{ isNew ? 'Add Booking' : 'Save Changes' }}
+          {{ isNew ? t('travel.booking.addBooking') : t('travel.booking.saveChanges') }}
         </el-button>
       </div>
     </template>

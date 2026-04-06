@@ -55,15 +55,6 @@ export const ApiRoute = {
     CHECK_LIVE: `/api/douyin/live`,
     RANK_LIST: `/api/douyin/ranklist`,
   },
-  MEAL: {
-    GET_BY_DATE: `/api/meal`,
-    GET_RANGE: `/api/meal/range`,
-    CREATE: `/api/meal`,
-    UPDATE: `/api/meal/update`,
-    DELETE: `/api/meal/delete`,
-    UPLOAD_PHOTO: `/api/meal/photo`,
-    DELETE_PHOTO: `/api/meal/photo/delete`,
-  },
   SLEEP: {
     GET_ALL:          `/api/sleep`,
     CREATE:           `/api/sleep`,

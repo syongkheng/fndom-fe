@@ -10,10 +10,12 @@ import { useLayoutStateStore } from './stores/layoutState'
 import { useThemeStore } from './stores/theme'
 import AppInitializer from './AppInitializer.vue'
 import LoadingDialog from './components/dialogs/LoadingDialog.vue'
+import { useLocale } from './composables/useLocale'
 
 const route = useRoute()
 const layoutStore = useLayoutStateStore()
 useThemeStore() // initialises on first call — applies dark/light class before render
+const { epLocale } = useLocale()
 
 watch(() => route.query.showLogin, (newVal) => {
   if (newVal === 'true') {
@@ -24,6 +26,7 @@ watch(() => route.query.showLogin, (newVal) => {
 </script>
 
 <template>
+  <el-config-provider :locale="epLocale">
   <AppInitializer>
     <TopNavigation />
     <div style="display: flex">
@@ -41,6 +44,7 @@ watch(() => route.query.showLogin, (newVal) => {
     <LoginView />
     <LoadingDialog :is-open="layoutStore.loadingDialog.isVisible" />
   </AppInitializer>
+  </el-config-provider>
 </template>
 
 <style scoped>

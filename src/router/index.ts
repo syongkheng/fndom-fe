@@ -86,12 +86,6 @@ const router = createRouter({
       beforeEnter: async (to, from, next) => useRouteGuards().authAndFeatureGuard({ next, featureKey: 'douyin' }),
     },
     {
-      path: '/meal',
-      name: 'meal',
-      component: () => import('../components/views/meal/HomeView.vue'),
-      beforeEnter: async (to, from, next) => useRouteGuards().authAndFeatureGuard({ next, featureKey: 'meal' }),
-    },
-    {
       path: '/sleep',
       name: 'sleep',
       component: () => import('../components/views/sleep/HomeView.vue'),

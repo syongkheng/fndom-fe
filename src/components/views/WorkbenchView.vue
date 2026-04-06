@@ -76,14 +76,6 @@ const modules = [
     path: '/sleep',
   },
   {
-    key: 'meal',
-    featureKey: 'meal',
-    title: 'Meal Prep',
-    description: 'Plan meals and log what you actually ate',
-    icon: '🍱',
-    path: '/meal',
-  },
-  {
     key: 'wedding',
     featureKey: 'wedding',
     title: 'Wedding',

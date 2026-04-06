@@ -17,8 +17,7 @@ const publicModules = [
 const personalModules = [
   { label: 'Travel',    path: '/travel',  featureKey: 'travel' },
   { label: 'Sleep',     path: '/sleep',   featureKey: 'sleep' },
-  { label: 'Meal Prep', path: '/meal',    featureKey: 'meal' },
-  { label: 'Douyin',    path: '/douyin',  featureKey: 'douyin' },
+{ label: 'Douyin',    path: '/douyin',  featureKey: 'douyin' },
   { label: 'Wedding',   path: '/wedding', featureKey: 'wedding' },
   { label: 'Expense',          path: '/expense',  featureKey: 'expense' },
   { label: 'Telegram Storage', path: '/telegram', featureKey: 'telegram' },

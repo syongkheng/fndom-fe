@@ -1,13 +1,13 @@
 export const TRAVEL_CATEGORIES = [
-  { value: 'flight',        label: 'Flight',        emoji: '✈️' },
-  { value: 'hotel',         label: 'Hotel',         emoji: '🏨' },
-  { value: 'dining',        label: 'Dining',        emoji: '🍽️' },
-  { value: 'attraction',    label: 'Attraction',    emoji: '🎡' },
-  { value: 'transport',     label: 'Transport',     emoji: '🚌' },
-  { value: 'shopping',      label: 'Shopping',      emoji: '🛍️' },
-  { value: 'entertainment', label: 'Entertainment', emoji: '🎭' },
-  { value: 'nature',        label: 'Nature',        emoji: '🌿' },
-  { value: 'other',         label: 'Other',         emoji: '📋' },
+  { value: 'flight',        labelKey: 'travel.category.flight',        emoji: '✈️' },
+  { value: 'hotel',         labelKey: 'travel.category.hotel',         emoji: '🏨' },
+  { value: 'dining',        labelKey: 'travel.category.dining',        emoji: '🍽️' },
+  { value: 'attraction',    labelKey: 'travel.category.attraction',    emoji: '🎡' },
+  { value: 'transport',     labelKey: 'travel.category.transport',     emoji: '🚌' },
+  { value: 'shopping',      labelKey: 'travel.category.shopping',      emoji: '🛍️' },
+  { value: 'entertainment', labelKey: 'travel.category.entertainment', emoji: '🎭' },
+  { value: 'nature',        labelKey: 'travel.category.nature',        emoji: '🌿' },
+  { value: 'other',         labelKey: 'travel.category.other',         emoji: '📋' },
 ] as const
 
 /** Key → emoji lookup. Falls back to 📋 for unknown/missing categories. */
