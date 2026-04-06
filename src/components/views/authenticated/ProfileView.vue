@@ -37,6 +37,7 @@ const handleFileChange = async (event: Event) => {
   if (!file) return
   selectedFile.value = file
   profile.value.avatar = URL.createObjectURL(file)
+  console.log(">>", profile.value.avatar)
   const blobString = await FileUtils.convertFileToBase64(file)
   try {
     await updateUserPhoto({ blobString, mimeType: file.type, sizeInBytes: file.size, fileName: file.name })
@@ -138,7 +139,9 @@ onMounted(async () => {
             <div class="avatar-circle">
               <img v-if="profile.avatar" :src="profile.avatar" alt="Avatar" class="avatar-img" />
               <div v-else class="avatar-placeholder">
-                <el-icon :size="36"><User /></el-icon>
+                <el-icon :size="36">
+                  <User />
+                </el-icon>
               </div>
               <div class="avatar-overlay">
                 <span>Change photo</span>
@@ -157,13 +160,7 @@ onMounted(async () => {
         <div class="info-block">
           <div class="info-label">Access Roles</div>
           <div class="roles-list" v-if="displayRoles.length">
-            <el-tag
-              v-for="role in displayRoles"
-              :key="role"
-              :type="roleTagType(role)"
-              size="small"
-              class="role-tag"
-            >
+            <el-tag v-for="role in displayRoles" :key="role" :type="roleTagType(role)" size="small" class="role-tag">
               {{ role }}
             </el-tag>
           </div>
@@ -177,22 +174,15 @@ onMounted(async () => {
         <!-- Country -->
         <div class="info-block">
           <div class="info-label">
-            <el-icon style="margin-right: 4px; vertical-align: -2px"><Location /></el-icon>
+            <el-icon style="margin-right: 4px; vertical-align: -2px">
+              <Location />
+            </el-icon>
             Country
           </div>
           <div class="country-row">
-            <el-select
-              v-model="profile.country"
-              placeholder="Select country"
-              filterable
-              style="flex: 1"
-            >
-              <el-option
-                v-for="country in CountryList"
-                :key="country.value"
-                :label="country.label"
-                :value="country"
-              />
+            <el-select v-model="profile.country" placeholder="Select country" filterable style="flex: 1">
+              <el-option v-for="country in CountryList" :key="country.value" :label="country.label"
+                :value="country.value" />
             </el-select>
             <el-button type="primary" @click="handleUpdateCountry">Update</el-button>
           </div>
@@ -206,63 +196,48 @@ onMounted(async () => {
         <div class="card-section-title">Change Password</div>
         <p class="card-section-desc">Verify your current password before setting a new one.</p>
 
-        <!-- Step 1: verify current -->
-        <div class="pw-step">
-          <div class="step-badge" :class="{ done: isPasswordValidated }">1</div>
-          <div class="step-body">
-            <div class="info-label">Current Password</div>
-            <div class="pw-row">
-              <el-input
-                v-model="passwordForm.currentPassword"
-                placeholder="Enter current password"
-                show-password
-                :prefix-icon="Lock"
-                :disabled="isPasswordValidated"
-              />
-              <el-button
-                :type="isPasswordValidated ? 'success' : 'default'"
-                :loading="isValidating"
-                :disabled="isPasswordValidated"
-                @click="handleValidatePassword"
-              >
-                <el-icon v-if="isPasswordValidated"><Check /></el-icon>
-                {{ isPasswordValidated ? 'Verified' : 'Verify' }}
+        <form autocomplete="on" @submit.prevent>
+          <input type="text" :value="userProfile.username" autocomplete="username" aria-hidden="true"
+            style="display:none" tabindex="-1" />
+          <!-- Step 1: verify current -->
+          <div class="pw-step">
+            <div class="step-badge" :class="{ done: isPasswordValidated }">1</div>
+            <div class="step-body">
+              <label class="info-label" for="current-password">Current Password</label>
+              <div class="pw-row">
+                <el-input id="current-password" v-model="passwordForm.currentPassword"
+                  placeholder="Enter current password" show-password :prefix-icon="Lock"
+                  :disabled="isPasswordValidated" autocomplete="current-password" />
+                <el-button :type="isPasswordValidated ? 'success' : 'default'" :loading="isValidating"
+                  :disabled="isPasswordValidated" @click="handleValidatePassword">
+                  <el-icon v-if="isPasswordValidated">
+                    <Check />
+                  </el-icon>
+                  {{ isPasswordValidated ? 'Verified' : 'Verify' }}
+                </el-button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: new password -->
+          <div class="pw-step" :class="{ disabled: !isPasswordValidated }">
+            <div class="step-badge" :class="{ done: isPasswordValidated }">2</div>
+            <div class="step-body">
+              <label class="info-label" for="new-password">New Password</label>
+              <el-input id="new-password" v-model="passwordForm.newPassword"
+                placeholder="Min. 12 chars, upper, number, special" show-password :prefix-icon="Lock"
+                :disabled="!isPasswordValidated" autocomplete="new-password" style="margin-bottom: 10px" />
+              <label class="info-label" for="confirm-password">Confirm Password</label>
+              <el-input id="confirm-password" v-model="passwordForm.confirmPassword"
+                placeholder="Repeat new password" show-password :prefix-icon="Lock"
+                :disabled="!isPasswordValidated" autocomplete="new-password" />
+              <el-button type="primary" native-type="submit" :disabled="!isPasswordValidated"
+                @click="handleChangePassword" style="width: 100%; margin-top: 14px">
+                Update Password
               </el-button>
             </div>
           </div>
-        </div>
-
-        <!-- Step 2: new password -->
-        <div class="pw-step" :class="{ disabled: !isPasswordValidated }">
-          <div class="step-badge" :class="{ done: isPasswordValidated }">2</div>
-          <div class="step-body">
-            <div class="info-label">New Password</div>
-            <el-input
-              v-model="passwordForm.newPassword"
-              placeholder="Min. 12 chars, upper, number, special"
-              show-password
-              :prefix-icon="Lock"
-              :disabled="!isPasswordValidated"
-              style="margin-bottom: 10px"
-            />
-            <div class="info-label">Confirm Password</div>
-            <el-input
-              v-model="passwordForm.confirmPassword"
-              placeholder="Repeat new password"
-              show-password
-              :prefix-icon="Lock"
-              :disabled="!isPasswordValidated"
-            />
-            <el-button
-              type="primary"
-              :disabled="!isPasswordValidated"
-              @click="handleChangePassword"
-              style="width: 100%; margin-top: 14px"
-            >
-              Update Password
-            </el-button>
-          </div>
-        </div>
+        </form>
 
         <div class="card-divider" />
 
