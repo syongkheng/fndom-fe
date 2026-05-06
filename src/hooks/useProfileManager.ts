@@ -1,3 +1,4 @@
+import type { AxiosError } from 'axios'
 import { ApiRoute } from '@/constants/ApiRoute'
 import HttpClient from '@/interceptors/HttpClient'
 
@@ -53,6 +54,16 @@ export default function useProfileManager() {
     })
   }
 
+  async function updateUsername(newUsername: string) {
+    const res = await HttpClient.post(ApiRoute.PROFILE.UPDATE_USERNAME, { newUsername })
+      .catch((err: AxiosError) => err.response ?? null)
+    if (!res || res.status !== 200) {
+      const code = (res as any)?.data?.data?.code as string | undefined
+      return { isSuccess: false as const, code }
+    }
+    return { isSuccess: true as const, ...((res.data as any).data as { token: string; username: string }) }
+  }
+
   return {
     updatePassword,
     validatePassword,
@@ -60,5 +71,6 @@ export default function useProfileManager() {
     updateUserCountry,
     getUserProfilePhoto,
     updateUserPhoto,
+    updateUsername,
   }
 }

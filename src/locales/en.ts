@@ -1,4 +1,48 @@
 export default {
+  nav: {
+    login: 'Login',
+    profile: 'Profile',
+    home: 'Home',
+    logout: 'Logout',
+    travel: 'Travel',
+  },
+  landing: {
+    eyebrow: 'Travel & Hiking Planner',
+    title: 'Plan your\nnext adventure.',
+    subtitle: 'Build itineraries, share with friends, and explore the world — no account required to get started.',
+    startPlanning: 'Start Planning →',
+    footerNote: 'Save and sync your itineraries by {link}.',
+    signingIn: 'signing in',
+    features: {
+      planning: {
+        title: 'Travel Planning',
+        desc: 'Build day-by-day itineraries, add activities, accommodation and transport — all in one place.',
+      },
+      itineraries: {
+        title: 'Shared Itineraries',
+        desc: 'Share a link with travel companions. Collaborate on the same plan in real time.',
+      },
+      destinations: {
+        title: 'Discover Destinations',
+        desc: 'Browse and explore locations. Get inspired for your next adventure.',
+      },
+    },
+  },
+  footer: {
+    tagline: 'Your all-in-one workbench',
+    allRights: 'All rights reserved',
+    sections: {
+      modules: 'Modules',
+      personal: 'Personal',
+      plan: 'Plan',
+      general: 'General',
+    },
+    links: {
+      home: 'Home',
+      profile: 'Profile',
+      workbench: 'Workbench',
+    },
+  },
   travel: {
     list: {
       title: 'My Trips',
@@ -26,6 +70,9 @@ export default {
       noTitle: 'Please enter a trip title.',
       deleted: 'Trip deleted.',
       failedDelete: 'Failed to delete trip.',
+      untitledTrip: 'Untitled Trip',
+      startDraft: 'Start planning — no account needed',
+      startDraftSub: 'Your trip saves locally until you sign in',
       dialog: {
         title: 'New Trip',
         tripTitle: 'Trip Title',
@@ -78,6 +125,12 @@ export default {
       notYours: "This itinerary doesn't belong to you. Please create a new trip.",
       accessCodeApplied: 'Access code set. Save your trip to apply.',
       noAccessCodeSet: 'No access code set — trip remains public.',
+      preview: 'Preview',
+      autoSaving: 'Saving…',
+      autoSaved: '✓ Saved',
+      autoSaveFail: '⚠ Save failed',
+      draftBanner: 'Your trip is saved locally. Sign in to sync and share.',
+      draftMigrated: 'Your draft has been saved to your account!',
     },
     viewer: {
       protected: 'Protected Itinerary',
@@ -187,6 +240,29 @@ export default {
       entertainment: 'Entertainment',
       nature: 'Nature',
       other: 'Other',
+    },
+    packing: {
+      title: 'Packing List',
+      progress: '{packed} of {total} packed',
+      noItems: 'No items yet. Add things to pack.',
+      addItem: '+ Add Item',
+      newItem: 'New Packing Item',
+      editItem: 'Edit Item',
+      category: 'Category',
+      label: 'Item',
+      labelPlaceholder: 'e.g. Passport, Sunscreen…',
+      quantity: 'Quantity (optional)',
+      packed: 'Mark as packed',
+      saveChanges: 'Save Changes',
+      cancel: 'Cancel',
+      categories: {
+        clothing: 'Clothing',
+        toiletries: 'Toiletries',
+        documents: 'Documents',
+        health: 'Health',
+        electronics: 'Electronics',
+        misc: 'Misc',
+      },
     },
     export: {
       day: 'Day',

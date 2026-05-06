@@ -17,3 +17,15 @@ export const CATEGORY_EMOJI: Record<string, string> = Object.fromEntries(
 
 export const getCategoryEmoji = (cat?: string | null): string =>
   (cat && CATEGORY_EMOJI[cat]) || '📋'
+
+export const PACKING_CATEGORIES = [
+  { key: 'clothing',    emoji: '👕', labelKey: 'travel.packing.categories.clothing' },
+  { key: 'toiletries',  emoji: '🧴', labelKey: 'travel.packing.categories.toiletries' },
+  { key: 'documents',   emoji: '📄', labelKey: 'travel.packing.categories.documents' },
+  { key: 'health',      emoji: '💊', labelKey: 'travel.packing.categories.health' },
+  { key: 'electronics', emoji: '🔌', labelKey: 'travel.packing.categories.electronics' },
+  { key: 'misc',        emoji: '🎒', labelKey: 'travel.packing.categories.misc' },
+] as const
+
+export const getPackingCategoryEmoji = (cat?: string): string =>
+  PACKING_CATEGORIES.find((c) => c.key === cat)?.emoji ?? '🎒'

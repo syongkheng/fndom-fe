@@ -2,29 +2,16 @@
 import { computed } from 'vue'
 import { useNav } from '@/hooks/useNav'
 import { useFeatureFlagStore } from '@/stores/featureFlags'
+import { usePermission } from '@/composables/usePermission'
+import { useI18n } from 'vue-i18n'
 
 const { redirectTo } = useNav()
 const flagStore = useFeatureFlagStore()
+const { hasModuleAccess } = usePermission()
+const { t } = useI18n()
+const isInternal = computed(() => hasModuleAccess('SYSTEM', 5))
 
 const year = new Date().getFullYear()
-
-const publicModules = [
-  { label: 'Kingshot',      path: '/ks',    featureKey: 'kingshot' },
-  { label: 'PPHS',          path: '/pphs',  featureKey: 'pphs' },
-  { label: 'Flat Analysis', path: '/flat',  featureKey: 'flat-analysis' },
-]
-
-const personalModules = [
-  { label: 'Travel',    path: '/travel',  featureKey: 'travel' },
-  { label: 'Sleep',     path: '/sleep',   featureKey: 'sleep' },
-{ label: 'Douyin',    path: '/douyin',  featureKey: 'douyin' },
-  { label: 'Wedding',   path: '/wedding', featureKey: 'wedding' },
-  { label: 'Expense',          path: '/expense',  featureKey: 'expense' },
-  { label: 'Telegram Storage', path: '/telegram', featureKey: 'telegram' },
-]
-
-const visiblePublic   = computed(() => publicModules.filter(m => flagStore.isEnabled(m.featureKey)))
-const visiblePersonal = computed(() => personalModules.filter(m => flagStore.isEnabled(m.featureKey)))
 </script>
 
 <template>
@@ -36,36 +23,26 @@ const visiblePersonal = computed(() => personalModules.filter(m => flagStore.isE
         <img src="/awense-logo.png" alt="Awense" width="36" class="footer-logo" />
         <div>
           <div class="brand-name">Awense <span class="beta-badge">Beta</span></div>
-          <div class="brand-tagline">Your all-in-one workbench</div>
+          <div class="brand-tagline">{{ t('footer.tagline') }}</div>
         </div>
       </div>
 
       <!-- Sitemap -->
       <div class="footer-sitemap">
 
-        <div class="footer-col" v-if="visiblePublic.length">
-          <div class="col-heading">Modules</div>
+        <div class="footer-col" v-if="!isInternal && flagStore.isEnabled('travel')">
+          <div class="col-heading">{{ t('footer.sections.plan') }}</div>
           <ul class="col-links">
-            <li v-for="item in visiblePublic" :key="item.path">
-              <button class="footer-link" @click="redirectTo(item.path)">{{ item.label }}</button>
-            </li>
-          </ul>
-        </div>
-
-        <div class="footer-col" v-if="visiblePersonal.length">
-          <div class="col-heading">Personal</div>
-          <ul class="col-links">
-            <li v-for="item in visiblePersonal" :key="item.path">
-              <button class="footer-link" @click="redirectTo(item.path)">{{ item.label }}</button>
-            </li>
+            <li><button class="footer-link" @click="redirectTo('/travel')">{{ t('nav.travel') }}</button></li>
           </ul>
         </div>
 
         <div class="footer-col">
-          <div class="col-heading">General</div>
+          <div class="col-heading">{{ t('footer.sections.general') }}</div>
           <ul class="col-links">
-            <li><button class="footer-link" @click="redirectTo('/')">Home</button></li>
-            <li><button class="footer-link" @click="redirectTo('/profile')">Profile</button></li>
+            <li><button class="footer-link" @click="redirectTo('/')">{{ t('footer.links.home') }}</button></li>
+            <li><button class="footer-link" @click="redirectTo('/profile')">{{ t('footer.links.profile') }}</button></li>
+            <li v-if="isInternal"><button class="footer-link" @click="redirectTo('/workbench')">{{ t('footer.links.workbench') }}</button></li>
           </ul>
         </div>
 
@@ -76,7 +53,7 @@ const visiblePersonal = computed(() => personalModules.filter(m => flagStore.isE
     <!-- Bottom bar -->
     <div class="footer-bottom">
       <span>© {{ year }} Awense</span>
-      <span class="footer-bottom-right">All rights reserved</span>
+      <span class="footer-bottom-right">{{ t('footer.allRights') }}</span>
     </div>
   </footer>
 </template>

@@ -1,8 +1,8 @@
 @import './base.css';
 
 :root {
-  --hyperlink-color: #1d4ed8;
-  --hyperlink-hover: #1e6bc0;
+  --hyperlink-color: #0a7ea4;
+  --hyperlink-hover: #086b8c;
   --text-color: var(--color-heading);
   --homepage-svg-icon: var(--color-heading);
   --icon-text-color: var(--color-text);
@@ -10,8 +10,8 @@
 }
 
 html.dark {
-  --hyperlink-color: #60a5fa;
-  --hyperlink-hover: #93c5fd;
+  --hyperlink-color: #0a7ea4;
+  --hyperlink-hover: #0c96c4;
 }
 
 #app {
@@ -48,4 +48,28 @@ main {
   width: 100%;
   height: 100%;
   justify-self: center;
+}
+
+/* ─── Element Plus — brand color overrides ──────────────────────── */
+:root {
+  --el-color-primary:         #C84B31;
+  --el-color-primary-light-3: #d9806c;
+  --el-color-primary-light-5: #e4a598;
+  --el-color-primary-light-7: #efcbc5;
+  --el-color-primary-light-8: #f4deda;
+  --el-color-primary-light-9: #f9eeec;
+  --el-color-primary-dark-2:  #a03c27;
+
+  --el-border-radius-base:    10px;
+  --el-box-shadow-light:      0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+html.dark {
+  --el-color-primary:         #E8795A;
+  --el-color-primary-light-3: #eda48c;
+  --el-color-primary-light-5: #f4bcad;
+  --el-color-primary-light-7: #f8d4c9;
+  --el-color-primary-light-8: #fbddd5;
+  --el-color-primary-light-9: #fdeee9;
+  --el-color-primary-dark-2:  #ba6148;
 }

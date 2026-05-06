@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, computed, onMounted, watchEffect, nextTick } from 'vue'
+import { ref, computed, onMounted, watchEffect, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useNav } from '@/hooks/useNav'
 import { useItineraryStore } from '@/stores/itinerary'
@@ -21,6 +21,9 @@ import { useTravelExport } from '@/composables/useTravelExport'
 import { useCityLabel } from '@/composables/useCityLabel'
 import { Edit, Delete, ArrowDown } from '@element-plus/icons-vue'
 import TravelMapView from '@/components/views/travel/TravelMapView.vue'
+import PackingDrawer from '@/components/views/travel/PackingDrawer.vue'
+import { getPackingCategoryEmoji, PACKING_CATEGORIES } from '@/constants/TravelCategories'
+import type { PackingItem } from '@/interfaces/forms/itinerary/PackingItem'
 import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
@@ -29,10 +32,11 @@ const itineraryStore = useItineraryStore()
 const layoutStore = useLayoutStateStore()
 const authStore = useAuthenticationStore()
 const { itinerary, loadingStage } = storeToRefs(itineraryStore)
-const { addBooking, removeBooking, updateBooking } = itineraryStore
+const { addBooking, removeBooking, updateBooking, addPackingItem, removePackingItem, updatePackingItem, togglePackingItem, saveDraft, loadDraft, migrateDraft } = itineraryStore
 const { isAuthenticated } = storeToRefs(authStore)
 
 const sessionId = route.params.sessionId as string
+const isDraft = computed(() => route.path === '/travel/draft')
 
 const loading = ref(true)
 const saving = ref(false)
@@ -53,6 +57,8 @@ const { t } = useI18n()
 // ── Responsive drawer ─────────────────────────────────────────────────────────
 const { width } = useBreakpointManager()
 const isMobile = computed(() => width.value <= 600)
+const isSplit = computed(() => width.value > 900)
+const isMapFullscreen = ref(false)
 const drawerDirection = computed(() => isMobile.value ? 'btt' : 'rtl')
 const drawerSize = computed(() => isMobile.value ? '92%' : '420px')
 
@@ -102,6 +108,43 @@ const onBookingDelete = (booking: ItineraryBooking) => {
   removeBooking(booking)
 }
 
+// ── Packing drawer state ──────────────────────────────────────────────────────
+const packingDrawerVisible = ref(false)
+const packingDrawerIsNew = ref(false)
+const packingDrawerItem = ref<PackingItem | null>(null)
+
+const openAddPackingDrawer = () => {
+  packingDrawerIsNew.value = true
+  packingDrawerItem.value = null
+  packingDrawerVisible.value = true
+}
+
+const openEditPackingDrawer = (item: PackingItem) => {
+  packingDrawerIsNew.value = false
+  packingDrawerItem.value = { ...item }
+  packingDrawerVisible.value = true
+}
+
+const onPackingDrawerSave = (item: PackingItem) => {
+  if (packingDrawerIsNew.value) addPackingItem(item)
+  else updatePackingItem(item)
+}
+
+// Packing list computed
+const packingItemsByCategory = computed(() => {
+  const items = itinerary.value.packingItems ?? []
+  return PACKING_CATEGORIES
+    .map((cat) => ({
+      cat,
+      items: items.filter((i) => i.category === cat.key),
+    }))
+    .filter((g) => g.items.length > 0)
+})
+
+const packingPackedCount = computed(() =>
+  (itinerary.value.packingItems ?? []).filter((i) => i.packed).length,
+)
+
 // Pax name editing
 const editingPaxNames = ref(false)
 const paxNamesInput = ref<string>('')
@@ -128,6 +171,7 @@ const bookingBookedCount = computed(() =>
   (itinerary.value.bookings ?? []).filter((b) => b.booked).length,
 )
 const bookingsCollapsed = ref(false)
+const packingCollapsed = ref(false)
 
 function parsePayment(payment: string | undefined): { label: string; date?: string; type: 'success' | 'warning' | 'info' } | null {
   if (!payment) return null
@@ -276,6 +320,12 @@ const columns = createTravelPlannerVTableColumns(
 
 // ── Shared ────────────────────────────────────────────────────────────────────
 onMounted(async () => {
+  if (isDraft.value) {
+    itineraryStore.resetItinerary()
+    loadDraft()
+    loading.value = false
+    return
+  }
   if (!isAuthenticated.value) {
     layoutStore.loginDialog.setTrue()
     loading.value = false
@@ -290,6 +340,37 @@ onMounted(async () => {
   }
   if (!sessionStorage.getItem(privacySeenKey) && !itinerary.value.challenge) {
     privacyDialogVisible.value = true
+  }
+})
+
+// ── Auto-save ─────────────────────────────────────────────────────────────────
+const autoSaveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
+let skipNextWatch = true
+
+watch(
+  () => JSON.stringify(itinerary.value),
+  () => {
+    if (skipNextWatch) { skipNextWatch = false; return }
+    if (isDraft.value) { saveDraft(); return }
+    if (!isAuthenticated.value || !itinerary.value.id || saving.value) return
+    if (autoSaveTimer) clearTimeout(autoSaveTimer)
+    autoSaveStatus.value = 'saving'
+    autoSaveTimer = setTimeout(async () => {
+      const result = await itineraryStore.updateItinerary()
+      autoSaveStatus.value = result.isSuccess ? 'saved' : 'error'
+      if (result.isSuccess) setTimeout(() => { autoSaveStatus.value = 'idle' }, 3000)
+    }, 2500)
+  },
+)
+
+// ── Draft migration ───────────────────────────────────────────────────────────
+watch(isAuthenticated, async (authed) => {
+  if (!authed || !isDraft.value) return
+  const newSessionId = await migrateDraft()
+  if (newSessionId) {
+    ElMessage.success(t('travel.planner.draftMigrated'))
+    nav.redirectTo(`/travel/${newSessionId}`)
   }
 })
 
@@ -352,7 +433,7 @@ const onPrivacyClose = () => {
   <div class="planner-view">
 
     <!-- Auth gate -->
-    <div v-if="!isAuthenticated" class="planner-auth-gate">
+    <div v-if="!isAuthenticated && !isDraft" class="planner-auth-gate">
       <div class="auth-gate-icon">🔒</div>
       <p class="auth-gate-text">{{ t('travel.planner.loginPrompt') }}</p>
       <el-button type="primary" @click="layoutStore.loginDialog.setTrue()">{{ t('travel.planner.login') }}</el-button>
@@ -364,8 +445,14 @@ const onPrivacyClose = () => {
     <div class="planner-topbar">
       <el-button link @click="nav.redirectTo('/travel')" class="back-btn">{{ t('travel.planner.back') }}</el-button>
       <div class="planner-actions">
-        <el-segmented v-model="editMode" size="small"
-          :options="[{ label: t('travel.planner.form'), value: 'form' }, { label: t('travel.planner.map'), value: 'map' }]" />
+        <span v-if="autoSaveStatus !== 'idle'" class="autosave-status" :class="`autosave-status--${autoSaveStatus}`">
+          {{ autoSaveStatus === 'saving' ? t('travel.planner.autoSaving') : autoSaveStatus === 'saved' ? t('travel.planner.autoSaved') : t('travel.planner.autoSaveFail') }}
+        </span>
+        <el-segmented v-if="!isSplit" v-model="editMode" size="small"
+          :options="[
+            { label: t('travel.planner.form'), value: 'form' },
+            { label: t('travel.planner.map'), value: 'map' },
+          ]" />
         <el-dropdown size="small" trigger="click" @command="(cmd: string) => cmd === 'json' ? exportJSON() : cmd === 'csv' ? exportCSV() : exportICS()">
           <el-button size="small">{{ t('travel.planner.exportBtn') }}</el-button>
           <template #dropdown>
@@ -377,6 +464,7 @@ const onPrivacyClose = () => {
           </template>
         </el-dropdown>
         <el-button size="small" @click="handleShare">{{ t('travel.planner.share') }}</el-button>
+        <el-button v-if="itinerary.shortCode" size="small" @click="nav.redirectTo(`/travel/v/${itinerary.shortCode}`)">{{ t('travel.planner.preview') }}</el-button>
         <el-tooltip :content="itinerary.challenge ? t('travel.planner.accessCodeSet') : t('travel.planner.noAccessCode')" placement="bottom">
           <el-button size="small" @click="openPrivacyDialog">
             {{ itinerary.challenge ? '🔒' : '🔓' }}
@@ -397,6 +485,18 @@ const onPrivacyClose = () => {
         <el-input-number v-model="itinerary.numberOfPax" :min="1" size="small" style="width: 110px" :placeholder="t('travel.planner.pax')" />
       </div>
     </div>
+
+    <!-- Draft banner -->
+    <div v-if="isDraft" class="draft-banner">
+      🔒 {{ t('travel.planner.draftBanner') }}
+      <el-button size="small" type="primary" @click="layoutStore.loginDialog.setTrue()">{{ t('nav.login') }}</el-button>
+    </div>
+
+    <!-- Split layout: content left, map right -->
+    <div class="planner-layout">
+
+    <!-- Content panel: always visible on desktop, hidden on mobile when in map mode -->
+    <div class="planner-content" v-show="isSplit || editMode !== 'map'">
 
     <!-- Loading -->
     <div v-if="loading" class="planner-loading">
@@ -475,12 +575,6 @@ const onPrivacyClose = () => {
         </div>
       </div>
     </div>
-
-    <!-- ── MAP MODE ──────────────────────────────────────────────────────── -->
-    <div v-else-if="editMode === 'map'" class="planner-map">
-      <TravelMapView :agenda-items="itinerary.agendaItems ?? []" />
-    </div>
-
 
       <!-- ── Bookings Section ──────────────────────────────────────────────── -->
       <div class="bookings-section">
@@ -644,6 +738,91 @@ const onPrivacyClose = () => {
         </div>
       </div>
 
+      <!-- ── Packing Section ───────────────────────────────────────────────── -->
+      <div class="bookings-section" style="margin-top: 16px;">
+        <div class="bookings-header" @click="packingCollapsed = !packingCollapsed">
+          <div class="bookings-header-left">
+            <span class="bookings-title">{{ t('travel.packing.title') }}</span>
+            <div class="bookings-pills" v-if="(itinerary.packingItems ?? []).length > 0">
+              <span class="booking-pill">
+                {{ t('travel.packing.progress', { packed: packingPackedCount, total: (itinerary.packingItems ?? []).length }) }}
+              </span>
+            </div>
+          </div>
+          <div class="bookings-header-right">
+            <el-icon class="collapse-icon" :class="{ 'is-collapsed': packingCollapsed }">
+              <arrow-down />
+            </el-icon>
+          </div>
+        </div>
+
+        <div v-show="!packingCollapsed">
+          <!-- Progress bar -->
+          <div class="packing-progress" style="padding: 10px 16px 0;" v-if="(itinerary.packingItems ?? []).length > 0">
+            <div class="packing-progress-bar">
+              <div
+                class="packing-progress-fill"
+                :style="{ width: ((itinerary.packingItems ?? []).length ? packingPackedCount / (itinerary.packingItems ?? []).length * 100 : 0) + '%' }"
+              />
+            </div>
+          </div>
+
+          <!-- Empty state -->
+          <div v-if="(itinerary.packingItems ?? []).length === 0" class="bookings-empty">
+            {{ t('travel.packing.noItems') }}
+          </div>
+
+          <!-- Items by category -->
+          <div v-else class="packing-categories" style="padding: 12px 16px;">
+            <div v-for="group in packingItemsByCategory" :key="group.cat.key" class="packing-category-group">
+              <div class="packing-cat-heading">{{ group.cat.emoji }} {{ t(group.cat.labelKey) }}</div>
+              <div class="packing-item"
+                v-for="item in group.items"
+                :key="item._localIndex ?? item.id"
+              >
+                <button
+                  class="packing-check"
+                  :class="{ 'packing-check--packed': item.packed }"
+                  @click="togglePackingItem(item)"
+                  type="button"
+                >
+                  <span v-if="item.packed">✓</span>
+                </button>
+                <span class="packing-item-label" :class="{ 'packing-item-label--packed': item.packed }">
+                  {{ item.label }}
+                </span>
+                <span v-if="item.quantity" class="packing-qty">×{{ item.quantity }}</span>
+                <div class="packing-item-actions">
+                  <el-button circle size="small" @click="openEditPackingDrawer(item)">
+                    <span style="font-size:0.72rem">✏️</span>
+                  </el-button>
+                  <el-button circle size="small" @click="removePackingItem(item)">
+                    <span style="font-size:0.72rem">🗑️</span>
+                  </el-button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bookings-add-row">
+            <el-button size="small" @click="openAddPackingDrawer">{{ t('travel.packing.addItem') }}</el-button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end .planner-content -->
+
+    <!-- Always-mounted map panel: sidebar on desktop, full-screen on mobile map mode -->
+    <div class="planner-map-panel" :class="{ 'planner-map-panel--fullscreen': isMapFullscreen }" v-show="editMode === 'map' || isSplit">
+      <TravelMapView
+        :agenda-items="itinerary.agendaItems ?? []"
+        :fullscreen="isMapFullscreen"
+        @toggle-fullscreen="isMapFullscreen = !isMapFullscreen"
+      />
+    </div>
+
+    </div><!-- end .planner-layout -->
+
     </template>
   </div>
 
@@ -691,6 +870,16 @@ const onPrivacyClose = () => {
     :drawer-size="drawerSize"
     @save="onBookingDrawerSave"
     @cancel="bookingDrawerVisible = false"
+  />
+
+  <PackingDrawer
+    v-model="packingDrawerVisible"
+    :item="packingDrawerItem"
+    :is-new="packingDrawerIsNew"
+    :drawer-direction="drawerDirection"
+    :drawer-size="drawerSize"
+    @save="onPackingDrawerSave"
+    @cancel="packingDrawerVisible = false"
   />
 </template>
 
@@ -759,18 +948,54 @@ const onPrivacyClose = () => {
   padding: 20px 0;
 }
 
-/* ── Map mode ── */
-.planner-map {
-  flex: 1;
-  min-height: 400px;
+/* ── Split layout ── */
+.planner-layout {
   display: flex;
-  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  align-items: flex-start;
+  min-height: 0;
 }
 
-/* ── Table mode ── */
-.planner-table {
+.planner-content {
   flex: 1;
+  min-width: 0;
+}
+
+.planner-map-panel {
+  width: 400px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  position: sticky;
+  top: 16px;
+  height: calc(100vh - 220px);
   min-height: 400px;
+}
+
+.planner-map-panel--fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 0 !important;
+  border: none !important;
+}
+
+@media (max-width: 900px) {
+  .planner-layout {
+    display: block;
+  }
+  .planner-map-panel {
+    width: 100%;
+    position: static;
+    height: 55vh;
+    max-height: 480px;
+    margin-top: 16px;
+    border-radius: 10px;
+  }
 }
 
 /* ── Form mode ── */
@@ -1208,5 +1433,156 @@ const onPrivacyClose = () => {
   display: flex;
   gap: 6px;
   justify-content: flex-end;
+}
+
+/* ── Auto-save status ── */
+.autosave-status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.autosave-status--saving {
+  color: var(--color-text);
+  opacity: 0.55;
+}
+
+.autosave-status--saved {
+  color: var(--el-color-success);
+}
+
+.autosave-status--error {
+  color: var(--el-color-danger);
+}
+
+/* ── Draft banner ── */
+.draft-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  background: color-mix(in srgb, var(--el-color-warning) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-warning) 30%, transparent);
+  border-radius: 8px;
+  font-size: 0.83rem;
+  color: var(--color-text);
+}
+
+.packing-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.packing-progress-label {
+  font-size: 0.82rem;
+  color: var(--color-text);
+  opacity: 0.65;
+}
+
+.packing-progress-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.packing-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--el-color-primary);
+  transition: width 0.3s ease;
+}
+
+.packing-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.packing-category-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.packing-cat-heading {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text);
+  opacity: 0.4;
+  padding: 4px 0;
+}
+
+.packing-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-background-soft);
+}
+
+.packing-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-border);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.packing-check--packed {
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  color: #fff;
+}
+
+.packing-item-label {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.packing-item-label--packed {
+  text-decoration: line-through;
+  opacity: 0.45;
+}
+
+.packing-qty {
+  font-size: 0.78rem;
+  color: var(--color-text);
+  opacity: 0.55;
+  background: var(--color-background-mute);
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+
+.packing-item-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.packing-item:hover .packing-item-actions {
+  opacity: 1;
+}
+
+.packing-add-row {
+  padding-top: 4px;
 }
 </style>

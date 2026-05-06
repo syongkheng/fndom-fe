@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
@@ -44,6 +44,14 @@ const retrieveLoading  = ref(false)
 const expiryInputs     = ref<Record<string, string>>({})
 const savingExpiry     = ref<Record<string, boolean>>({})
 const deletingId       = ref<string | null>(null)
+
+const uploadFile       = ref<File | null>(null)
+const uploadPreviewUrl = ref<string | null>(null)
+const uploadLoading    = ref(false)
+const uploadProgress   = ref(0)
+const isDragging       = ref(false)
+
+const previewUrls      = ref<Record<string, string>>({})
 
 const currentPage      = ref(1)
 const pageSize         = 12
@@ -99,6 +107,53 @@ function copyToClipboard(text: string) {
   ElMessage.success(`Copied: ${text}`)
 }
 
+function setUploadFile(file: File) {
+  uploadFile.value = file
+  if (uploadPreviewUrl.value) URL.revokeObjectURL(uploadPreviewUrl.value)
+  uploadPreviewUrl.value = file.type.startsWith('image/') ? URL.createObjectURL(file) : null
+}
+
+function onFileChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (file) setUploadFile(file)
+  else uploadFile.value = null
+}
+
+function onDrop(e: DragEvent) {
+  isDragging.value = false
+  const file = e.dataTransfer?.files?.[0]
+  if (file) setUploadFile(file)
+}
+
+function clearUpload() {
+  uploadFile.value = null
+  uploadProgress.value = 0
+  if (uploadPreviewUrl.value) URL.revokeObjectURL(uploadPreviewUrl.value)
+  uploadPreviewUrl.value = null
+}
+
+const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'avif', 'bmp'])
+
+function isImageItem(item: MediaItem): boolean {
+  if (item.fileType === 'photo') return true
+  const ext = item.fileName?.split('.').pop()?.toLowerCase()
+  return ext ? IMAGE_EXTENSIONS.has(ext) : false
+}
+
+async function fetchPreview(item: MediaItem) {
+  if (!isImageItem(item) || previewUrls.value[item.id]) return
+  try {
+    const r = await HttpClient.get(ApiRoute.TELEGRAM.MEDIA_PREVIEW(item.id), { responseType: 'blob' })
+    previewUrls.value[item.id] = URL.createObjectURL(r.data)
+  } catch {
+    // preview is non-critical — fail silently
+  }
+}
+
+function fetchPreviewsForPage() {
+  pagedMedia.value.forEach(item => fetchPreview(item))
+}
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
@@ -127,19 +182,54 @@ async function generateToken() {
   }
 }
 
+async function uploadMedia() {
+  if (!uploadFile.value) return
+  uploadLoading.value = true
+  uploadProgress.value = 0
+  try {
+    const form = new FormData()
+    form.append('file', uploadFile.value)
+    await HttpClient.post(ApiRoute.TELEGRAM.MEDIA_UPLOAD, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (e) => {
+        uploadProgress.value = e.total ? Math.round((e.loaded / e.total) * 100) : 0
+      },
+    })
+    ElMessage.success('Uploaded — file sent to your Telegram DM')
+    clearUpload()
+    await loadMedia()
+  } catch (err: any) {
+    const status = err?.response?.data?.status
+    if (status === 'InvalidRequestException') {
+      ElMessage.error('Open a private chat with the bot and send /start first, then retry.')
+    } else if (status === 'ForbiddenAccessException') {
+      ElMessage.error('Link your Telegram account first.')
+    } else {
+      ElMessage.error('Upload failed')
+    }
+  } finally {
+    uploadLoading.value = false
+  }
+}
+
 async function loadMedia() {
   mediaLoading.value = true
   try {
+    Object.values(previewUrls.value).forEach(URL.revokeObjectURL)
+    previewUrls.value = {}
     const res = await HttpClient.get(ApiRoute.TELEGRAM.MEDIA_LIST)
     mediaList.value = res.data.data
     expiryInputs.value = {}
     currentPage.value = 1
+    fetchPreviewsForPage()
   } catch {
     ElMessage.error('Failed to load media')
   } finally {
     mediaLoading.value = false
   }
 }
+
+watch(currentPage, fetchPreviewsForPage)
 
 async function retrieve() {
   const id = retrieveId.value.trim()
@@ -286,6 +376,50 @@ onMounted(async () => {
       </div>
     </section>
 
+    <!-- Upload -->
+    <section class="upload-section">
+      <div class="files-header" style="margin-bottom:12px">
+        <div class="files-title">Direct Upload</div>
+      </div>
+
+      <div
+        class="drop-zone"
+        :class="{ 'drop-zone--active': isDragging, 'drop-zone--filled': uploadFile }"
+        @dragover.prevent="isDragging = true"
+        @dragleave="isDragging = false"
+        @drop.prevent="onDrop"
+        @click="($refs.fileInput as HTMLInputElement).click()"
+      >
+        <input ref="fileInput" type="file" class="file-input-hidden" @change="onFileChange" />
+
+        <template v-if="!uploadFile">
+          <span class="drop-icon">☁</span>
+          <span class="drop-label">Drop a file here or click to browse</span>
+          <span class="drop-hint">Images, videos, documents — up to 50 MB · No compression</span>
+        </template>
+
+        <template v-else>
+          <img v-if="uploadPreviewUrl" :src="uploadPreviewUrl" class="upload-preview-img" @error="uploadPreviewUrl = null" />
+          <span v-if="!uploadPreviewUrl" class="drop-icon">📄</span>
+          <span class="drop-label">{{ uploadFile.name }}</span>
+          <span class="drop-hint">{{ formatSize(uploadFile.size) }}</span>
+        </template>
+      </div>
+
+      <div v-if="uploadFile" class="upload-actions">
+        <el-progress
+          v-if="uploadLoading"
+          :percentage="uploadProgress"
+          :stroke-width="6"
+          class="upload-progress"
+        />
+        <el-button type="primary" :loading="uploadLoading" @click="uploadMedia">
+          Upload
+        </el-button>
+        <el-button text @click="clearUpload" :disabled="uploadLoading">Clear</el-button>
+      </div>
+    </section>
+
     <!-- How it works (collapsible) -->
     <div class="how-it-works">
       <button class="hiw-toggle" @click="howItWorksOpen = !howItWorksOpen">
@@ -362,6 +496,15 @@ onMounted(async () => {
                 size="small"
                 class="card-expiry-tag"
               >{{ expiryStatus(item).label }}</el-tag>
+            </div>
+
+            <!-- Photo preview thumbnail -->
+            <div v-if="previewUrls[item.id]" class="card-preview">
+              <img
+                :src="previewUrls[item.id]"
+                class="card-preview-img"
+                @error="delete previewUrls[item.id]"
+              />
             </div>
 
             <!-- Card body -->
@@ -828,6 +971,94 @@ onMounted(async () => {
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
+}
+
+/* ── Upload ── */
+.upload-section {
+  margin-bottom: 28px;
+}
+
+.drop-zone {
+  border: 2px dashed var(--color-border);
+  border-radius: 12px;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  text-align: center;
+  user-select: none;
+}
+
+.drop-zone:hover,
+.drop-zone--active {
+  border-color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 4%, transparent);
+}
+
+.drop-zone--filled {
+  border-style: solid;
+  border-color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
+}
+
+.file-input-hidden {
+  display: none;
+}
+
+.drop-icon {
+  font-size: 2rem;
+  line-height: 1;
+  opacity: 0.5;
+}
+
+.drop-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.drop-hint {
+  font-size: 0.78rem;
+  opacity: 0.45;
+}
+
+.upload-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.upload-progress {
+  flex: 1;
+  min-width: 120px;
+}
+
+/* Upload preview */
+.upload-preview-img {
+  max-height: 180px;
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+/* Card photo thumbnail */
+.card-preview {
+  width: 100%;
+  overflow: hidden;
+  max-height: 160px;
+}
+
+.card-preview-img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  display: block;
 }
 
 /* Mobile */

@@ -201,6 +201,11 @@ export const useAuthenticationStore = defineStore('authentication', () => {
     }
   }
 
+  const updateUsernameInStore = (newUsername: string, newToken: string) => {
+    userProfile.value = { ...userProfile.value, username: newUsername }
+    StorageUtils.set(StorageKey.JWT, newToken, 'local')
+  }
+
   const handleLogout = () => {
     StorageUtils.remove(StorageKey.JWT, 'local')
     isAuthenticated.value = false
@@ -223,6 +228,7 @@ export const useAuthenticationStore = defineStore('authentication', () => {
     handleVerifyEmail,
     handleResendCode,
     handleLogout,
+    updateUsernameInStore,
     registerError,
     loading,
     setRedirectAfterLogin,

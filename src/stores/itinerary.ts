@@ -8,6 +8,8 @@ import { ApiRoute } from '@/constants/ApiRoute'
 import { ListUtils } from '@/utilities/ListUtils'
 import type { AgendaItem } from '@/interfaces/forms/itinerary/AgendaItem'
 import type { ItineraryBooking } from '@/interfaces/forms/itinerary/ItineraryBooking'
+import type { PackingItem } from '@/interfaces/forms/itinerary/PackingItem'
+import { GeneratorUtils } from '@/utilities/GeneratorUtils'
 
 export const useItineraryStore = defineStore('itinerary', () => {
   const loadingStage = ref<'Storing Itinerary' | 'Uploading Files' | 'Completed' | ''>('')
@@ -24,8 +26,10 @@ export const useItineraryStore = defineStore('itinerary', () => {
     _agendaIdsToDelete: [],
     _agendaIdsToUpdate: [],
     bookings: [],
+    packingItems: [],
     paxNames: [],
     _bookingIdsToDelete: [],
+    _packingIdsToDelete: [],
   })
 
   const resetItinerary = () => {
@@ -41,8 +45,10 @@ export const useItineraryStore = defineStore('itinerary', () => {
     itinerary._agendaIdsToDelete = []
     itinerary._agendaIdsToUpdate = []
     itinerary.bookings = []
+    itinerary.packingItems = []
     itinerary.paxNames = []
     itinerary._bookingIdsToDelete = []
+    itinerary._packingIdsToDelete = []
   }
 
   const createItinerary = async (): Promise<{
@@ -362,6 +368,82 @@ export const useItineraryStore = defineStore('itinerary', () => {
     }
   }
 
+  const addPackingItem = (item: PackingItem) => {
+    itinerary.packingItems.push({ ...item, _localIndex: `packing-${Date.now()}` })
+  }
+
+  const removePackingItem = (item: PackingItem) => {
+    const index = itinerary.packingItems.findIndex(
+      (p) => p._localIndex === item._localIndex || (p.id && p.id === item.id),
+    )
+    if (index !== -1) {
+      if (itinerary.packingItems[index].id !== undefined) {
+        itinerary._packingIdsToDelete?.push(itinerary.packingItems[index].id!)
+      }
+      itinerary.packingItems.splice(index, 1)
+    }
+  }
+
+  const updatePackingItem = (updated: PackingItem) => {
+    const index = itinerary.packingItems.findIndex(
+      (p) => p._localIndex === updated._localIndex || (p.id && p.id === updated.id),
+    )
+    if (index !== -1) itinerary.packingItems.splice(index, 1, updated)
+  }
+
+  const togglePackingItem = (item: PackingItem) => {
+    updatePackingItem({ ...item, packed: !item.packed })
+  }
+
+  const DRAFT_KEY = 'fndom-draft-itinerary'
+
+  const saveDraft = () => {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({
+      sessionTitle: itinerary.sessionTitle,
+      destination: itinerary.destination,
+      destinationRaw: itinerary.destinationRaw,
+      numberOfPax: itinerary.numberOfPax,
+      unknownDate: itinerary.unknownDate,
+      durationInDays: itinerary.durationInDays,
+      itineraryDateRaw: itinerary.itineraryDateRaw,
+      startDate: itinerary.startDate,
+      endDate: itinerary.endDate,
+      agendaItems: itinerary.agendaItems,
+      bookings: itinerary.bookings,
+      packingItems: itinerary.packingItems,
+    }))
+  }
+
+  const loadDraft = (): boolean => {
+    const raw = localStorage.getItem(DRAFT_KEY)
+    if (!raw) return false
+    try {
+      const d = JSON.parse(raw)
+      Object.assign(itinerary, d)
+      itinerary._agendaIdsToDelete = []
+      itinerary._bookingIdsToDelete = []
+      itinerary._packingIdsToDelete = []
+      return true
+    } catch { return false }
+  }
+
+  const clearDraft = () => localStorage.removeItem(DRAFT_KEY)
+
+  const migrateDraft = async (): Promise<string | null> => {
+    const raw = localStorage.getItem(DRAFT_KEY)
+    if (!raw) return null
+    try {
+      const d = JSON.parse(raw)
+      const res = await HttpClient.post(ApiRoute.ITINERARY.CREATE, {
+        ...d,
+        idempotencyKey: GeneratorUtils.generateUUID(),
+      }).catch(() => null)
+      const sessionId = res?.data?.data?.sessionId
+      if (sessionId) { clearDraft(); return sessionId }
+      return null
+    } catch { return null }
+  }
+
   const updateBooking = (updatedBooking: ItineraryBooking) => {
     const index = itinerary.bookings.findIndex(
       (b) => b._localIndex === updatedBooking._localIndex || (b.id && b.id === updatedBooking.id),
@@ -426,8 +508,10 @@ export const useItineraryStore = defineStore('itinerary', () => {
       itinerary.shortCode = clonedRetrievedItinerary.shortCode
       itinerary.challenge = clonedRetrievedItinerary.challenge
       itinerary.bookings = clonedRetrievedItinerary.bookings ?? []
+      itinerary.packingItems = clonedRetrievedItinerary.packingItems ?? []
       itinerary.paxNames = clonedRetrievedItinerary.paxNames ?? []
       itinerary._bookingIdsToDelete = []
+      itinerary._packingIdsToDelete = []
       return { success: true, forbidden: false }
     } catch (err: any) {
       if (err.response?.status === 403) return { success: false, forbidden: true }
@@ -453,5 +537,13 @@ export const useItineraryStore = defineStore('itinerary', () => {
     addBooking,
     removeBooking,
     updateBooking,
+    addPackingItem,
+    removePackingItem,
+    updatePackingItem,
+    togglePackingItem,
+    saveDraft,
+    loadDraft,
+    clearDraft,
+    migrateDraft,
   }
 })

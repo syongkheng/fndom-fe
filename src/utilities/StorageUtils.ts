@@ -4,6 +4,7 @@ export enum StorageKey {
   ITINERARY_IDEMPOTENCY_KEY = 'itineraryIdempotencyKey',
   JWT = 'token',
   DOUYIN_RECENT = 'douyinRecent',
+  SCENIC_CHECKLIST = 'scenicChecklist',
 }
 
 type StorageType = 'local' | 'session'

@@ -61,8 +61,12 @@ const sortedRecords = computed(() =>
   [...pphsRecords.value].sort((a, b) => a.town.localeCompare(b.town))
 );
 
+const visibleMapRecords = computed(() =>
+  pphsRecords.value.filter((r) => !pphsStore.hiddenMarkers.includes(r.address))
+);
+
 const mappedCount = computed(() =>
-  pphsRecords.value.filter((r) => r.source === "database").length
+  pphsRecords.value.filter((r) => !!r.lat && !!r.lng).length
 );
 
 const getCardId = (town: string, address: string) =>
@@ -121,7 +125,7 @@ watch(selectedBatchValue, (batch) => {
 
     <!-- Map -->
     <div class="pphs-map-wrap" :class="{ collapsed: !mapExpanded }">
-      <MapComponent :records="pphsRecords" />
+      <MapComponent :records="visibleMapRecords" />
     </div>
 
     <!-- Cards -->

@@ -31,15 +31,7 @@ interface TripCard {
 const myTrips = ref<TripCard[]>([])
 const sharedTrips = ref<TripCard[]>([])
 const loading = ref(false)
-const showNewTripDialog = ref(false)
 const creating = ref(false)
-
-const newTrip = ref({
-  sessionTitle: '',
-  destination: '',
-  dateRange: [] as string[],
-  numberOfPax: 1,
-})
 
 const fetchTrips = async () => {
   loading.value = true
@@ -70,44 +62,22 @@ const formatDateRange = (startDate?: number, endDate?: number) => {
   return endDate ? `${fmt(startDate)} – ${fmt(endDate)}` : fmt(startDate)
 }
 
-const openNewTripDialog = () => {
-  if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
-  newTrip.value = { sessionTitle: '', destination: '', dateRange: [], numberOfPax: 1 }
-  showNewTripDialog.value = true
-}
-
 const handleCreate = async () => {
   if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
-  if (!newTrip.value.sessionTitle.trim()) {
-    ElMessage.warning(t('travel.list.noTitle'))
-    return
-  }
   creating.value = true
-  const payload = {
+  const res = await HttpClient.post(ApiRoute.ITINERARY.CREATE, {
     idempotencyKey: GeneratorUtils.generateUUID(),
-    sessionTitle: newTrip.value.sessionTitle.trim(),
-    destination: newTrip.value.destination.trim() || undefined,
+    sessionTitle: t('travel.list.untitledTrip'),
     destinationRaw: [],
-    numberOfPax: newTrip.value.numberOfPax,
-    itineraryDateRaw: newTrip.value.dateRange.length === 2 ? newTrip.value.dateRange : undefined,
-    startDate: newTrip.value.dateRange[0] ? new Date(newTrip.value.dateRange[0]).getTime() : undefined,
-    endDate: newTrip.value.dateRange[1] ? new Date(newTrip.value.dateRange[1]).getTime() : undefined,
+    numberOfPax: 1,
     durationInDays: 1,
-    unknownDate: newTrip.value.dateRange.length === 0,
+    unknownDate: true,
     agendaItems: [],
     _agendaIdsToDelete: [],
     _agendaIdsToUpdate: [],
-  }
-
-  const res = await HttpClient.post(ApiRoute.ITINERARY.CREATE, payload).catch(() => null)
+  }).catch(() => null)
   creating.value = false
-
-  if (!res?.data?.data?.sessionId) {
-    ElMessage.error(t('travel.list.failed'))
-    return
-  }
-
-  showNewTripDialog.value = false
+  if (!res?.data?.data?.sessionId) { ElMessage.error(t('travel.list.failed')); return }
   nav.redirectTo(`/travel/${res.data.data.sessionId}`)
 }
 
@@ -146,6 +116,13 @@ const deleteTrip = async (sessionId: string) => {
       <div class="auth-gate-icon">🔒</div>
       <p class="auth-gate-text">{{ t('travel.list.loginPrompt') }}</p>
       <el-button type="primary" @click="layoutStore.loginDialog.setTrue()">{{ t('travel.list.login') }}</el-button>
+      <div class="guest-draft-card" @click="nav.redirectTo('/travel/draft')">
+        <span class="guest-draft-icon">✏️</span>
+        <div>
+          <div class="guest-draft-title">{{ t('travel.list.startDraft') }}</div>
+          <div class="guest-draft-sub">{{ t('travel.list.startDraftSub') }}</div>
+        </div>
+      </div>
     </div>
 
     <template v-else>
@@ -154,7 +131,7 @@ const deleteTrip = async (sessionId: string) => {
         <h1 class="list-title">{{ t('travel.list.title') }}</h1>
         <p class="list-subtitle">{{ t('travel.list.subtitle') }}</p>
       </div>
-      <el-button type="primary" @click="openNewTripDialog">{{ t('travel.list.newTrip') }}</el-button>
+      <el-button type="primary" :loading="creating" @click="handleCreate">{{ t('travel.list.newTrip') }}</el-button>
     </header>
 
     <!-- My Trips -->
@@ -245,37 +222,6 @@ const deleteTrip = async (sessionId: string) => {
         </div>
       </div>
     </section>
-
-    <!-- New Trip Dialog -->
-    <el-dialog v-model="showNewTripDialog" :title="t('travel.list.dialog.title')" width="420px" align-center>
-      <div class="dialog-form">
-        <label class="dlabel">{{ t('travel.list.dialog.tripTitle') }} <span class="req">*</span></label>
-        <el-input v-model="newTrip.sessionTitle" :placeholder="t('travel.list.dialog.tripTitlePlaceholder')" size="large" />
-
-        <label class="dlabel">{{ t('travel.list.dialog.destination') }}</label>
-        <el-input v-model="newTrip.destination" :placeholder="t('travel.list.dialog.destinationPlaceholder')" size="large" />
-
-        <label class="dlabel">{{ t('travel.list.dialog.travelDates') }}</label>
-        <el-date-picker
-          v-model="newTrip.dateRange"
-          type="daterange"
-          :range-separator="t('travel.list.dialog.to')"
-          :start-placeholder="t('travel.list.dialog.startDate')"
-          :end-placeholder="t('travel.list.dialog.endDate')"
-          style="width: 100%"
-          size="large"
-          value-format="YYYY-MM-DD"
-        />
-
-        <label class="dlabel">{{ t('travel.list.dialog.numberOfTravellers') }}</label>
-        <el-input-number v-model="newTrip.numberOfPax" :min="1" style="width: 100%" size="large" />
-      </div>
-
-      <template #footer>
-        <el-button @click="showNewTripDialog = false">{{ t('travel.list.cancel') }}</el-button>
-        <el-button type="primary" :loading="creating" @click="handleCreate">{{ t('travel.list.createTrip') }}</el-button>
-      </template>
-    </el-dialog>
 
     </template>
   </div>
@@ -437,4 +383,41 @@ const deleteTrip = async (sessionId: string) => {
   }
 }
 
+.guest-draft-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 16px 20px;
+  border: 1px dashed var(--color-border);
+  border-radius: 12px;
+  background: var(--color-background-soft);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  width: 280px;
+  max-width: 100%;
+}
+
+.guest-draft-card:hover {
+  border-color: var(--el-color-primary);
+  background: var(--color-background-mute);
+}
+
+.guest-draft-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.guest-draft-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.guest-draft-sub {
+  font-size: 0.75rem;
+  color: var(--color-text);
+  opacity: 0.55;
+  margin-top: 2px;
+}
 </style>

@@ -36,16 +36,16 @@ const props = defineProps<{
   flex-direction: column;
   gap: 2px;
   padding: 8px 12px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   margin-bottom: 8px;
-  background-color: #fafafa;
+  background-color: var(--color-background-mute);
   transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .busstop-card:hover {
-  background-color: #f0f6ff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  background-color: var(--color-background-soft);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
 
 .busstop-line {
@@ -55,12 +55,12 @@ const props = defineProps<{
   flex-wrap: nowrap;
   gap: 8px;
   font-weight: 500;
-  color: #303133;
+  color: var(--color-heading);
 }
 
 .busstop-code {
   flex-shrink: 0;
-  color: #409EFF;
+  color: var(--el-color-primary);
   font-weight: 600;
   min-width: 60px;
 }
@@ -70,20 +70,20 @@ const props = defineProps<{
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #333;
+  color: var(--color-text);
 }
 
 .busstop-distance {
   flex-shrink: 0;
   font-size: 0.9rem;
-  color: #606266;
+  color: var(--color-text-secondary);
   min-width: 70px;
   text-align: right;
 }
 
 .busstop-desc {
   font-size: 0.85rem;
-  color: #909399;
+  color: var(--color-text-tertiary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -93,7 +93,7 @@ const props = defineProps<{
   font-weight: 500;
   font-size: 0.85rem;
   margin-bottom: 4px;
-  color: #606266;
+  color: var(--color-text-secondary);
 }
 
 .bus-services-grid {

@@ -10,8 +10,9 @@ import { Breakpoint } from '@/constants/Breakpoint'
 import { computed } from 'vue'
 import { useThemeStore } from '@/stores/theme'
 import { useLocale } from '@/composables/useLocale'
+import { useI18n } from 'vue-i18n'
 
-const { redirectToDashboard, redirectToLanding, redirectToProfile } = useNav()
+const { redirectTo, redirectToProfile } = useNav()
 const themeStore = useThemeStore()
 
 const layoutStore = useLayoutStateStore()
@@ -21,6 +22,7 @@ const { isScreensizeBelow } = useBreakpointManager()
 const mobileDropdownMenu = computed(() => isScreensizeBelow(Breakpoint.M))
 
 const { locale, setLocale } = useLocale()
+const { t } = useI18n()
 
 const isAdminViewEnabled = computed({
   get() {
@@ -53,7 +55,7 @@ const handleMenuExpansion = () => {
           </el-icon>
           <span>Menu</span> -->
         </div>
-        <div class="logo-env clickable" @click="isAuthenticated ? redirectToDashboard() : redirectToLanding()">
+        <div class="logo-env clickable" @click="redirectTo('/')">
           <div>
             <img src="../../../public/awense-logo.png" width="50px" />
           </div>
@@ -78,12 +80,12 @@ const handleMenuExpansion = () => {
         </el-button>
         <span v-if="!isAuthenticated">
           <el-button @click="layoutStore.loginDialog.toggle()" type="primary" :icon="Star" size="small">
-            Login
+            {{ t('nav.login') }}
           </el-button>
         </span>
         <span v-else>
           <el-button @click="redirectToProfile()" type="primary" :icon="User" size="small">
-            Profile
+            {{ t('nav.profile') }}
           </el-button>
         </span>
       </div>
@@ -95,7 +97,7 @@ const handleMenuExpansion = () => {
 .header {
   position: sticky;
   top: 0;
-  z-index: 99;
+  z-index: 9999;
   padding: 1em;
   background-color: var(--color-background-soft);
   border-bottom: 1px solid var(--color-border);

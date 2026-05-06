@@ -13,14 +13,6 @@ onMounted(async () => {
 })
 
 const modules = [
-  {
-    key: 'kingshot',
-    featureKey: 'kingshot',
-    title: 'Kingshot',
-    description: 'Kingdom 236 · KoP scheduling and coordination',
-    icon: '⚔️',
-    path: '/ks',
-  },
   // {
   //   key: 'dashboard',
   //   title: 'Dashboard',
@@ -50,6 +42,14 @@ const modules = [
     description: 'Search by postal code · MRT and bus stop proximity',
     icon: '🏠',
     path: '/flat',
+  },
+  {
+    key: 'scenic',
+    featureKey: 'china-scenic',
+    title: 'Scenic Spots',
+    description: 'China 5A scenic spots · Track your visits by province',
+    icon: '🏔️',
+    path: '/scenic',
   },
   {
     key: 'travel',

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { User, Lock, Check, Location } from '@element-plus/icons-vue'
+import { User, Lock, Check, Location, Edit } from '@element-plus/icons-vue'
 import { useAuthenticationStore } from '@/stores/authentication'
 import { CountryList } from '@/constants/Country'
 import useProfileManager from '@/hooks/useProfileManager'
@@ -9,7 +9,7 @@ import { FileUtils } from '@/utilities/FileUtils'
 import { useNav } from '@/hooks/useNav'
 
 const { userProfile } = useAuthenticationStore()
-const { getUserCountry, updateUserCountry, getUserProfilePhoto, updateUserPhoto, validatePassword, updatePassword } = useProfileManager()
+const { getUserCountry, updateUserCountry, getUserProfilePhoto, updateUserPhoto, validatePassword, updatePassword, updateUsername } = useProfileManager()
 const navigate = useNav()
 
 const profile = ref({ country: '', avatar: '' })
@@ -18,18 +18,40 @@ const isPasswordValidated = ref(false)
 const isValidating = ref(false)
 const selectedFile = ref<File | null>(null)
 
-// ── Role display ──────────────────────────────────────────────────────────────
-const roleTagType = (role: string): 'danger' | 'warning' | 'primary' | 'success' | 'info' => {
-  if (role.startsWith('SYSTEM')) return 'danger'
-  if (role.startsWith('PPHS')) return 'warning'
-  if (role.startsWith('KS')) return 'primary'
-  if (role.startsWith('TRAVEL')) return 'success'
-  return 'info'
+// ── Username edit ─────────────────────────────────────────────────────────────
+const usernameForm = ref({ editing: false, value: '', saving: false, error: '' })
+
+const handleEditUsername = () => {
+  usernameForm.value.value = userProfile.username
+  usernameForm.value.error = ''
+  usernameForm.value.editing = true
 }
 
-const displayRoles = computed(() =>
-  userProfile.roles?.length ? userProfile.roles : []
-)
+const handleSaveUsername = async () => {
+  const newUsername = usernameForm.value.value.trim()
+  if (newUsername.length < 3) {
+    usernameForm.value.error = 'Username must be at least 3 characters.'
+    return
+  }
+  if (newUsername === userProfile.username) {
+    usernameForm.value.editing = false
+    return
+  }
+  usernameForm.value.saving = true
+  usernameForm.value.error = ''
+  const result = await updateUsername(newUsername)
+  usernameForm.value.saving = false
+  if (!result.isSuccess) {
+    usernameForm.value.error = result.code === 'username_already_taken'
+      ? 'This username is already taken.'
+      : 'Failed to update username.'
+    return
+  }
+  const authStore = useAuthenticationStore()
+  authStore.updateUsernameInStore(result.username, result.token)
+  usernameForm.value.editing = false
+  ElMessage.success('Username updated.')
+}
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
 const handleFileChange = async (event: Event) => {
@@ -148,23 +170,19 @@ onMounted(async () => {
             </div>
           </label>
           <div class="avatar-meta">
-            <div class="username">{{ userProfile.username }}</div>
+            <div v-if="!usernameForm.editing" class="username-display">
+              <span class="username">{{ userProfile.username }}</span>
+              <el-button text :icon="Edit" size="small" @click="handleEditUsername" style="padding: 0 4px; margin-left: 2px; color: var(--color-text); opacity: 0.45" />
+            </div>
+            <div v-else class="username-edit">
+              <el-input v-model="usernameForm.value" size="small" placeholder="Display name" style="max-width: 180px" @keyup.enter="handleSaveUsername" />
+              <div class="username-edit-actions">
+                <el-button type="primary" size="small" :loading="usernameForm.saving" @click="handleSaveUsername">Save</el-button>
+                <el-button text size="small" @click="usernameForm.editing = false; usernameForm.error = ''">Cancel</el-button>
+              </div>
+              <div v-if="usernameForm.error" class="username-error">{{ usernameForm.error }}</div>
+            </div>
             <div class="avatar-hint">Click photo to upload</div>
-          </div>
-        </div>
-
-        <div class="card-divider" />
-
-        <!-- Roles -->
-        <div class="info-block">
-          <div class="info-label">Access Roles</div>
-          <div class="roles-list" v-if="displayRoles.length">
-            <el-tag v-for="role in displayRoles" :key="role" :type="roleTagType(role)" size="small" class="role-tag">
-              {{ role }}
-            </el-tag>
-          </div>
-          <div v-else class="roles-empty">
-            <el-tag type="info" size="small">Member</el-tag>
           </div>
         </div>
 
@@ -420,17 +438,27 @@ onMounted(async () => {
   opacity: 0.45;
 }
 
-/* Roles */
-.roles-list {
+/* Username edit */
+.username-display {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+}
+
+.username-edit {
+  display: flex;
+  flex-direction: column;
   gap: 6px;
 }
 
-.role-tag {
+.username-edit-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.username-error {
   font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
+  color: var(--el-color-danger);
 }
 
 /* Country */

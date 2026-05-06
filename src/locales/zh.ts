@@ -1,4 +1,48 @@
 export default {
+  nav: {
+    login: '登录',
+    profile: '个人资料',
+    home: '首页',
+    logout: '退出',
+    travel: '旅行',
+  },
+  landing: {
+    eyebrow: '旅行与登山规划',
+    title: '规划你的\n下一次冒险。',
+    subtitle: '规划行程、与朋友分享、探索世界 — 无需注册即可开始。',
+    startPlanning: '开始规划 →',
+    footerNote: '通过{link}保存并同步行程。',
+    signingIn: '登录',
+    features: {
+      planning: {
+        title: '旅行规划',
+        desc: '按天构建行程，添加活动、住宿和交通 — 一站式搞定。',
+      },
+      itineraries: {
+        title: '共享行程',
+        desc: '向同伴分享链接，实时协作同一份计划。',
+      },
+      destinations: {
+        title: '探索目的地',
+        desc: '浏览并探索各地风光，为下一次冒险寻找灵感。',
+      },
+    },
+  },
+  footer: {
+    tagline: '您的一站式工作台',
+    allRights: '保留所有权利',
+    sections: {
+      modules: '模块',
+      personal: '个人',
+      plan: '规划',
+      general: '通用',
+    },
+    links: {
+      home: '首页',
+      profile: '个人资料',
+      workbench: '工作台',
+    },
+  },
   travel: {
     list: {
       title: '我的行程',
@@ -26,6 +70,9 @@ export default {
       noTitle: '请输入行程标题。',
       deleted: '行程已删除。',
       failedDelete: '删除行程失败。',
+      untitledTrip: '未命名行程',
+      startDraft: '开始规划 — 无需注册',
+      startDraftSub: '行程将本地保存，登录后自动同步',
       dialog: {
         title: '新建行程',
         tripTitle: '行程标题',
@@ -78,6 +125,12 @@ export default {
       notYours: '该行程不属于您，请创建新行程。',
       accessCodeApplied: '访问码已设置，保存行程后生效。',
       noAccessCodeSet: '未设置访问码，行程为公开状态。',
+      preview: '预览',
+      autoSaving: '保存中…',
+      autoSaved: '✓ 已保存',
+      autoSaveFail: '⚠ 保存失败',
+      draftBanner: '行程已本地保存。登录后可同步与分享。',
+      draftMigrated: '草稿已保存到您的账户！',
     },
     viewer: {
       protected: '受保护的行程',
@@ -187,6 +240,29 @@ export default {
       entertainment: '娱乐',
       nature: '自然',
       other: '其他',
+    },
+    packing: {
+      title: '行李清单',
+      progress: '已收拾 {packed} / {total} 件',
+      noItems: '暂无物品，添加行李吧。',
+      addItem: '+ 添加物品',
+      newItem: '新增行李物品',
+      editItem: '编辑物品',
+      category: '分类',
+      label: '物品名称',
+      labelPlaceholder: '例：护照、防晒霜…',
+      quantity: '数量（选填）',
+      packed: '标记为已收拾',
+      saveChanges: '保存修改',
+      cancel: '取消',
+      categories: {
+        clothing: '衣物',
+        toiletries: '洗漱',
+        documents: '证件',
+        health: '健康',
+        electronics: '电子',
+        misc: '其他',
+      },
     },
     export: {
       day: '天',

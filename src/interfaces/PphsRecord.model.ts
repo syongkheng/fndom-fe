@@ -6,7 +6,7 @@ interface PphsRecord {
   formedUrl: string
   lat: string
   lng: string
-  source: 'database' | ''
+  source: 'database' | 'onemap' | 'nominatim' | 'error' | 'unparseable' | ''
 }
 
 export type { PphsRecord }

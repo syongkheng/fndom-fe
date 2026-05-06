@@ -5,14 +5,19 @@ import { useLayoutStateStore } from '@/stores/layoutState'
 import { useNav } from '@/hooks/useNav'
 import { useAuthenticationStore } from '@/stores/authentication'
 import { useFeatureFlagStore } from '@/stores/featureFlags'
+import { usePermission } from '@/composables/usePermission'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
 
 const authStore = useAuthenticationStore()
 const layoutStore = useLayoutStateStore()
 const flagStore = useFeatureFlagStore()
 const navigate = useNav()
+const { hasModuleAccess } = usePermission()
+const { t } = useI18n()
 
 const { isAuthenticated } = storeToRefs(authStore)
+const isInternal = computed(() => hasModuleAccess('SYSTEM', 5))
 
 const handleMenuClick = (action: () => void) => {
   action()
@@ -26,9 +31,9 @@ const handleLogout = () => {
 }
 
 const publicModules = [
-  { label: 'Kingshot',      path: '/ks',    featureKey: 'kingshot' },
   { label: 'PPHS',          path: '/pphs',  featureKey: 'pphs' },
   { label: 'Flat Analysis', path: '/flat',  featureKey: 'flat-analysis' },
+  { label: 'Scenic Spots', path: '/scenic', featureKey: 'china-scenic' },
 ]
 
 const personalModules = [
@@ -49,14 +54,23 @@ const visiblePersonal = computed(() => personalModules.filter(m => flagStore.isE
     <div class="menu-container">
 
       <span class="menu-item" @click="handleMenuClick(() => layoutStore.loginDialog.toggle())" v-if="!isAuthenticated">
-        <span class="menu-label">Login</span>
+        <span class="menu-label">{{ t('nav.login') }}</span>
       </span>
 
-      <span class="menu-item" @click="handleMenuClick(() => navigate.redirectToLanding())">
-        <span class="menu-label">Home</span>
+      <span class="menu-item" @click="handleMenuClick(() => navigate.redirectTo(isInternal ? '/workbench' : '/'))">
+        <span class="menu-label">{{ t('nav.home') }}</span>
       </span>
 
-      <template v-if="visiblePublic.length">
+      <!-- Travel — visible to everyone -->
+      <template v-if="flagStore.isEnabled('travel')">
+        <el-divider class="menu-divider" />
+        <span class="menu-item" @click="handleMenuClick(() => navigate.redirectTo('/travel'))">
+          <span class="menu-label">{{ t('nav.travel') }}</span>
+        </span>
+      </template>
+
+      <!-- Internal modules — SYSTEM_R5 only -->
+      <template v-if="isInternal && visiblePublic.length">
         <el-divider class="menu-divider" />
         <span
           v-for="mod in visiblePublic"
@@ -68,10 +82,10 @@ const visiblePersonal = computed(() => personalModules.filter(m => flagStore.isE
         </span>
       </template>
 
-      <template v-if="isAuthenticated && visiblePersonal.length">
+      <template v-if="isInternal && isAuthenticated && visiblePersonal.length">
         <el-divider class="menu-divider" />
         <span
-          v-for="mod in visiblePersonal"
+          v-for="mod in visiblePersonal.filter(m => m.path !== '/travel')"
           :key="mod.path"
           class="menu-item"
           @click="handleMenuClick(() => navigate.redirectTo(mod.path))"
@@ -83,10 +97,10 @@ const visiblePersonal = computed(() => personalModules.filter(m => flagStore.isE
       <template v-if="isAuthenticated">
         <el-divider class="menu-divider" />
         <span class="menu-item" @click="handleMenuClick(navigate.redirectToProfile)">
-          <span class="menu-label">Profile</span>
+          <span class="menu-label">{{ t('nav.profile') }}</span>
         </span>
         <span class="menu-item menu-item--danger" @click="handleMenuClick(handleLogout)">
-          <span class="menu-label">Logout</span>
+          <span class="menu-label">{{ t('nav.logout') }}</span>
         </span>
       </template>
 
@@ -96,10 +110,10 @@ const visiblePersonal = computed(() => personalModules.filter(m => flagStore.isE
 
 <style scoped>
 .mobile-menu-dialog {
-  --menu-bg: #fff;
-  --menu-hover: #f5f5f5;
+  --menu-bg: var(--color-background-soft);
+  --menu-hover: var(--color-background-mute);
   --menu-active: var(--el-color-primary-light-9);
-  --menu-text: #333;
+  --menu-text: var(--color-heading);
   --menu-radius: 8px;
 
   .el-dialog__body {

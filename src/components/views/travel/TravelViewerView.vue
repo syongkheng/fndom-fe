@@ -181,7 +181,12 @@ const hasAccommodation = computed(() =>
 )
 
 const bookingsCollapsed = ref(false)
-const mapCollapsed = ref(false)
+
+const ctaDismissed = ref(sessionStorage.getItem('fndom-cta-dismissed') === '1')
+const dismissCta = () => {
+  sessionStorage.setItem('fndom-cta-dismissed', '1')
+  ctaDismissed.value = true
+}
 
 const allCollapsed = computed(() =>
   groupedByDate.value.length > 0 &&
@@ -236,45 +241,41 @@ const { t } = useI18n()
       <el-button type="primary" @click="nav.redirectTo('/travel')">{{ t('travel.viewer.goToTrips') }}</el-button>
     </div>
 
-    <!-- Content -->
-    <div v-else-if="itinerary && (!challengeRequired || challengeVerified)" class="viewer-wrap">
-
-      <!-- Trip header -->
-      <header class="trip-header">
-        <p v-if="itinerary.destination" class="trip-destination">{{ itinerary.destination }}</p>
-        <h1 class="trip-title">{{ itinerary.sessionTitle }}</h1>
-        <div class="trip-header-meta">
-          <span v-if="formatHeaderRange(itinerary.startDate, itinerary.endDate)" class="meta-pill">
+    <!-- Hero map — full-bleed, outside viewer-wrap -->
+    <div v-if="itinerary && (!challengeRequired || challengeVerified)" class="viewer-hero">
+      <TravelMapView :agenda-items="(itinerary.agendaItems ?? []) as any" class="hero-map" />
+      <div class="hero-overlay">
+        <p v-if="itinerary.destination" class="hero-destination">{{ itinerary.destination }}</p>
+        <h1 class="hero-title">{{ itinerary.sessionTitle }}</h1>
+        <div class="hero-pills">
+          <span v-if="formatHeaderRange(itinerary.startDate, itinerary.endDate)" class="hero-pill">
             📅 {{ formatHeaderRange(itinerary.startDate, itinerary.endDate) }}
           </span>
-          <span v-if="itinerary.numberOfPax" class="meta-pill">
+          <span v-if="itinerary.numberOfPax" class="hero-pill">
             👥 {{ itinerary.numberOfPax }} {{ itinerary.numberOfPax === 1 ? t('travel.viewer.traveller') : t('travel.viewer.travellers') }}
           </span>
-          <span v-if="itinerary.viewCount !== undefined" class="meta-pill">
+          <span v-if="itinerary.viewCount !== undefined" class="hero-pill">
             👁 {{ itinerary.viewCount }} {{ itinerary.viewCount === 1 ? t('travel.viewer.view') : t('travel.viewer.views') }}
           </span>
         </div>
-        <div class="trip-header-actions">
-          <el-dropdown trigger="click" @command="(cmd: string) => cmd === 'json' ? exportJSON() : cmd === 'csv' ? exportCSV() : exportICS()">
-            <el-button size="small">{{ t('travel.viewer.exportBtn') }}</el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="json">{{ t('travel.viewer.exportJson') }}</el-dropdown-item>
-                <el-dropdown-item command="csv">{{ t('travel.viewer.exportCsv') }}</el-dropdown-item>
-                <el-dropdown-item command="ics">{{ t('travel.viewer.exportIcs') }}</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </div>
-      </header>
+      </div>
+    </div>
 
-      <!-- ── Trip Map Section ──────────────────────────────────────────── -->
-      <div v-if="(itinerary?.agendaItems ?? []).length > 0" class="viewer-map-section">
-        <div class="viewer-map-header" @click="mapCollapsed = !mapCollapsed">
-          <span class="viewer-map-title">{{ t('travel.viewer.map') }}</span>
-          <span class="viewer-map-chevron" :class="{ collapsed: mapCollapsed }">⌄</span>
-        </div>
-        <TravelMapView v-show="!mapCollapsed" :agenda-items="(itinerary.agendaItems ?? []) as any" class="viewer-map" />
+    <!-- Content -->
+    <div v-if="itinerary && (!challengeRequired || challengeVerified)" class="viewer-wrap">
+
+      <!-- Export actions -->
+      <div class="trip-header-actions">
+        <el-dropdown trigger="click" @command="(cmd: string) => cmd === 'json' ? exportJSON() : cmd === 'csv' ? exportCSV() : exportICS()">
+          <el-button size="small">{{ t('travel.viewer.exportBtn') }}</el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="json">{{ t('travel.viewer.exportJson') }}</el-dropdown-item>
+              <el-dropdown-item command="csv">{{ t('travel.viewer.exportCsv') }}</el-dropdown-item>
+              <el-dropdown-item command="ics">{{ t('travel.viewer.exportIcs') }}</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
 
       <!-- Empty agenda -->
@@ -452,16 +453,129 @@ const { t } = useI18n()
     </div>
   </div>
 
+  <!-- CTA bar for non-users -->
+  <Teleport to="body">
+    <div v-if="!ctaDismissed && itinerary && (!challengeRequired || challengeVerified)" class="cta-bar">
+      <span class="cta-text">✈️ Plan your own trip for free</span>
+      <el-button type="primary" size="small" @click="nav.redirectTo('/travel')">Start planning →</el-button>
+      <button class="cta-dismiss" @click="dismissCta">×</button>
+    </div>
+  </Teleport>
+
   <el-backtop target=".wrapper" :visibility-height="300" :right="24" :bottom="32" />
 </template>
 
 <style scoped>
-/* ── Trip Map ── */
-.viewer-map-section {
-  margin-top: 36px;
-  margin-bottom: 32px;
+/* ── Hero map ── */
+.viewer-hero {
+  position: relative;
+  width: 100%;
+  /* 16:9 proportional, floored at 320px on phones, capped at 460px on wide desktop */
+  height: clamp(320px, 56.25vw, 460px);
 }
 
+.hero-map {
+  height: 100%;
+}
+
+/* Override TravelMapView's internal min-heights so the hero container controls the size */
+.hero-map :deep(.travel-map-wrapper) {
+  min-height: unset;
+  height: 100%;
+}
+
+.hero-map :deep(.map-area) {
+  min-height: unset;
+}
+
+.hero-map :deep(.travel-map) {
+  min-height: unset;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(0,0,0,0.68) 0%, rgba(0,0,0,0.12) 50%, transparent 75%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 28px 24px;
+}
+
+.hero-destination {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 4px;
+}
+
+.hero-title {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+  margin-bottom: 10px;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.35);
+}
+
+.hero-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.hero-pill {
+  font-size: 0.75rem;
+  color: #fff;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.28);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-radius: 20px;
+  padding: 3px 10px;
+}
+
+/* ── CTA bar ── */
+.cta-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: rgba(12,12,12,0.94);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.cta-text {
+  color: #fff;
+  font-size: 0.88rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.cta-dismiss {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.4);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.cta-dismiss:hover { color: #fff; }
+
+/* ── Timeline controls ── */
 .timeline-controls {
   display: flex;
   justify-content: flex-end;
@@ -481,38 +595,6 @@ const { t } = useI18n()
 
 .timeline-toggle-all:hover {
   color: #E8795A;
-}
-
-.viewer-map-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  user-select: none;
-  margin-bottom: 12px;
-}
-
-.viewer-map-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.viewer-map-chevron {
-  font-size: 1rem;
-  color: var(--el-text-color-secondary);
-  transition: transform 0.2s;
-}
-
-.viewer-map-chevron.collapsed {
-  transform: rotate(-90deg);
-}
-
-.viewer-map {
-  height: 420px;
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid var(--color-border);
 }
 
 /* ── Challenge gate ── */
@@ -545,7 +627,7 @@ const { t } = useI18n()
 .viewer-root {
   width: 100%;
   min-height: 100%;
-  padding-bottom: 48px;
+  padding-bottom: 72px;
 }
 
 /* ── States ── */
@@ -584,51 +666,11 @@ const { t } = useI18n()
   padding: 0 4px;
 }
 
-/* ── Trip header ── */
-.trip-header {
-  padding: 24px 0 28px;
-  border-bottom: 1px solid var(--color-border);
-  margin-bottom: 32px;
-}
-
-.trip-destination {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--color-text);
-  opacity: 0.5;
-  margin-bottom: 6px;
-}
-
-.trip-title {
-  font-size: 1.7rem;
-  font-weight: 800;
-  color: var(--color-heading);
-  line-height: 1.2;
-  margin-bottom: 12px;
-}
-
-.trip-header-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 .trip-header-actions {
-  margin-top: 14px;
+  padding: 16px 0 8px;
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.meta-pill {
-  font-size: 0.8rem;
-  color: var(--color-text);
-  background: var(--color-background-mute);
-  border: 1px solid var(--color-border);
-  border-radius: 20px;
-  padding: 3px 10px;
 }
 
 /* ── Timeline ── */
@@ -824,13 +866,11 @@ const { t } = useI18n()
 
 /* ── Mobile ── */
 @media (max-width: 480px) {
-  .trip-title {
-    font-size: 1.4rem;
-  }
-
-  .viewer-wrap {
-    padding: 0;
-  }
+  .hero-title { font-size: 1.35rem; }
+  .hero-overlay { padding: 18px 16px; }
+  .viewer-wrap { padding: 0; }
+  .cta-text { font-size: 0.8rem; }
+  .cta-bar { padding: 12px 16px; }
 }
 
 /* Bookings section */

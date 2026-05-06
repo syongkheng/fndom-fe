@@ -1,5 +1,6 @@
 import type { AgendaItem } from './AgendaItem'
 import type { ItineraryBooking } from './ItineraryBooking'
+import type { PackingItem } from './PackingItem'
 
 interface Itinerary {
   id: string | undefined
@@ -20,9 +21,11 @@ interface Itinerary {
   challenge?: string
   agendaItems: AgendaItem[]
   bookings: ItineraryBooking[]
+  packingItems: PackingItem[]
   _agendaIdsToDelete?: string[]
   _agendaIdsToUpdate?: string[]
   _bookingIdsToDelete?: number[]
+  _packingIdsToDelete?: string[]
 }
 
 export type { Itinerary }

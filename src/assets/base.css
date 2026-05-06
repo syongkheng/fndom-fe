@@ -1,52 +1,56 @@
 /* color palette */
 :root {
-  --vt-c-white: #ffffff;
-  --vt-c-white-soft: #f8f8f8;
-  --vt-c-white-mute: #f2f2f2;
+  /* Light palette */
+  --vt-c-bg:             #F7F3EE;
+  --vt-c-surface:        #FFFFFF;
+  --vt-c-input-bg:       #FAF7F4;
+  --vt-c-divider:        #EDE5DC;
+  --vt-c-border:         #E8D5C4;
+  --vt-c-text:           #1C1008;
+  --vt-c-text-secondary: #7A5C4A;
+  --vt-c-text-tertiary:  #A68B7A;
+  --vt-c-primary:        #C84B31;
 
-  --vt-c-black: #181818;
-  --vt-c-black-soft: #222222;
-  --vt-c-black-mute: #282828;
-
-  --vt-c-indigo: #2c3e50;
-
-  --vt-c-divider-light-1: rgba(60, 60, 60, 0.29);
-  --vt-c-divider-light-2: rgba(60, 60, 60, 0.12);
-  --vt-c-divider-dark-1: rgba(84, 84, 84, 0.65);
-  --vt-c-divider-dark-2: rgba(84, 84, 84, 0.48);
-
-  --vt-c-text-light-1: var(--vt-c-indigo);
-  --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
-  --vt-c-text-dark-1: var(--vt-c-white);
-  --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
+  /* Dark palette */
+  --vt-c-dark-bg:             #12100E;
+  --vt-c-dark-surface:        #1E1B18;
+  --vt-c-dark-input-bg:       #2A2420;
+  --vt-c-dark-divider:        #2E2820;
+  --vt-c-dark-border:         #3A3028;
+  --vt-c-dark-text:           #F5EFE6;
+  --vt-c-dark-text-secondary: #9E8A7A;
+  --vt-c-dark-text-tertiary:  #6B5A4E;
+  --vt-c-dark-primary:        #E8795A;
 }
 
 /* Light mode (default) */
 :root {
-  --color-background: var(--vt-c-white);
-  --color-background-soft: var(--vt-c-white-soft);
-  --color-background-mute: var(--vt-c-white-mute);
-
-  --color-border: var(--vt-c-divider-light-2);
-  --color-border-hover: var(--vt-c-divider-light-1);
-
-  --color-heading: var(--vt-c-text-light-1);
-  --color-text: var(--vt-c-text-light-1);
+  --color-background:      var(--vt-c-bg);
+  --color-background-soft: var(--vt-c-surface);
+  --color-background-mute: var(--vt-c-input-bg);
+  --color-divider:         var(--vt-c-divider);
+  --color-border:          var(--vt-c-border);
+  --color-border-hover:    var(--vt-c-primary);
+  --color-heading:         var(--vt-c-text);
+  --color-text:            var(--vt-c-text);
+  --color-text-secondary:  var(--vt-c-text-secondary);
+  --color-text-tertiary:   var(--vt-c-text-tertiary);
 
   --section-gap: 160px;
 }
 
 /* Dark mode — driven by class, not media query, so the toggle works */
 html.dark {
-  --color-background: var(--vt-c-black);
-  --color-background-soft: var(--vt-c-black-soft);
-  --color-background-mute: var(--vt-c-black-mute);
-
-  --color-border: var(--vt-c-divider-dark-2);
-  --color-border-hover: var(--vt-c-divider-dark-1);
-
-  --color-heading: var(--vt-c-text-dark-1);
-  --color-text: var(--vt-c-text-dark-2);
+  --color-background:      var(--vt-c-dark-bg);
+  --color-background-soft: var(--vt-c-dark-surface);
+  --color-background-mute: var(--vt-c-dark-input-bg);
+  --color-divider:         var(--vt-c-dark-divider);
+  --color-border:          var(--vt-c-dark-border);
+  --color-border-hover:    var(--vt-c-dark-primary);
+  --color-heading:         var(--vt-c-dark-text);
+  --color-text:            var(--vt-c-dark-text);
+  --color-text-secondary:  var(--vt-c-dark-text-secondary);
+  --color-text-tertiary:   var(--vt-c-dark-text-tertiary);
 }
 
 *,
@@ -66,17 +70,13 @@ body {
     background-color 0.2s;
   line-height: 1.6;
   font-family:
-    Inter,
+    system-ui,
     -apple-system,
     BlinkMacSystemFont,
     'Segoe UI',
     Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
-    'Fira Sans',
-    'Droid Sans',
-    'Helvetica Neue',
+    Helvetica,
+    Arial,
     sans-serif;
   font-size: 15px;
   text-rendering: optimizeLegibility;

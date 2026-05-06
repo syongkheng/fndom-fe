@@ -7,35 +7,13 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
+      component: () => import('../components/views/LandingView.vue'),
+    },
+    {
+      path: '/workbench',
+      name: 'workbench',
       component: () => import('../components/views/WorkbenchView.vue'),
-    },
-    {
-      path: '/ks',
-      name: 'kingshot',
-      component: () => import('../components/views/kingshot/HomeView.vue'),
-      beforeEnter: async (to, from, next) =>
-        useRouteGuards().featureGuard({ next, featureKey: 'kingshot' }),
-    },
-    {
-      path: '/ks/agreement',
-      name: 'ks-agreement',
-      component: () => import('../components/views/kingshot/AgreementView.vue'),
-      beforeEnter: async (to, from, next) =>
-        useRouteGuards().featureGuard({ next, featureKey: 'kingshot' }),
-    },
-    {
-      path: '/ks/kop',
-      name: 'kop-form',
-      component: () => import('../components/views/kingshot/KopFormView.vue'),
-      beforeEnter: async (to, from, next) =>
-        useRouteGuards().featureGuard({ next, featureKey: 'kop-registration' }),
-    },
-    {
-      path: '/ks/kop/res',
-      name: 'kop-form-res',
-      component: () => import('../components/views/kingshot/AppointmentView.vue'),
-      beforeEnter: async (to, from, next) =>
-        useRouteGuards().featureGuard({ next, featureKey: 'kop-registration' }),
+      beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
     },
     // {
     //   path: '/schedule',
@@ -57,27 +35,47 @@ const router = createRouter({
       path: '/pphs',
       name: 'pphs',
       component: () => import('../components/views/hdb/HomeView.vue'),
-      beforeEnter: async (to, from, next) =>
-        useRouteGuards().featureGuard({ next, featureKey: 'pphs' }),
+      beforeEnter: [
+        async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
+        async (to, from, next) => useRouteGuards().featureGuard({ next, featureKey: 'pphs' }),
+      ],
+    },
+    {
+      path: '/scenic',
+      name: 'scenic',
+      component: () => import('../components/views/scenic/HomeView.vue'),
+      beforeEnter: [
+        async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
+        async (to, from, next) => useRouteGuards().featureGuard({ next, featureKey: 'china-scenic' }),
+      ],
     },
     {
       path: '/flat',
       name: 'flat',
       component: () => import('../components/views/flat/HomeView.vue'),
-      beforeEnter: async (to, from, next) =>
-        useRouteGuards().featureGuard({ next, featureKey: 'flat-analysis' }),
+      beforeEnter: [
+        async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
+        async (to, from, next) => useRouteGuards().featureGuard({ next, featureKey: 'flat-analysis' }),
+      ],
     },
     {
       path: '/travel',
       name: 'travel',
       component: () => import('../components/views/travel/TravelListView.vue'),
       beforeEnter: async (to, from, next) =>
-        useRouteGuards().authAndFeatureGuard({ next, featureKey: 'travel' }),
+        useRouteGuards().featureGuard({ next, featureKey: 'travel' }),
     },
     {
       path: '/travel/v/:shortCode',
       name: 'travel-viewer',
       component: () => import('../components/views/travel/TravelViewerView.vue'),
+      beforeEnter: async (to, from, next) =>
+        useRouteGuards().featureGuard({ next, featureKey: 'travel' }),
+    },
+    {
+      path: '/travel/draft',
+      name: 'travel-draft',
+      component: () => import('../components/views/travel/TravelPlannerView.vue'),
       beforeEnter: async (to, from, next) =>
         useRouteGuards().featureGuard({ next, featureKey: 'travel' }),
     },
@@ -92,43 +90,55 @@ const router = createRouter({
       path: '/douyin',
       name: 'douyin',
       component: () => import('../components/views/douyin/HomeView.vue'),
-      beforeEnter: async (to, from, next) =>
-        useRouteGuards().authAndFeatureGuard({ next, featureKey: 'douyin' }),
+      beforeEnter: [
+        async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
+        async (to, from, next) => useRouteGuards().featureGuard({ next, featureKey: 'douyin' }),
+      ],
     },
     {
       path: '/sleep',
       name: 'sleep',
       component: () => import('../components/views/sleep/HomeView.vue'),
-      beforeEnter: async (to, from, next) =>
-        useRouteGuards().authAndFeatureGuard({ next, featureKey: 'sleep' }),
+      beforeEnter: [
+        async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
+        async (to, from, next) => useRouteGuards().featureGuard({ next, featureKey: 'sleep' }),
+      ],
     },
     {
       path: '/wedding',
       name: 'wedding',
       component: () => import('../components/views/wedding/HomeView.vue'),
-      beforeEnter: async (to, from, next) =>
-        useRouteGuards().authAndFeatureGuard({ next, featureKey: 'wedding' }),
+      beforeEnter: [
+        async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
+        async (to, from, next) => useRouteGuards().featureGuard({ next, featureKey: 'wedding' }),
+      ],
     },
     {
       path: '/wedding/dates/v/:shortCode',
       name: 'wedding-dates-viewer',
       component: () => import('../components/views/wedding/WeddingDatesViewerView.vue'),
-      beforeEnter: async (to, from, next) =>
-        useRouteGuards().featureGuard({ next, featureKey: 'wedding' }),
+      beforeEnter: [
+        async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
+        async (to, from, next) => useRouteGuards().featureGuard({ next, featureKey: 'wedding' }),
+      ],
     },
     {
       path: '/expense',
       name: 'expense',
       component: () => import('../components/views/expense/HomeView.vue'),
-      beforeEnter: async (to, from, next) =>
-        useRouteGuards().authAndFeatureGuard({ next, featureKey: 'expense' }),
+      beforeEnter: [
+        async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
+        async (to, from, next) => useRouteGuards().featureGuard({ next, featureKey: 'expense' }),
+      ],
     },
     {
       path: '/telegram',
       name: 'telegram',
       component: () => import('../components/views/telegram/HomeView.vue'),
-      beforeEnter: async (to, from, next) =>
-        useRouteGuards().authAndFeatureGuard({ next, featureKey: 'telegram' }),
+      beforeEnter: [
+        async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
+        async (to, from, next) => useRouteGuards().featureGuard({ next, featureKey: 'telegram' }),
+      ],
     },
     {
       path: '/admin',

@@ -14,12 +14,16 @@ export const ApiRoute = {
     GET_PHOTO: `/api/pfp/user/photo`,
     VALIDATE_PASSWORD: `/api/auth/password/validate`,
     UPDATE_PASSWORD: `/api/auth/password/update`,
+    UPDATE_USERNAME: `/api/pfp/user/username`,
   },
   PPHS: {
     GET_PPHS_DATA: `/api/hdb/pphs`,
     UPDATE_PPHS_COORDINATES: `/api/hdb/pphs/update`,
     GET_NEAREST_BUSSTOPS: `/api/hdb/pphs/busstops`,
     GET_NEAREST_MRT_STATIONS: `/api/hdb/pphs/mrt`,
+    REFRESH_PPHS_COORDINATES: `/api/hdb/pphs/refresh`,
+    GET_COORDINATE_OPTIONS: `/api/hdb/pphs/geocode-options`,
+    CLEAR_PPHS_COORDINATES: `/api/hdb/pphs/clear-coordinates`,
   },
   LTA: {
     GET_BUS_SVC_BY_BUSSTOP_CODE: `/api/lta/bus/services`,
@@ -46,6 +50,8 @@ export const ApiRoute = {
     CREATE: `/api/file`,
     DELETE: `/api/file/delete`,
     GET: (uuid: string) => `/api/file/${uuid}`,
+    GET_IMG: (shortCode: string) => `/api/file/img/${shortCode}`,
+    GET_IMG_URL: (shortCode: string) => `${import.meta.env.VITE_SERVER_BASE_URL}/api/file/img/${shortCode}`,
   },
   FEATURE: {
     GET_ALL: `/api/feature`,
@@ -96,6 +102,11 @@ export const ApiRoute = {
     UPDATE_CARD:        `/api/expense/card/update`,
     DELETE_CARD:        `/api/expense/card/delete`,
   },
+  SCENIC: {
+    GET_ALL:          `/api/scenic`,
+    GET_CHECKLIST:    `/api/scenic/checklist`,
+    UPSERT_CHECKLIST: `/api/scenic/checklist`,
+  },
   TELEGRAM: {
     LINK_STATUS:  `/api/telegram/link-status`,
     LINK_TOKEN:   `/api/telegram/link-token`,
@@ -104,6 +115,8 @@ export const ApiRoute = {
     MEDIA_DOWNLOAD: (id: string) => `/api/telegram/media/${id}/download`,
     MEDIA_DELETE: (id: string) => `/api/telegram/media/${id}/delete`,
     MEDIA_EXPIRE: (id: string) => `/api/telegram/media/${id}/expire`,
+    MEDIA_UPLOAD: `/api/telegram/media/upload`,
+    MEDIA_PREVIEW: (id: string) => `/api/telegram/media/${id}/preview`,
   },
   DATA_GOV_SG: {
     // HDB Resale Flat Prices (Jan 2017 onwards) — update resource ID here if dataset changes

@@ -5,9 +5,11 @@ import type { BusRouteInformation } from '@/interfaces/BusRouteInformation.model
 import type { BusstopInformation } from '@/interfaces/BusstopInformation.model';
 import type { MrtStationInformation } from '@/interfaces/MrtStationInformation.model';
 import type { PphsRecord } from '@/interfaces/PphsRecord.model';
-import { EditPen, Select } from '@element-plus/icons-vue'
+import { EditPen, Hide, Refresh, Select, View } from '@element-plus/icons-vue'
+import { ElMessageBox } from 'element-plus'
 import { computed, onMounted, ref } from 'vue';
 import BusstopInformationComponent from './BusstopInformationComponent.vue';
+import CoordinatePickerDialog, { type CoordinateOption } from './CoordinatePickerDialog.vue';
 import { useLayoutStateStore } from '@/stores/layoutState';
 import { usePphsStore } from '@/stores/pphs';
 import { usePermission } from '@/composables/usePermission';
@@ -15,6 +17,10 @@ import RoleGuard from '@/components/wrappers/RoleGuard.vue';
 
 const { hasModuleAccess } = usePermission()
 const proximityInMeters = ref<number>(0);
+const coordinatePickerVisible = ref(false);
+const coordinateOptions = ref<CoordinateOption[]>([]);
+const isLoadingOptions = ref(false);
+const coordinateFetchError = ref(false);
 const busstopRecords = ref<BusstopInformation[]>([])
 const mrtStationRecords = ref<MrtStationInformation[]>([])
 const busServicesByBusstop = ref<Record<string, BusRouteInformation[]>>({});
@@ -31,7 +37,16 @@ const props = defineProps<{
 
 const emit = defineEmits<{ toggle: [] }>()
 
-const isMapped = computed(() => props.record.source === 'database')
+const isMapped = computed(() => !!props.record.lat && !!props.record.lng)
+const isMarkerHidden = computed(() => pphsStore.hiddenMarkers.includes(props.record.address))
+
+const sourceLabel = computed(() => {
+  switch (props.record.source) {
+    case 'onemap': return 'OneMap'
+    case 'nominatim': return 'OSM'
+    default: return null
+  }
+})
 
 const formattedProximity = computed(() => {
   return proximityInMeters.value >= 1000
@@ -86,6 +101,41 @@ const openFormedUrl = () => {
   window.open(props.record.formedUrl, '_blank')
 }
 
+const onClearCoordinates = async () => {
+  try {
+    await ElMessageBox.confirm(
+      'This will remove the coordinates for this record. It will no longer appear on the map.',
+      'Remove Coordinates',
+      { confirmButtonText: 'Remove', cancelButtonText: 'Cancel', type: 'warning' }
+    )
+    await pphsStore.clearPphsCoordinates(props.record.address)
+  } catch {
+    // cancelled
+  }
+}
+
+const onOpenCoordinatePicker = async () => {
+  coordinateOptions.value = []
+  coordinateFetchError.value = false
+  isLoadingOptions.value = true
+  coordinatePickerVisible.value = true
+  const result = await pphsStore.fetchCoordinateOptions(props.record.address)
+  coordinateFetchError.value = result === null
+  coordinateOptions.value = result ?? []
+  isLoadingOptions.value = false
+}
+
+const onSelectCoordinate = async (opt: CoordinateOption) => {
+  await pphsStore.updatePphsCoordinates({
+    ...props.record,
+    lat: opt.lat,
+    lng: opt.lng,
+    formedUrl: opt.formedUrl,
+    source: opt.source,
+  })
+  coordinatePickerVisible.value = false
+}
+
 const onClickAdminEditRecord = (record: PphsRecord) => {
   if (!hasModuleAccess('PPHS', 5)) return
   pphsStore.selectedRecord = record
@@ -103,6 +153,7 @@ onMounted(async () => {
     :class="{
       'card--selected': isSelected,
       'card--compare-dim': compareMode && selectionFull && !isSelected,
+      'card--hidden': isMarkerHidden,
     }"
     @click="compareMode ? emit('toggle') : undefined"
   >
@@ -116,7 +167,22 @@ onMounted(async () => {
     <RoleGuard module="PPHS" :min-level="5">
       <div class="admin-bar">
         <span class="admin-label">Admin</span>
-        <el-button type="primary" :icon="EditPen" circle size="small" @click="onClickAdminEditRecord(record)" />
+        <div class="admin-actions">
+          <el-button
+            v-if="isMapped"
+            size="small"
+            title="Clear coordinates — removes marker from map"
+            @click.stop="onClearCoordinates"
+          >Unmap</el-button>
+          <el-button
+            :icon="isMarkerHidden ? View : Hide"
+            circle size="small"
+            :title="isMarkerHidden ? 'Show marker on map' : 'Hide marker from map'"
+            @click.stop="pphsStore.toggleHideMarker(record.address)"
+          />
+          <el-button :icon="Refresh" circle size="small" @click.stop="onOpenCoordinatePicker" title="Re-geocode coordinates" />
+          <el-button type="primary" :icon="EditPen" circle size="small" @click="onClickAdminEditRecord(record)" />
+        </div>
       </div>
     </RoleGuard>
 
@@ -127,6 +193,9 @@ onMounted(async () => {
           <span class="town">{{ record.town }}</span>
           <span class="source-badge" :class="isMapped ? 'badge--mapped' : 'badge--unmapped'">
             {{ isMapped ? 'On Map' : 'Unmapped' }}
+          </span>
+          <span v-if="sourceLabel" class="source-chip" :class="`chip--${record.source}`">
+            {{ sourceLabel }}
           </span>
         </div>
         <div class="address">📍 {{ record.address }}</div>
@@ -185,6 +254,18 @@ onMounted(async () => {
       </el-collapse-item>
     </el-collapse>
 
+    <!-- Coordinate picker (admin only) -->
+    <CoordinatePickerDialog
+      :visible="coordinatePickerVisible"
+      :record="record"
+      :options="coordinateOptions"
+      :loading="isLoadingOptions"
+      :error="coordinateFetchError"
+      @close="coordinatePickerVisible = false"
+      @select="onSelectCoordinate"
+      @retry="onOpenCoordinatePicker"
+    />
+
   </div>
 </template>
 
@@ -213,6 +294,12 @@ onMounted(async () => {
   background: var(--color-background-mute);
   border: 1px solid var(--color-border);
   border-radius: 8px;
+}
+
+.admin-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .admin-label {
@@ -272,6 +359,27 @@ onMounted(async () => {
   background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
   color: var(--el-color-danger);
   border: 1px solid color-mix(in srgb, var(--el-color-danger) 25%, transparent);
+}
+
+.source-chip {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 20px;
+}
+
+.chip--onemap {
+  background: color-mix(in srgb, var(--el-color-info) 12%, transparent);
+  color: var(--el-color-info);
+  border: 1px solid color-mix(in srgb, var(--el-color-info) 30%, transparent);
+}
+
+.chip--nominatim {
+  background: color-mix(in srgb, var(--el-color-warning) 12%, transparent);
+  color: var(--el-color-warning);
+  border: 1px solid color-mix(in srgb, var(--el-color-warning) 30%, transparent);
 }
 
 .address {
@@ -432,6 +540,11 @@ onMounted(async () => {
 .card--compare-dim {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.card--hidden {
+  opacity: 0.5;
+  border-style: dashed;
 }
 
 .compare-check {

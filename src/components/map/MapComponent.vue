@@ -35,7 +35,11 @@ const customIcon = L.icon({
 });
 
 const initMap = () => {
-  const leafletMap = L.map("map").setView([1.3521, 103.8198], 12);
+  const leafletMap = L.map("map", {
+    zoomAnimation: true,
+    markerZoomAnimation: true,
+    zoomSnap: 0.25,
+  }).setView([1.3521, 103.8198], 12);
   map.value = leafletMap;
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {

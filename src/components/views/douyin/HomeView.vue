@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import Hls from 'hls.js'
+import fixWebmDuration from 'fix-webm-duration'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
 import { StorageUtils, StorageKey } from '@/utilities/StorageUtils'
@@ -117,6 +118,7 @@ const check = async () => {
   result.value = null
   rankList.value = []
   showPlayer.value = false
+  streamEnded.value = false
   destroyPlayer()
   playerError.value = ''
   stopRankTimer()
@@ -190,6 +192,9 @@ let hlsInstance: Hls | null = null
 const canRecord = ref(false)
 const recordingUnsupported = ref(false)
 const savingHighlight = ref(false)
+const recordMode = ref<'highlight' | 'full'>('highlight')
+const streamEnded = ref(false)
+const hasBuffer = ref(false)
 const BUFFER_SECONDS = 60
 let mediaRecorder: MediaRecorder | null = null
 let recordChunks: { data: Blob; ts: number }[] = []
@@ -208,6 +213,7 @@ function startBuffer() {
   }
 
   canRecord.value = true
+  hasBuffer.value = false
   recordChunks = []
 
   const mimeType = MediaRecorder.isTypeSupported('video/webm; codecs=vp8')
@@ -218,44 +224,62 @@ function startBuffer() {
     if (e.data.size > 0) {
       const now = Date.now()
       recordChunks.push({ data: e.data, ts: now })
-      const cutoff = now - BUFFER_SECONDS * 1000
-      recordChunks = recordChunks.filter(c => c.ts >= cutoff)
+      hasBuffer.value = true
+      if (recordMode.value === 'highlight') {
+        const cutoff = now - BUFFER_SECONDS * 1000
+        recordChunks = recordChunks.filter(c => c.ts >= cutoff)
+      }
     }
   }
   mediaRecorder.start(1000)
 }
 
-function stopBuffer() {
+function stopBuffer(keepChunks = false) {
   if (onVideoPlay && videoEl.value) {
     videoEl.value.removeEventListener('play', onVideoPlay)
     onVideoPlay = null
   }
   mediaRecorder?.stop()
   mediaRecorder = null
-  recordChunks = []
-  canRecord.value = false
+  if (!keepChunks) {
+    recordChunks = []
+    hasBuffer.value = false
+    canRecord.value = false
+  }
   recordingUnsupported.value = false
 }
 
-function saveHighlight(ext: 'webm' | 'mp4' = 'webm') {
+async function saveHighlight(ext: 'webm' | 'mp4' = 'webm') {
   if (!recordChunks.length) {
     playerError.value = 'No buffer data yet — wait a few seconds for the stream to play, then try again.'
     setTimeout(() => (playerError.value = ''), 4000)
     return
   }
   savingHighlight.value = true
-  const blob = new Blob(recordChunks.map(c => c.data), { type: 'video/webm' })
+  const rawBlob = new Blob(recordChunks.map(c => c.data), { type: 'video/webm' })
+  const duration = recordChunks[recordChunks.length - 1].ts - recordChunks[0].ts
+  const blob = await fixWebmDuration(rawBlob, duration)
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `highlight_${Date.now()}.${ext}`
+  const prefix = recordMode.value === 'full' ? 'fullstream' : 'highlight'
+  a.download = `${prefix}_${Date.now()}.${ext}`
   a.click()
   URL.revokeObjectURL(url)
   setTimeout(() => (savingHighlight.value = false), 1500)
 }
 
-function destroyPlayer() {
-  stopBuffer()
+function dismissStreamEnded() {
+  streamEnded.value = false
+  showPlayer.value = false
+  recordChunks = []
+  hasBuffer.value = false
+  canRecord.value = false
+  playerError.value = ''
+}
+
+function destroyPlayer(keepBuffer = false) {
+  stopBuffer(keepBuffer)
   hlsInstance?.destroy()
   hlsInstance = null
   if (videoEl.value) videoEl.value.src = ''
@@ -277,8 +301,14 @@ function initPlayer() {
     hlsInstance.on(Hls.Events.ERROR, (_evt, data) => {
       if (data.fatal) {
         console.error('[HLS] fatal error', data.type, data.details, data)
-        playerError.value = 'Could not load stream. The CDN may block cross-origin playback — use "Copy HLS" and open in VLC.'
-        destroyPlayer()
+        const keepBuf = hasBuffer.value
+        if (keepBuf) {
+          playerError.value = 'Stream ended — your recording is ready to download.'
+          streamEnded.value = true
+        } else {
+          playerError.value = 'Could not load stream. The CDN may block cross-origin playback — use "Copy HLS" and open in VLC.'
+        }
+        destroyPlayer(keepBuf)
       }
     })
   } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -303,9 +333,14 @@ function togglePlayer() {
 
 watch(() => result.value?.isLive, (isLive) => {
   if (!isLive) {
-    showPlayer.value = false
-    destroyPlayer()
-    playerError.value = ''
+    const keepBuf = hasBuffer.value
+    destroyPlayer(keepBuf)
+    if (keepBuf) {
+      streamEnded.value = true
+    } else {
+      showPlayer.value = false
+      playerError.value = ''
+    }
   }
 })
 
@@ -401,8 +436,8 @@ onUnmounted(() => { stopLiveTimer(); stopRankTimer(); destroyPlayer() })
       </div>
 
       <!-- Right: player + rankings -->
-      <div v-if="(result.isLive && result.roomId) || showPlayer" class="right-col">
-        <div v-if="showPlayer && result.isLive && result.streamUrl" class="player-panel">
+      <div v-if="(result.isLive && result.roomId) || showPlayer || streamEnded" class="right-col">
+        <div v-if="showPlayer && result.isLive && result.streamUrl && !streamEnded" class="player-panel">
           <p v-if="playerError" class="player-error">{{ playerError }}</p>
           <template v-else>
             <video ref="videoEl" controls autoplay muted class="stream-video" playsinline />
@@ -411,8 +446,12 @@ onUnmounted(() => { stopLiveTimer(); stopRankTimer(); destroyPlayer() })
                 <span class="buffer-hint">⚠ Recording not supported on this browser</span>
               </template>
               <template v-else-if="canRecord">
+                <el-radio-group v-model="recordMode" size="small" class="record-mode-toggle">
+                  <el-radio-button value="highlight">Last 1 min</el-radio-button>
+                  <el-radio-button value="full">Full stream</el-radio-button>
+                </el-radio-group>
                 <el-dropdown split-button size="small" :disabled="savingHighlight" @click="saveHighlight('webm')" @command="saveHighlight">
-                  {{ savingHighlight ? 'Saving…' : '⏺ Save Last Min' }}
+                  {{ savingHighlight ? 'Saving…' : (recordMode === 'full' ? '⏺ Save Recording' : '⏺ Save Last Min') }}
                   <template #dropdown>
                     <el-dropdown-menu>
                       <el-dropdown-item command="webm">Download as .webm</el-dropdown-item>
@@ -420,13 +459,30 @@ onUnmounted(() => { stopLiveTimer(); stopRankTimer(); destroyPlayer() })
                     </el-dropdown-menu>
                   </template>
                 </el-dropdown>
-                <span class="buffer-hint">Buffering last {{ BUFFER_SECONDS }}s</span>
+                <span class="buffer-hint">{{ recordMode === 'full' ? 'Recording full stream…' : `Buffering last ${BUFFER_SECONDS}s` }}</span>
               </template>
               <template v-else>
                 <span class="buffer-hint">Starting buffer…</span>
               </template>
             </div>
           </template>
+        </div>
+
+        <div v-if="streamEnded && hasBuffer" class="stream-ended-panel">
+          <p class="stream-ended-title">Stream ended</p>
+          <p class="stream-ended-desc">{{ recordMode === 'full' ? 'Full stream recording' : 'Last 1 min buffer' }} is ready to download.</p>
+          <div class="stream-ended-actions">
+            <el-dropdown split-button size="small" type="primary" :disabled="savingHighlight" @click="saveHighlight('webm')" @command="saveHighlight">
+              {{ savingHighlight ? 'Saving…' : '⬇ Download Recording' }}
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="webm">Download as .webm</el-dropdown-item>
+                  <el-dropdown-item command="mp4">Download as .mp4 <span class="fmt-note">(WebM-encoded)</span></el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+            <el-button type="button" size="small" plain @click="dismissStreamEnded">Dismiss</el-button>
+          </div>
         </div>
 
         <div v-if="rankLoading && !rankList.length" class="state-block">
@@ -438,7 +494,10 @@ onUnmounted(() => { stopLiveTimer(); stopRankTimer(); destroyPlayer() })
         <div v-if="rankList.length" class="rank-card">
           <div class="rank-header">
             <span>Top Audience</span>
-            <span class="rank-countdown">{{ rankLoading ? 'refreshing…' : `in ${rankCountdown}s` }}</span>
+            <div class="rank-header-right">
+              <span class="rank-countdown">{{ rankLoading ? 'refreshing…' : `in ${rankCountdown}s` }}</span>
+              <el-button size="small" link :loading="rankLoading" @click="fetchRankList">↺</el-button>
+            </div>
           </div>
           <div class="rank-list">
             <div v-for="user in rankList" :key="user.id" class="rank-row">
@@ -642,6 +701,12 @@ onUnmounted(() => { stopLiveTimer(); stopRankTimer(); destroyPlayer() })
   opacity: 0.6;
 }
 
+.rank-header-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .rank-countdown {
   font-weight: 400;
   font-family: monospace;
@@ -740,6 +805,39 @@ onUnmounted(() => { stopLiveTimer(); stopRankTimer(); destroyPlayer() })
   padding: 8px 12px;
   background: var(--color-background-soft);
   border-top: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+.record-mode-toggle {
+  flex-shrink: 0;
+}
+
+.stream-ended-panel {
+  padding: 14px 16px;
+  border: 1px solid var(--el-color-warning-light-5);
+  border-radius: 10px;
+  background: var(--color-background-soft);
+}
+
+.stream-ended-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  margin: 0 0 4px;
+}
+
+.stream-ended-desc {
+  font-size: 0.8rem;
+  color: var(--color-text);
+  opacity: 0.65;
+  margin: 0 0 10px;
+}
+
+.stream-ended-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .buffer-hint {
