@@ -19,5 +19,5 @@ export class FileWithPreview {
   progress?: number
   error?: string
   uploadedAt?: Date
-  blob?: string
+  tgShortCode?: string
 }

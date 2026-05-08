@@ -197,6 +197,7 @@ const drawerVisible = ref(false)
 const drawerIsNew = ref(false)
 const drawerEditKey = ref<string | undefined>()
 const drawerItem = ref<AgendaItem | null>(null)
+const drawerUploading = ref(false)
 
 const makeBlankDraft = (presetDate = ''): AgendaItem => ({
   _localIndex: `agenda-${Date.now()}`,
@@ -211,7 +212,7 @@ const makeBlankDraft = (presetDate = ''): AgendaItem => ({
   endTime: undefined,
   files: [],
   _fileIdsToDelete: [],
-  _fileIdsToInsert: [],
+  _filesToInsert: [],
   _agendaToFileMapping: [],
 })
 
@@ -240,6 +241,9 @@ const openEditDrawer = (row: AgendaRow) => {
     unknownTime: item.unknownTime !== undefined ? item.unknownTime : !!(row.unknown_time),
     cityRaw,
     coordinates: item.coordinates ?? undefined,
+    _filesToInsert: item._filesToInsert ?? [],
+    _fileIdsToDelete: item._fileIdsToDelete ?? [],
+    _agendaToFileMapping: item._agendaToFileMapping ?? [],
   }
   drawerVisible.value = true
 }
@@ -254,6 +258,15 @@ const onDrawerSave = (item: AgendaItem) => {
     if (idx !== -1) itinerary.value.agendaItems[idx] = { ...item }
   }
   drawerVisible.value = false
+}
+
+const onDrawerSync = (item: AgendaItem) => {
+  const key = drawerEditKey.value
+  if (!key) return
+  const idx = itinerary.value.agendaItems.findIndex(
+    (i) => (i.id ?? i._localIndex) === key,
+  )
+  if (idx !== -1) itinerary.value.agendaItems[idx] = { ...item }
 }
 
 // ── Form mode helpers ─────────────────────────────────────────────────────────
@@ -287,7 +300,7 @@ const addAgendaItem = () => {
     unknownTime: true,
     files: [],
     _fileIdsToDelete: [],
-    _fileIdsToInsert: [],
+    _filesToInsert: [],
     _agendaToFileMapping: [],
   })
 }
@@ -357,6 +370,7 @@ watch(
     if (autoSaveTimer) clearTimeout(autoSaveTimer)
     autoSaveStatus.value = 'saving'
     autoSaveTimer = setTimeout(async () => {
+      if (drawerUploading.value) return
       const result = await itineraryStore.updateItinerary()
       autoSaveStatus.value = result.isSuccess ? 'saved' : 'error'
       if (result.isSuccess) setTimeout(() => { autoSaveStatus.value = 'idle' }, 3000)
@@ -376,6 +390,10 @@ watch(isAuthenticated, async (authed) => {
 
 const handleSave = async () => {
   if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
+  if (drawerUploading.value) {
+    ElMessage.warning(t('travel.planner.uploadInProgress', 'Please wait for the photo upload to complete.'))
+    return
+  }
   saving.value = true
   const result = await itineraryStore.updateItinerary()
   saving.value = false
@@ -859,6 +877,8 @@ const onPrivacyClose = () => {
     :end-date="itinerary.endDate"
     :unknown-date="itinerary.unknownDate"
     @save="onDrawerSave"
+    @sync="onDrawerSync"
+    @uploading="(v: boolean) => (drawerUploading = v)"
   />
 
   <BookingDrawer

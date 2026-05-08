@@ -35,7 +35,7 @@ const addAgendaItem = () => {
     unknownTime: true,
     files: [],
     _fileIdsToDelete: [],
-    _fileIdsToInsert: [],
+    _filesToInsert: [],
     _agendaToFileMapping: [],
   });
 };

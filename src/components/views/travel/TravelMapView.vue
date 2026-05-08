@@ -240,10 +240,16 @@ async function resolveCoordinates(items: AgendaItem[]): Promise<ResolvedItem[]> 
 
     if (item.coordinates) {
       coords = item.coordinates
-    } else if (cityRaw.length) {
+    } else if (cityRaw.length || item.placeDisplay) {
+      const baseName = (item.placeDisplay ?? '').trim()
+      const cityParts = cityRaw.map((s) => s.split(',')[0].trim()).filter(Boolean)
+      const query = baseName && cityParts.length
+        ? [baseName, ...cityParts].join(', ')
+        : baseName || cityParts.join(', ')
+      if (!query) continue
       if (!firstRequest) await new Promise((r) => setTimeout(r, 400))
       firstRequest = false
-      const places = await searchPlaces(cityRaw[0].split(',')[0].trim())
+      const places = await searchPlaces(query)
       if (places[0]) coords = { lat: places[0].lat, lng: places[0].lng }
     }
 

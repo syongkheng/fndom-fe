@@ -47,11 +47,17 @@ export const ApiRoute = {
     TOGGLE_FLAG:  (key: string) => `/api/feature/${key}/toggle`,
   },
   FILE: {
-    CREATE: `/api/file`,
+    CREATE_TG: `/api/file/tg`,
     DELETE: `/api/file/delete`,
-    GET: (uuid: string) => `/api/file/${uuid}`,
-    GET_IMG: (shortCode: string) => `/api/file/img/${shortCode}`,
-    GET_IMG_URL: (shortCode: string) => `${import.meta.env.VITE_SERVER_BASE_URL}/api/file/img/${shortCode}`,
+  },
+  TG_IMG: {
+    UPLOAD: `/api/img/upload`,
+    GET: (shortCode: string) => `/api/img/${shortCode}`,
+    ADMIN: {
+      LIST:   `/api/img/admin/list`,
+      ADD:    `/api/img/admin/add`,
+      REMOVE: `/api/img/admin/remove`,
+    },
   },
   FEATURE: {
     GET_ALL: `/api/feature`,

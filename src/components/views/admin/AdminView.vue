@@ -10,12 +10,14 @@ const userCount = ref<number | null>(null)
 const userWithRolesCount = ref<number | null>(null)
 const flagCount = ref<number | null>(null)
 const enabledFlagCount = ref<number | null>(null)
+const imgAdminCount = ref<number | null>(null)
 const loading = ref(true)
 
 onMounted(async () => {
-  const [usersRes, flagsRes] = await Promise.allSettled([
+  const [usersRes, flagsRes, imgAdminsRes] = await Promise.allSettled([
     HttpClient.get(ApiRoute.ADMIN.LIST_USERS),
     HttpClient.get(ApiRoute.ADMIN.LIST_FLAGS),
+    HttpClient.get(ApiRoute.TG_IMG.ADMIN.LIST),
   ])
   if (usersRes.status === 'fulfilled' && usersRes.value?.data?.data) {
     const users = usersRes.value.data.data
@@ -26,6 +28,9 @@ onMounted(async () => {
     const flags = flagsRes.value.data.data
     flagCount.value = flags.length
     enabledFlagCount.value = flags.filter((f: { isEnabled: boolean }) => f.isEnabled).length
+  }
+  if (imgAdminsRes.status === 'fulfilled' && imgAdminsRes.value?.data?.data) {
+    imgAdminCount.value = imgAdminsRes.value.data.data.length
   }
   loading.value = false
 })
@@ -62,6 +67,19 @@ onMounted(async () => {
           <div class="admin-card-stat" v-if="flagCount !== null">
             <span class="stat-num">{{ enabledFlagCount }}</span>
             <span class="stat-lbl">of {{ flagCount }} flags enabled</span>
+          </div>
+        </div>
+        <div class="admin-card-arrow">→</div>
+      </div>
+
+      <div class="admin-card" @click="router.push('/admin/tg-image')">
+        <div class="admin-card-icon">🖼️</div>
+        <div class="admin-card-body">
+          <div class="admin-card-title">Image Hosting Admins</div>
+          <div class="admin-card-desc">Manage who can access CDN bot commands for hosted image stats.</div>
+          <div class="admin-card-stat" v-if="imgAdminCount !== null">
+            <span class="stat-num">{{ imgAdminCount }}</span>
+            <span class="stat-lbl">admin{{ imgAdminCount !== 1 ? 's' : '' }}</span>
           </div>
         </div>
         <div class="admin-card-arrow">→</div>

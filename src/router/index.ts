@@ -158,6 +158,12 @@ const router = createRouter({
       component: () => import('../components/views/admin/FeatureFlagView.vue'),
       beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
     },
+    {
+      path: '/admin/tg-image',
+      name: 'admin-tg-image',
+      component: () => import('../components/views/admin/TgImageAdminView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
+    },
     // {
     //   path: '/habit',
     //   name: 'habit',

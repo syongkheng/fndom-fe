@@ -1,5 +1,13 @@
 import type { FileWithPreview } from './FileWithPreview'
 
+interface FileInsertPayload {
+  uuid: string
+  tgShortCode: string
+  mimeType: string
+  name?: string
+  sizeInBytes?: number
+}
+
 interface AgendaItem {
   id?: string
   _localIndex?: string
@@ -20,9 +28,9 @@ interface AgendaItem {
   day?: number
   date?: string
   _fileIdsToDelete: string[]
-  _fileIdsToInsert: string[]
+  _filesToInsert: FileInsertPayload[]
   _agendaToFileMapping: string[]
   _isDirty?: boolean
 }
 
-export type { AgendaItem }
+export type { AgendaItem, FileInsertPayload }

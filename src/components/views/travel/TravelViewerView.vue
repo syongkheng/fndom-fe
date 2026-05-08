@@ -86,10 +86,14 @@ const fetchFileBlobs = async (items: AgendaRow[]) => {
   if (!allFiles.length) return
   await Promise.allSettled(
     allFiles.map(async (file: any) => {
-      if (!file.uuid) return
-      const res = await HttpClient.get(ApiRoute.FILE.GET(file.uuid)).catch(() => null)
-      if (res?.data?.data?.blob) {
-        fileBlobs.value.set(file.uuid, atob(res.data.data.blob))
+      if (!file.uuid || !file.tg_short_code) return
+      const res = await HttpClient.get(ApiRoute.TG_IMG.GET(file.tg_short_code), { responseType: 'arraybuffer' }).catch(() => null)
+      if (res?.data) {
+        const bytes = new Uint8Array(res.data)
+        let binary = ''
+        bytes.forEach(b => binary += String.fromCharCode(b))
+        const mime = ((res.headers?.['content-type'] as string | undefined) ?? 'image/jpeg').split(';')[0]
+        fileBlobs.value.set(file.uuid, `data:${mime};base64,${btoa(binary)}`)
       }
     })
   )

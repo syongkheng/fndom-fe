@@ -67,17 +67,17 @@ export const useItineraryStore = defineStore('itinerary', () => {
         agendaItems: itinerary.agendaItems.map((agendaItem) => ({
           ...agendaItem,
           files: [],
-          _agendaToFileMapping: agendaItem.files.map((file) => file.uuid),
+          _agendaToFileMapping: agendaItem.files.map((file: any) => ({
+            uuid: file.uuid,
+            tgShortCode: file.tgShortCode ?? file.tg_short_code,
+          })),
+          _filesToInsert: agendaItem._filesToInsert ?? [],
         })),
       }
 
       const response = await HttpClient.post(ApiRoute.ITINERARY.CREATE, payload)
-        .then((res) => {
-          return res
-        })
-        .catch((err) => {
-          return err
-        })
+        .then((res) => res)
+        .catch((err) => err)
 
       if (response.status === 403 && response.response?.data?.message?.code === 'invalid-token') {
         return { isSuccess: false, error: 'auth', shortCode: undefined }
@@ -88,73 +88,21 @@ export const useItineraryStore = defineStore('itinerary', () => {
       }
 
       const { shortCode, agendaToFileMap } = response.data.data
-      loadingStage.value = 'Uploading Files'
 
-      // Map returned agendaIds back to agenda items by index
       agendaToFileMap.forEach(({ agendaId }: { agendaId: number }, index: number) => {
         if (itinerary.agendaItems[index]) {
           itinerary.agendaItems[index].id = String(agendaId)
           itinerary.agendaItems[index]._isDirty = false
+          itinerary.agendaItems[index]._filesToInsert = []
+          itinerary.agendaItems[index]._fileIdsToDelete = []
+          itinerary.agendaItems[index]._agendaToFileMapping = []
         }
       })
 
-      const uuidToAgendaIdMap = new Map<string, number>()
-      agendaToFileMap.forEach(
-        ({ agendaId, fileUuids }: { agendaId: number; fileUuids: string[] }) => {
-          fileUuids.forEach((uuid) => uuidToAgendaIdMap.set(uuid, agendaId))
-        },
-      )
-
-      const fileUploadPromises = itinerary.agendaItems.flatMap((agendaItem) =>
-        agendaItem.files.map(async (file) => {
-          const agendaId = uuidToAgendaIdMap.get(file.uuid)
-          if (!agendaId) return
-
-          const fileUploadResponse = await HttpClient.post(ApiRoute.FILE.CREATE, {
-            ...file,
-            agendaId,
-          })
-
-          if (
-            fileUploadResponse.status === 403 &&
-            fileUploadResponse.data?.message?.code === 'invalid-token'
-          ) {
-            console.log('Throw auth required')
-            throw new Error('Auth required')
-          }
-
-          if (fileUploadResponse.status !== 200) {
-            console.log('Throw file upload')
-            throw new Error('File upload failed')
-          }
-        }),
-      )
-
-      await Promise.all(fileUploadPromises)
-
       loadingStage.value = 'Completed'
       return { isSuccess: true, error: undefined, shortCode }
-    } catch (error: unknown) {
-      // Handle "Auth required" case
-      if (error instanceof Error && error.message === 'Auth required') {
-        return { isSuccess: false, error: 'auth', shortCode: undefined }
-      }
-
-      // Type guard for Axios-style error
-      const isAxiosError = (
-        err: unknown,
-      ): err is { response?: { data?: { shortCode?: string } } } => {
-        return typeof err === 'object' && err !== null && 'response' in err
-      }
-
-      // Extract shortCode safely
-      const shortCode = isAxiosError(error) ? error.response?.data?.shortCode : undefined
-
-      return {
-        isSuccess: false,
-        error: shortCode ? 'file' : 'itinerary',
-        shortCode: shortCode || undefined, // Ensure undefined instead of potential empty string
-      }
+    } catch {
+      return { isSuccess: false, error: 'itinerary', shortCode: undefined }
     }
   }
 
@@ -173,7 +121,11 @@ export const useItineraryStore = defineStore('itinerary', () => {
         agendaItems: itinerary.agendaItems.map((agendaItem) => ({
           ...agendaItem,
           files: [],
-          _agendaToFileMapping: agendaItem.files.map((file) => file.uuid),
+          _agendaToFileMapping: agendaItem.files.map((file: any) => ({
+            uuid: file.uuid,
+            tgShortCode: file.tgShortCode ?? file.tg_short_code,
+          })),
+          _filesToInsert: agendaItem._filesToInsert ?? [],
         })),
       }
 
@@ -224,55 +176,17 @@ export const useItineraryStore = defineStore('itinerary', () => {
         return { isSuccess: false, error: 'itinerary', shortCode: undefined }
       }
 
-      // Handle file creations
       const { agendaToFileMap, shortCode } = response.data.data
 
-      // Map returned agendaIds back to agenda items by index
       agendaToFileMap.forEach(({ agendaId }: { agendaId: number }, index: number) => {
         if (itinerary.agendaItems[index]) {
           itinerary.agendaItems[index].id = String(agendaId)
           itinerary.agendaItems[index]._isDirty = false
+          itinerary.agendaItems[index]._filesToInsert = []
+          itinerary.agendaItems[index]._fileIdsToDelete = []
+          itinerary.agendaItems[index]._agendaToFileMapping = []
         }
       })
-
-      const uuidToAgendaIdMap = new Map<string, number>()
-
-      agendaToFileMap.forEach(
-        ({ agendaId, fileUuids }: { agendaId: number; fileUuids: string[] }) => {
-          fileUuids.forEach((uuid) => uuidToAgendaIdMap.set(uuid, agendaId))
-        },
-      )
-
-      const fileUploadResponses = await Promise.all(
-        itinerary.agendaItems.flatMap((originalAgendaItem, i) => {
-          const payloadAgendaItem = payload.agendaItems[i]
-          const agendaId =
-            payloadAgendaItem.id || uuidToAgendaIdMap.get(originalAgendaItem.files[0]?.uuid)
-
-          if (!agendaId) return []
-
-          return originalAgendaItem.files
-            .filter((file) => payloadAgendaItem._fileIdsToInsert?.includes(file.uuid))
-            .map((file) =>
-              HttpClient.post(ApiRoute.FILE.CREATE, { ...file, agendaId })
-                .then((res) => {
-                  return res
-                })
-                .catch((err) => {
-                  return err
-                }),
-            )
-        }),
-      )
-
-      // Check for auth errors in uploads
-      const authErrorInUploads = fileUploadResponses.some(
-        (response) =>
-          response?.status === 403 && response?.response?.data?.message?.code === 'invalid-token',
-      )
-      if (authErrorInUploads) {
-        return { isSuccess: false, error: 'auth', shortCode: undefined }
-      }
 
       return { isSuccess: true, error: undefined, shortCode }
     } catch (error: unknown) {
@@ -398,20 +312,23 @@ export const useItineraryStore = defineStore('itinerary', () => {
   const DRAFT_KEY = 'fndom-draft-itinerary'
 
   const saveDraft = () => {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify({
-      sessionTitle: itinerary.sessionTitle,
-      destination: itinerary.destination,
-      destinationRaw: itinerary.destinationRaw,
-      numberOfPax: itinerary.numberOfPax,
-      unknownDate: itinerary.unknownDate,
-      durationInDays: itinerary.durationInDays,
-      itineraryDateRaw: itinerary.itineraryDateRaw,
-      startDate: itinerary.startDate,
-      endDate: itinerary.endDate,
-      agendaItems: itinerary.agendaItems,
-      bookings: itinerary.bookings,
-      packingItems: itinerary.packingItems,
-    }))
+    localStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        sessionTitle: itinerary.sessionTitle,
+        destination: itinerary.destination,
+        destinationRaw: itinerary.destinationRaw,
+        numberOfPax: itinerary.numberOfPax,
+        unknownDate: itinerary.unknownDate,
+        durationInDays: itinerary.durationInDays,
+        itineraryDateRaw: itinerary.itineraryDateRaw,
+        startDate: itinerary.startDate,
+        endDate: itinerary.endDate,
+        agendaItems: itinerary.agendaItems,
+        bookings: itinerary.bookings,
+        packingItems: itinerary.packingItems,
+      }),
+    )
   }
 
   const loadDraft = (): boolean => {
@@ -424,7 +341,9 @@ export const useItineraryStore = defineStore('itinerary', () => {
       itinerary._bookingIdsToDelete = []
       itinerary._packingIdsToDelete = []
       return true
-    } catch { return false }
+    } catch {
+      return false
+    }
   }
 
   const clearDraft = () => localStorage.removeItem(DRAFT_KEY)
@@ -439,9 +358,14 @@ export const useItineraryStore = defineStore('itinerary', () => {
         idempotencyKey: GeneratorUtils.generateUUID(),
       }).catch(() => null)
       const sessionId = res?.data?.data?.sessionId
-      if (sessionId) { clearDraft(); return sessionId }
+      if (sessionId) {
+        clearDraft()
+        return sessionId
+      }
       return null
-    } catch { return null }
+    } catch {
+      return null
+    }
   }
 
   const updateBooking = (updatedBooking: ItineraryBooking) => {
@@ -481,7 +405,9 @@ export const useItineraryStore = defineStore('itinerary', () => {
       })
   }
 
-  const retrieveItineraryForUpdate = async (sessionId: string | undefined): Promise<{ success: boolean; forbidden: boolean }> => {
+  const retrieveItineraryForUpdate = async (
+    sessionId: string | undefined,
+  ): Promise<{ success: boolean; forbidden: boolean }> => {
     if (sessionId === undefined) return { success: false, forbidden: false }
     try {
       const retrievedItinerary = await retrieveItinerary(sessionId)
@@ -492,7 +418,13 @@ export const useItineraryStore = defineStore('itinerary', () => {
       itinerary.unknownDate = clonedRetrievedItinerary.unknownDate
       itinerary.durationInDays = clonedRetrievedItinerary.durationInDays
       itinerary.numberOfPax = clonedRetrievedItinerary.numberOfPax
-      itinerary.agendaItems = clonedRetrievedItinerary.agendaItems
+      itinerary.agendaItems = (clonedRetrievedItinerary.agendaItems ?? []).map((item: any) => ({
+        ...item,
+        files: item.files ?? [],
+        _fileIdsToDelete: [],
+        _filesToInsert: [],
+        _agendaToFileMapping: [],
+      }))
       itinerary.destinationRaw = clonedRetrievedItinerary.destinationRaw
         ? JSON.parse(clonedRetrievedItinerary.destinationRaw)
         : undefined
