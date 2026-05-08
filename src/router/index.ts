@@ -107,15 +107,6 @@ const router = createRouter({
       ],
     },
     {
-      path: '/expense',
-      name: 'expense',
-      component: () => import('../components/views/expense/HomeView.vue'),
-      beforeEnter: [
-        async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
-        async (to, from, next) => useRouteGuards().featureGuard({ next, featureKey: 'expense' }),
-      ],
-    },
-    {
       path: '/telegram',
       name: 'telegram',
       component: () => import('../components/views/telegram/HomeView.vue'),

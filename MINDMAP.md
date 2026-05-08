@@ -52,7 +52,6 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   ├── /douyin                douyin → HomeView
 │   │   ├── /meal                  meal → HomeView
 │   │   ├── /sleep                 sleep → HomeView
-│   │   ├── /expense               expense → HomeView
 │   │   └── /telegram              telegram → HomeView
 │   │
 │   ├── ADMIN ONLY (systemR5Guard — SYSTEM_R5 role)
@@ -127,8 +126,6 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   ├── SLEEP  /sleep  — auth + feature
 │   │   └── HomeView.vue           — sleep log + AI screenshot parsing
 │   │
-│   ├── EXPENSE  /expense  — auth + feature
-│   │   └── HomeView.vue
 │   │
 │   ├── TELEGRAM  /telegram  — auth + feature
 │   │   └── HomeView.vue           — media management
@@ -196,7 +193,6 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │       ├── /api/douyin/*      — live, ranklist
 │       ├── /api/meal/*        — log, range, photo
 │       ├── /api/sleep/*       — log, bulk, parse-screenshot
-│       ├── /api/expense/*     — balance, transactions, cards
 │       └── /api/telegram/*    — link status, media management
 │
 ├── UTILITIES (src/utilities/)

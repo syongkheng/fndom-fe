@@ -40,7 +40,6 @@ const personalModules = [
   { label: 'Travel', path: '/travel', featureKey: 'travel' },
   { label: 'Sleep', path: '/sleep', featureKey: 'sleep' },
   { label: 'Douyin', path: '/douyin', featureKey: 'douyin' },
-  { label: 'Expense', path: '/expense', featureKey: 'expense' },
   { label: 'Telegram Storage', path: '/telegram', featureKey: 'telegram' },
 ]
 

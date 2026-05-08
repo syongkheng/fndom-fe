@@ -76,14 +76,6 @@ const modules = [
     path: '/sleep',
   },
   {
-    key: 'expense',
-    featureKey: 'expense',
-    title: 'Expense',
-    description: 'Track your budget, spendings and earnings',
-    icon: '💰',
-    path: '/expense',
-  },
-  {
     key: 'telegram',
     featureKey: 'telegram',
     title: 'Telegram Storage',

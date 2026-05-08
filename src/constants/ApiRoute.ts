@@ -75,16 +75,6 @@ export const ApiRoute = {
     BULK: `/api/sleep/bulk`,
     PARSE_SCREENSHOT: `/api/sleep/parse-screenshot`,
   },
-  EXPENSE: {
-    INIT: `/api/expense`,
-    UPDATE_BALANCE: `/api/expense/balance`,
-    CREATE_TRANSACTION: `/api/expense/transaction`,
-    UPDATE_TRANSACTION: `/api/expense/transaction/update`,
-    DELETE_TRANSACTION: `/api/expense/transaction/delete`,
-    CREATE_CARD: `/api/expense/card`,
-    UPDATE_CARD: `/api/expense/card/update`,
-    DELETE_CARD: `/api/expense/card/delete`,
-  },
   SCENIC: {
     GET_ALL: `/api/scenic`,
     GET_CHECKLIST: `/api/scenic/checklist`,
