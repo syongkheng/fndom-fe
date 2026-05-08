@@ -46,7 +46,8 @@ const router = createRouter({
       component: () => import('../components/views/scenic/HomeView.vue'),
       beforeEnter: [
         async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
-        async (to, from, next) => useRouteGuards().featureGuard({ next, featureKey: 'china-scenic' }),
+        async (to, from, next) =>
+          useRouteGuards().featureGuard({ next, featureKey: 'china-scenic' }),
       ],
     },
     {
@@ -55,7 +56,8 @@ const router = createRouter({
       component: () => import('../components/views/flat/HomeView.vue'),
       beforeEnter: [
         async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
-        async (to, from, next) => useRouteGuards().featureGuard({ next, featureKey: 'flat-analysis' }),
+        async (to, from, next) =>
+          useRouteGuards().featureGuard({ next, featureKey: 'flat-analysis' }),
       ],
     },
     {
@@ -102,24 +104,6 @@ const router = createRouter({
       beforeEnter: [
         async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
         async (to, from, next) => useRouteGuards().featureGuard({ next, featureKey: 'sleep' }),
-      ],
-    },
-    {
-      path: '/wedding',
-      name: 'wedding',
-      component: () => import('../components/views/wedding/HomeView.vue'),
-      beforeEnter: [
-        async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
-        async (to, from, next) => useRouteGuards().featureGuard({ next, featureKey: 'wedding' }),
-      ],
-    },
-    {
-      path: '/wedding/dates/v/:shortCode',
-      name: 'wedding-dates-viewer',
-      component: () => import('../components/views/wedding/WeddingDatesViewerView.vue'),
-      beforeEnter: [
-        async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
-        async (to, from, next) => useRouteGuards().featureGuard({ next, featureKey: 'wedding' }),
       ],
     },
     {
