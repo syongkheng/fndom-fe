@@ -33,7 +33,7 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   ├── /                      home → WorkbenchView
 │   │   ├── /404                   404 → UnauthorizedView
 │   │   ├── /travel/v/:shortCode   travel-viewer (featureGuard)
-│   │   └── /wedding/dates/v/:shortCode  wedding-dates-viewer (featureGuard)
+│   │
 │   │
 │   ├── FEATURE-GATED (featureGuard)
 │   │   ├── /ks                    kingshot → HomeView
@@ -52,7 +52,6 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   ├── /douyin                douyin → HomeView
 │   │   ├── /meal                  meal → HomeView
 │   │   ├── /sleep                 sleep → HomeView
-│   │   ├── /wedding               wedding → HomeView
 │   │   ├── /expense               expense → HomeView
 │   │   └── /telegram              telegram → HomeView
 │   │
@@ -128,10 +127,6 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   ├── SLEEP  /sleep  — auth + feature
 │   │   └── HomeView.vue           — sleep log + AI screenshot parsing
 │   │
-│   ├── WEDDING  /wedding  — auth + feature
-│   │   ├── HomeView.vue           — events, guests, tables, dates
-│   │   └── WeddingDatesViewerView.vue  — public date viewer
-│   │
 │   ├── EXPENSE  /expense  — auth + feature
 │   │   └── HomeView.vue
 │   │
@@ -201,7 +196,6 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │       ├── /api/douyin/*      — live, ranklist
 │       ├── /api/meal/*        — log, range, photo
 │       ├── /api/sleep/*       — log, bulk, parse-screenshot
-│       ├── /api/wedding/*     — events, guests, tables, dates, sessions
 │       ├── /api/expense/*     — balance, transactions, cards
 │       └── /api/telegram/*    — link status, media management
 │

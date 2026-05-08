@@ -31,21 +31,20 @@ const handleLogout = () => {
 }
 
 const publicModules = [
-  { label: 'PPHS',          path: '/pphs',  featureKey: 'pphs' },
-  { label: 'Flat Analysis', path: '/flat',  featureKey: 'flat-analysis' },
+  { label: 'PPHS', path: '/pphs', featureKey: 'pphs' },
+  { label: 'Flat Analysis', path: '/flat', featureKey: 'flat-analysis' },
   { label: 'Scenic Spots', path: '/scenic', featureKey: 'china-scenic' },
 ]
 
 const personalModules = [
-  { label: 'Travel',    path: '/travel',  featureKey: 'travel' },
-  { label: 'Sleep',     path: '/sleep',   featureKey: 'sleep' },
-{ label: 'Douyin',    path: '/douyin',  featureKey: 'douyin' },
-  { label: 'Wedding',   path: '/wedding', featureKey: 'wedding' },
-  { label: 'Expense',          path: '/expense',  featureKey: 'expense' },
+  { label: 'Travel', path: '/travel', featureKey: 'travel' },
+  { label: 'Sleep', path: '/sleep', featureKey: 'sleep' },
+  { label: 'Douyin', path: '/douyin', featureKey: 'douyin' },
+  { label: 'Expense', path: '/expense', featureKey: 'expense' },
   { label: 'Telegram Storage', path: '/telegram', featureKey: 'telegram' },
 ]
 
-const visiblePublic   = computed(() => publicModules.filter(m => flagStore.isEnabled(m.featureKey)))
+const visiblePublic = computed(() => publicModules.filter(m => flagStore.isEnabled(m.featureKey)))
 const visiblePersonal = computed(() => personalModules.filter(m => flagStore.isEnabled(m.featureKey)))
 </script>
 
@@ -72,24 +71,16 @@ const visiblePersonal = computed(() => personalModules.filter(m => flagStore.isE
       <!-- Internal modules — SYSTEM_R5 only -->
       <template v-if="isInternal && visiblePublic.length">
         <el-divider class="menu-divider" />
-        <span
-          v-for="mod in visiblePublic"
-          :key="mod.path"
-          class="menu-item"
-          @click="handleMenuClick(() => navigate.redirectTo(mod.path))"
-        >
+        <span v-for="mod in visiblePublic" :key="mod.path" class="menu-item"
+          @click="handleMenuClick(() => navigate.redirectTo(mod.path))">
           <span class="menu-label">{{ mod.label }}</span>
         </span>
       </template>
 
       <template v-if="isInternal && isAuthenticated && visiblePersonal.length">
         <el-divider class="menu-divider" />
-        <span
-          v-for="mod in visiblePersonal.filter(m => m.path !== '/travel')"
-          :key="mod.path"
-          class="menu-item"
-          @click="handleMenuClick(() => navigate.redirectTo(mod.path))"
-        >
+        <span v-for="mod in visiblePersonal.filter(m => m.path !== '/travel')" :key="mod.path" class="menu-item"
+          @click="handleMenuClick(() => navigate.redirectTo(mod.path))">
           <span class="menu-label">{{ mod.label }}</span>
         </span>
       </template>

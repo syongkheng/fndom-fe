@@ -56,14 +56,6 @@ const handleSetting = () => {
     </span>
     <el-divider />
     <span class="authenticated menu" v-if="isAuthenticated">
-      <span @click="navigate.redirectToWedding()">
-        <el-menu-item index="8">
-          <el-icon>
-            <StarFilled />
-          </el-icon>
-          <template #title>{{ 'Wedding' }}</template>
-        </el-menu-item>
-      </span>
       <span @click="navigate.redirectToDashboard()">
         <el-menu-item index="6">
           <el-icon>

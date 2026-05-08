@@ -76,14 +76,6 @@ const modules = [
     path: '/sleep',
   },
   {
-    key: 'wedding',
-    featureKey: 'wedding',
-    title: 'Wedding',
-    description: 'Events, guest list and table planner',
-    icon: '💍',
-    path: '/wedding',
-  },
-  {
     key: 'expense',
     featureKey: 'expense',
     title: 'Expense',
@@ -129,11 +121,7 @@ const visibleModules = computed(() =>
         </div>
       </div>
 
-      <div
-        v-if="hasModuleAccess('SYSTEM', 5)"
-        class="module-tile module-tile--admin"
-        @click="nav.redirectTo('/admin')"
-      >
+      <div v-if="hasModuleAccess('SYSTEM', 5)" class="module-tile module-tile--admin" @click="nav.redirectTo('/admin')">
         <span class="module-icon">⚙️</span>
         <div class="module-text">
           <div class="module-title">Admin</div>
