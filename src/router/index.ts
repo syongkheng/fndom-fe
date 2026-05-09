@@ -15,16 +15,6 @@ const router = createRouter({
       component: () => import('../components/views/WorkbenchView.vue'),
       beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
     },
-    // {
-    //   path: '/schedule',
-    //   name: 'schedule',
-    //   component: () => import('../components/views/schedule/ScheduleHomeView.vue'),
-    // },
-    {
-      path: '/404',
-      name: '404',
-      component: () => import('../components/views/UnauthorizedView.vue'),
-    },
     {
       path: '/profile',
       name: 'profile',
@@ -64,8 +54,10 @@ const router = createRouter({
       path: '/travel',
       name: 'travel',
       component: () => import('../components/views/travel/TravelListView.vue'),
-      beforeEnter: async (to, from, next) =>
-        useRouteGuards().featureGuard({ next, featureKey: 'travel' }),
+      beforeEnter: [
+        async (to, from, next) => useRouteGuards().authGuard({ next }),
+        async (to, from, next) => useRouteGuards().featureGuard({ next, featureKey: 'travel' }),
+      ],
     },
     {
       path: '/travel/v/:shortCode',
@@ -86,7 +78,7 @@ const router = createRouter({
       name: 'travel-planner',
       component: () => import('../components/views/travel/TravelPlannerView.vue'),
       beforeEnter: async (to, from, next) =>
-        useRouteGuards().authAndFeatureGuard({ next, featureKey: 'travel' }),
+        useRouteGuards().featureGuard({ next, featureKey: 'travel' }),
     },
     {
       path: '/douyin',
@@ -139,11 +131,11 @@ const router = createRouter({
       component: () => import('../components/views/admin/TgImageAdminView.vue'),
       beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
     },
-    // {
-    //   path: '/habit',
-    //   name: 'habit',
-    //   component: () => import('../components/views/habit/HabitHomeView.vue'),
-    // },
+    {
+      path: '/404',
+      name: '404',
+      component: () => import('../components/views/UnauthorizedView.vue'),
+    },
   ],
 })
 

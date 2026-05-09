@@ -60,28 +60,14 @@ export function useRouteGuards() {
     }
   }
 
-  const featureGuard = async ({ next, featureKey }: { next: NavigationGuardNext; featureKey: string }) => {
+  const featureGuard = async ({
+    next,
+    featureKey,
+  }: {
+    next: NavigationGuardNext
+    featureKey: string
+  }) => {
     try {
-      const flagStore = useFeatureFlagStore()
-      if (!flagStore.loaded) await flagStore.fetchFlags()
-      if (!flagStore.isEnabled(featureKey)) {
-        ElMessage.warning('This feature is currently unavailable.')
-        return next('/')
-      }
-      next()
-    } catch {
-      next('/')
-    }
-  }
-
-  const authAndFeatureGuard = async ({ next, featureKey }: { next: NavigationGuardNext; featureKey: string }) => {
-    try {
-      const { verifyToken } = useTokenVerification()
-      const validity = await verifyToken()
-      if (!validity) {
-        ElMessage.error('You are not logged in. Please login')
-        return next({ path: '/', query: { showLogin: 'true' } })
-      }
       const flagStore = useFeatureFlagStore()
       if (!flagStore.loaded) await flagStore.fetchFlags()
       if (!flagStore.isEnabled(featureKey)) {
@@ -99,6 +85,5 @@ export function useRouteGuards() {
     collabListGuard,
     systemR5Guard,
     featureGuard,
-    authAndFeatureGuard,
   }
 }

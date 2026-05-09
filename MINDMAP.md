@@ -46,14 +46,6 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   ├── AUTH REQUIRED (authGuard)
 │   │   └── /profile               profile → ProfileView
 │   │
-│   ├── AUTH + FEATURE REQUIRED (authAndFeatureGuard)
-│   │   ├── /travel                travel → TravelListView
-│   │   ├── /travel/:sessionId     travel-planner → TravelPlannerView
-│   │   ├── /douyin                douyin → HomeView
-│   │   ├── /meal                  meal → HomeView
-│   │   ├── /sleep                 sleep → HomeView
-│   │   └── /telegram              telegram → HomeView
-│   │
 │   ├── ADMIN ONLY (systemR5Guard — SYSTEM_R5 role)
 │   │   ├── /admin                 admin → AdminView
 │   │   ├── /admin/users           admin-users → UserManagementView
@@ -66,7 +58,6 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 ├── ROUTE GUARDS (src/hooks/useRouteGuards.ts)
 │   ├── featureGuard         — check feature flag enabled
 │   ├── authGuard            — check JWT token present
-│   ├── authAndFeatureGuard  — both auth + feature flag
 │   └── systemR5Guard        — SYSTEM_R5 role required
 │
 ├── STORES (src/stores/)  — 8 Pinia stores
@@ -171,7 +162,7 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   └── useTravelExport.ts     — export itineraries (JSON/CSV)
 │
 ├── HOOKS (src/hooks/)
-│   ├── useRouteGuards.ts      — featureGuard, authGuard, authAndFeatureGuard, systemR5Guard
+│   ├── useRouteGuards.ts      — featureGuard, authGuard, systemR5Guard
 │   ├── useNav.ts              — redirectTo*, navigation helpers
 │   ├── useTokenVerification.ts — JWT validation on app init
 │   ├── useBreakpointManager.ts — responsive breakpoint detection
