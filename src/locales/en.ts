@@ -9,7 +9,8 @@ export default {
   landing: {
     eyebrow: 'Travel & Hiking Planner',
     title: 'Plan your\nnext adventure.',
-    subtitle: 'Build itineraries, share with friends, and explore the world — no account required to get started.',
+    subtitle:
+      'Build itineraries, share with friends, and explore the world — no account required to get started.',
     startPlanning: 'Start Planning →',
     footerNote: 'Save and sync your itineraries by {link}.',
     signingIn: 'signing in',
@@ -274,6 +275,108 @@ export default {
       city: 'City',
       budget: 'Budget',
       description: 'Description',
+    },
+  },
+  profile: {
+    title: 'My Profile',
+    subtitle: 'Manage your personal information and account security',
+
+    avatar: {
+      change: 'Change photo',
+      hint: 'Click photo to upload',
+      updated: 'Profile photo updated.',
+      uploadFailed: 'Failed to upload photo.',
+    },
+
+    username: {
+      label: 'Username',
+      edit: 'Edit',
+      save: 'Save',
+      cancel: 'Cancel',
+      placeholder: 'Display name',
+      updated: 'Username updated.',
+      tooShort: 'Username must be at least 3 characters.',
+      taken: 'This username is already taken.',
+      failed: 'Failed to update username.',
+    },
+
+    country: {
+      label: 'Country',
+      select: 'Select country',
+      update: 'Update',
+      updated: 'Country updated.',
+      failed: 'Failed to update country.',
+    },
+
+    password: {
+      title: 'Change Password',
+      desc: 'Verify your current password before setting a new one.',
+      current: 'Current Password',
+      new: 'New Password',
+      confirm: 'Confirm Password',
+      verify: 'Verify',
+      verified: 'Verified',
+      incorrect: 'Incorrect password.',
+      verifyFailed: 'Could not verify password.',
+      mismatch: 'Passwords do not match.',
+      updated: 'Password changed.',
+      failed: 'Failed to change password.',
+      requirement: 'Min. 12 chars, upper, number, special',
+    },
+
+    logout: {
+      title: 'Danger Zone',
+      button: 'Log out',
+      confirm: 'Are you sure you want to log out?',
+      cancel: 'Cancel',
+    },
+  },
+  auth: {
+    stepTitles: {
+      email: 'Login / Register',
+      register: 'Create account',
+      login: 'Welcome back',
+      verify: 'Verify your email',
+    },
+
+    email: {
+      placeholder: 'Email address',
+    },
+
+    username: {
+      placeholder: 'Display name',
+    },
+
+    password: {
+      placeholder: 'Password',
+    },
+
+    verify: {
+      hint: 'A 6-digit code was sent to',
+      resend: "Didn't receive it?",
+      resendAction: 'Resend code',
+    },
+
+    back: {
+      useDifferentEmail: '← Use a different email',
+    },
+
+    buttons: {
+      continue: 'Continue',
+      checking: 'Checking...',
+      create: 'Create account',
+      creating: 'Creating account...',
+      login: 'Log in',
+      loggingIn: 'Logging in...',
+      verify: 'Verify',
+      verifying: 'Verifying...',
+    },
+
+    terms: {
+      email: 'By continuing, you agree to our',
+      register: 'By registering, you agree to our',
+      login: 'By logging in, you agree to our',
+      suffix: 'Terms and Conditions.',
     },
   },
 }

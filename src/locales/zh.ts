@@ -276,4 +276,106 @@ export default {
       description: '描述',
     },
   },
+  profile: {
+    title: '个人资料',
+    subtitle: '管理您的个人信息与账户安全',
+
+    avatar: {
+      change: '更换头像',
+      hint: '点击头像上传',
+      updated: '头像已更新',
+      uploadFailed: '头像上传失败',
+    },
+
+    username: {
+      label: '用户名',
+      edit: '编辑',
+      save: '保存',
+      cancel: '取消',
+      placeholder: '显示名称',
+      updated: '用户名已更新',
+      tooShort: '用户名至少需要 3 个字符',
+      taken: '该用户名已被占用',
+      failed: '用户名更新失败',
+    },
+
+    country: {
+      label: '国家',
+      select: '选择国家',
+      update: '更新',
+      updated: '国家已更新',
+      failed: '更新国家失败',
+    },
+
+    password: {
+      title: '修改密码',
+      desc: '请先验证当前密码，再设置新密码。',
+      current: '当前密码',
+      new: '新密码',
+      confirm: '确认密码',
+      verify: '验证',
+      verified: '已验证',
+      incorrect: '密码错误',
+      verifyFailed: '无法验证密码',
+      mismatch: '两次输入的密码不一致',
+      updated: '密码已修改',
+      failed: '修改密码失败',
+      requirement: '至少 12 位，包含大写字母、数字和特殊字符',
+    },
+
+    logout: {
+      title: '危险操作',
+      button: '退出登录',
+      confirm: '确定要退出登录吗？',
+      cancel: '取消',
+    },
+  },
+  auth: {
+    stepTitles: {
+      email: '登录 / 注册',
+      register: '创建账户',
+      login: '欢迎回来',
+      verify: '验证邮箱',
+    },
+
+    email: {
+      placeholder: '邮箱地址',
+    },
+
+    username: {
+      placeholder: '显示名称',
+    },
+
+    password: {
+      placeholder: '密码',
+    },
+
+    verify: {
+      hint: '6 位验证码已发送至',
+      resend: '没有收到？',
+      resendAction: '重新发送',
+    },
+
+    back: {
+      useDifferentEmail: '← 使用其他邮箱',
+    },
+
+    buttons: {
+      continue: '继续',
+      checking: '检查中...',
+      create: '创建账户',
+      creating: '创建中...',
+      login: '登录',
+      loggingIn: '登录中...',
+      verify: '验证',
+      verifying: '验证中...',
+    },
+
+    terms: {
+      email: '继续即表示您同意我们的',
+      register: '注册即表示您同意我们的',
+      login: '登录即表示您同意我们的',
+      suffix: '条款与条件。',
+    },
+  },
 }

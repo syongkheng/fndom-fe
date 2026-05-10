@@ -6,35 +6,45 @@ import { Message, Lock, User } from '@element-plus/icons-vue'
 import { storeToRefs } from 'pinia'
 import { computed, ref, nextTick, watch } from 'vue'
 import OtpInput from '@/components/common/OtpInput.vue'
+import { useI18n } from 'vue-i18n'
 
-const stepTitles = {
-  email: 'Login / Register',
-  register: 'Create account',
-  login: 'Welcome back',
-  verify: 'Verify your email',
-}
+const { t } = useI18n()
 
 const layoutStore = useLayoutStateStore()
 const authStore = useAuthenticationStore()
 const navigate = useNav()
 
 const { authenticationStep, form, loading, registerError } = storeToRefs(authStore)
-const { handleAuthenticate, handleLogin, handleRegister, handleVerifyEmail, handleResendCode, resetForm } = authStore
+const {
+  handleAuthenticate,
+  handleLogin,
+  handleRegister,
+  handleVerifyEmail,
+  handleResendCode,
+  resetForm
+} = authStore
 
-const buttonText = computed(() => ({
-  email: loading.value ? 'Checking...' : 'Continue',
-  register: loading.value ? 'Creating account...' : 'Create account',
-  login: loading.value ? 'Logging in...' : 'Log in',
-  verify: loading.value ? 'Verifying...' : 'Verify',
-}[authenticationStep.value]))
+// ── Computed UI text ──────────────────────────────────────────────────────────
+const stepTitle = computed(() =>
+  t(`auth.stepTitles.${authenticationStep.value}`)
+)
 
-const termsMessage = computed(() => ({
-  email: 'By continuing, you agree to our',
-  register: 'By registering, you agree to our',
-  login: 'By logging in, you agree to our',
-  verify: null,
-}[authenticationStep.value]))
+const buttonText = computed(() => {
+  const map = {
+    email: loading.value ? 'checking' : 'continue',
+    register: loading.value ? 'creating' : 'create',
+    login: loading.value ? 'loggingIn' : 'login',
+    verify: loading.value ? 'verifying' : 'verify',
+  }
+  return t(`auth.buttons.${map[authenticationStep.value]}`)
+})
 
+const termsMessage = computed(() => {
+  if (authenticationStep.value === 'verify') return null
+  return t(`auth.terms.${authenticationStep.value}`)
+})
+
+// ── Actions ───────────────────────────────────────────────────────────────────
 const _handleAuthenticate = async () => {
   const exists = await handleAuthenticate()
   authenticationStep.value = exists ? 'login' : 'register'
@@ -50,7 +60,6 @@ const _handleLogin = async () => {
 
 const _handleRegister = async () => {
   await handleRegister()
-  // store sets authenticationStep to 'verify' on success
 }
 
 const _handleVerify = async () => {
@@ -78,11 +87,10 @@ const handleBack = () => {
   registerError.value = ''
 }
 
-// ── OTP verify input ──────────────────────────────────────────────────────────
+// ── OTP ───────────────────────────────────────────────────────────────────────
 const verifyDigits = ref<string[]>(['', '', '', '', '', ''])
 const otpRef = ref<{ focus: () => void } | null>(null)
 
-// Focus first box when verify step becomes active
 watch(authenticationStep, (step) => {
   if (step === 'verify') {
     verifyDigits.value = ['', '', '', '', '', '']
@@ -90,7 +98,6 @@ watch(authenticationStep, (step) => {
   }
 })
 
-// Keep store in sync and reset digits if store clears the code (e.g. resend/back)
 watch(() => form.value.verifyCode, (val) => {
   if (!val) verifyDigits.value = ['', '', '', '', '', '']
 })
@@ -107,133 +114,95 @@ const handleOnClose = () => {
 </script>
 
 <template>
-  <el-dialog
-    v-model="layoutStore.loginDialog.isVisible"
-    class="login-dialog"
-    :show-close="false"
-    style="width: 90%; max-width: 400px;"
-    :before-close="handleOnClose"
-  >
+  <el-dialog v-model="layoutStore.loginDialog.isVisible" :show-close="false" class="login-dialog"
+    style="width: 90%; max-width: 400px;" :before-close="handleOnClose">
     <div class="login-dialog-content-container">
+
+      <!-- Title -->
       <div class="login-title-container">
-        <h3>{{ stepTitles[authenticationStep] }}</h3>
+        <h3>{{ stepTitle }}</h3>
+
         <p v-if="authenticationStep === 'verify'" class="step-hint">
-          A 6-digit code was sent to <strong>{{ form.email }}</strong>
+          {{ t('auth.verify.hint') }}
+          <strong>{{ form.email }}</strong>
         </p>
       </div>
 
-      <el-form :model="form" @submit.prevent="handleSubmit" class="register-form">
+      <el-form @submit.prevent="handleSubmit">
 
-        <!-- Step: email -->
-        <el-form-item v-if="authenticationStep === 'email'" size="large">
-          <el-input
-            v-model="form.email"
-            placeholder="Email address"
-            type="email"
-            :prefix-icon="Message"
-            clearable
-            autocomplete="email"
-          />
+        <!-- EMAIL -->
+        <el-form-item v-if="authenticationStep === 'email'">
+          <el-input v-model="form.email" :placeholder="t('auth.email.placeholder')" :prefix-icon="Message" clearable />
         </el-form-item>
 
-        <!-- Step: register — display name + password -->
+        <!-- REGISTER -->
         <template v-else-if="authenticationStep === 'register'">
-          <el-form-item size="large">
-            <el-input
-              v-model="form.email"
-              placeholder="Email address"
-              type="email"
-              :prefix-icon="Message"
-              disabled
-            />
+          <el-form-item>
+            <el-input v-model="form.email" disabled />
           </el-form-item>
-          <el-form-item size="large">
-            <el-input
-              v-model="form.username"
-              placeholder="Display name"
-              :prefix-icon="User"
-              clearable
-              autocomplete="username"
-            />
+
+          <el-form-item>
+            <el-input v-model="form.username" :placeholder="t('auth.username.placeholder')" :prefix-icon="User" />
           </el-form-item>
-          <el-form-item size="large">
-            <el-input
-              v-model="form.password"
-              placeholder="Password"
-              :prefix-icon="Lock"
-              type="password"
-              show-password
-              autocomplete="new-password"
-            />
+
+          <el-form-item>
+            <el-input v-model="form.password" :placeholder="t('auth.password.placeholder')" :prefix-icon="Lock"
+              type="password" show-password />
           </el-form-item>
         </template>
 
-        <!-- Step: login — password only -->
+        <!-- LOGIN -->
         <template v-else-if="authenticationStep === 'login'">
-          <el-form-item size="large">
-            <el-input
-              v-model="form.email"
-              placeholder="Email address"
-              type="email"
-              :prefix-icon="Message"
-              disabled
-            />
+          <el-form-item>
+            <el-input v-model="form.email" disabled />
           </el-form-item>
-          <el-form-item size="large">
-            <el-input
-              v-model="form.password"
-              placeholder="Password"
-              :prefix-icon="Lock"
-              type="password"
-              show-password
-              autocomplete="current-password"
-            />
+
+          <el-form-item>
+            <el-input v-model="form.password" :placeholder="t('auth.password.placeholder')" :prefix-icon="Lock"
+              type="password" show-password />
           </el-form-item>
         </template>
 
-        <!-- Step: verify — 6-digit OTP -->
-        <OtpInput
-          v-else-if="authenticationStep === 'verify'"
-          ref="otpRef"
-          v-model="verifyDigits"
-          @update:model-value="onOtpUpdate"
-          @complete="handleSubmit"
-        />
+        <!-- VERIFY -->
+        <OtpInput v-else ref="otpRef" v-model="verifyDigits" @update:model-value="onOtpUpdate"
+          @complete="handleSubmit" />
 
-        <!-- Error message -->
-        <p v-if="registerError" class="error-text">{{ registerError }}</p>
+        <!-- Error -->
+        <p v-if="registerError" class="error-text">
+          {{ registerError }}
+        </p>
 
         <!-- Submit -->
-        <el-form-item>
-          <el-button
-            type="primary"
-            native-type="submit"
-            class="submit-button"
-            :loading="loading"
-          >
-            {{ buttonText }}
-          </el-button>
-        </el-form-item>
+        <el-button type="primary" native-type="submit" class="submit-button" :loading="loading">
+          {{ buttonText }}
+        </el-button>
 
-        <!-- Resend code (verify step) -->
+        <!-- Resend -->
         <div v-if="authenticationStep === 'verify'" class="resend-row">
-          <span>Didn't receive it?</span>
-          <el-button link type="primary" @click="handleResendCode">Resend code</el-button>
+          <span>{{ t('auth.verify.resend') }}</span>
+          <el-button link @click="handleResendCode">
+            {{ t('auth.verify.resendAction') }}
+          </el-button>
         </div>
 
-        <!-- Back link (not on email step) -->
+        <!-- Back -->
         <div v-if="authenticationStep !== 'email'" class="back-row">
-          <el-button link @click="handleBack">← Use a different email</el-button>
+          <el-button link @click="handleBack">
+            {{ t('auth.back.useDifferentEmail') }}
+          </el-button>
         </div>
 
         <!-- Terms -->
         <template v-if="termsMessage">
           <el-divider />
-          <p class="disclaimer terms-text">
+          <p class="disclaimer">
             {{ termsMessage }}
-            <span class="hyperlink">Terms and Conditions.</span>
+            <span class="hyperlink">
+              {{ t('auth.terms.suffix') }}
+            </span>
           </p>
         </template>
+
       </el-form>
     </div>
   </el-dialog>

@@ -7,19 +7,35 @@ import { CountryList } from '@/constants/Country'
 import useProfileManager from '@/hooks/useProfileManager'
 import { FileUtils } from '@/utilities/FileUtils'
 import { useNav } from '@/hooks/useNav'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const { userProfile } = useAuthenticationStore()
-const { getUserCountry, updateUserCountry, getUserProfilePhoto, updateUserPhoto, validatePassword, updatePassword, updateUsername } = useProfileManager()
+const {
+  getUserCountry,
+  updateUserCountry,
+  getUserProfilePhoto,
+  updateUserPhoto,
+  validatePassword,
+  updatePassword,
+  updateUsername
+} = useProfileManager()
+
 const navigate = useNav()
 
 const profile = ref({ country: '', avatar: '' })
 const passwordForm = ref({ currentPassword: '', newPassword: '', confirmPassword: '' })
 const isPasswordValidated = ref(false)
 const isValidating = ref(false)
-const selectedFile = ref<File | null>(null)
 
-// ── Username edit ─────────────────────────────────────────────────────────────
-const usernameForm = ref({ editing: false, value: '', saving: false, error: '' })
+// Username
+const usernameForm = ref({
+  editing: false,
+  value: '',
+  saving: false,
+  error: ''
+})
 
 const handleEditUsername = () => {
   usernameForm.value.value = userProfile.username
@@ -29,111 +45,143 @@ const handleEditUsername = () => {
 
 const handleSaveUsername = async () => {
   const newUsername = usernameForm.value.value.trim()
+
   if (newUsername.length < 3) {
-    usernameForm.value.error = 'Username must be at least 3 characters.'
+    usernameForm.value.error = t('profile.username.tooShort')
     return
   }
+
   if (newUsername === userProfile.username) {
     usernameForm.value.editing = false
     return
   }
+
   usernameForm.value.saving = true
   usernameForm.value.error = ''
+
   const result = await updateUsername(newUsername)
+
   usernameForm.value.saving = false
+
   if (!result.isSuccess) {
-    usernameForm.value.error = result.code === 'username_already_taken'
-      ? 'This username is already taken.'
-      : 'Failed to update username.'
+    usernameForm.value.error =
+      result.code === 'username_already_taken'
+        ? t('profile.username.taken')
+        : t('profile.username.failed')
     return
   }
+
   const authStore = useAuthenticationStore()
   authStore.updateUsernameInStore(result.username, result.token)
+
   usernameForm.value.editing = false
-  ElMessage.success('Username updated.')
+  ElMessage.success(t('profile.username.updated'))
 }
 
-// ── Avatar ────────────────────────────────────────────────────────────────────
+// Avatar
 const handleFileChange = async (event: Event) => {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
-  selectedFile.value = file
+
   profile.value.avatar = URL.createObjectURL(file)
+
   const blobString = await FileUtils.convertFileToBase64(file)
+
   try {
-    await updateUserPhoto({ blobString, mimeType: file.type, sizeInBytes: file.size, fileName: file.name })
-    ElMessage.success('Profile photo updated.')
+    await updateUserPhoto({
+      blobString,
+      mimeType: file.type,
+      sizeInBytes: file.size,
+      fileName: file.name
+    })
+    ElMessage.success(t('profile.avatar.updated'))
   } catch {
-    ElMessage.error('Failed to upload photo.')
+    ElMessage.error(t('profile.avatar.uploadFailed'))
   }
 }
 
-// ── Password ──────────────────────────────────────────────────────────────────
+// Password
 const handleValidatePassword = async () => {
   if (!passwordForm.value.currentPassword) {
-    ElMessage.error('Enter your current password first.')
+    ElMessage.error(t('profile.password.current'))
     return
   }
+
   try {
     isValidating.value = true
     const valid = await validatePassword(passwordForm.value.currentPassword)
+
     if (valid) {
       isPasswordValidated.value = true
-      ElMessage.success('Password verified.')
+      ElMessage.success(t('profile.password.verified'))
     } else {
-      ElMessage.error('Incorrect password.')
+      ElMessage.error(t('profile.password.incorrect'))
       isPasswordValidated.value = false
     }
   } catch {
-    ElMessage.error('Could not verify password.')
+    ElMessage.error(t('profile.password.verifyFailed'))
   } finally {
     isValidating.value = false
   }
 }
 
 const handleChangePassword = async () => {
-  if (!passwordForm.value.newPassword || passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
-    ElMessage.error('Passwords do not match.')
+  if (
+    !passwordForm.value.newPassword ||
+    passwordForm.value.newPassword !== passwordForm.value.confirmPassword
+  ) {
+    ElMessage.error(t('profile.password.mismatch'))
     return
   }
+
   const result = await updatePassword(passwordForm.value.newPassword)
+
   if (result) {
     passwordForm.value = { currentPassword: '', newPassword: '', confirmPassword: '' }
     isPasswordValidated.value = false
-    ElMessage.success('Password changed.')
+    ElMessage.success(t('profile.password.updated'))
   } else {
-    ElMessage.error('Failed to change password.')
+    ElMessage.error(t('profile.password.failed'))
   }
 }
 
-// ── Country ───────────────────────────────────────────────────────────────────
+// Country
 const handleUpdateCountry = async () => {
   const result = await updateUserCountry(profile.value.country)
+
   if (result) {
-    ElMessage.success('Country updated.')
+    ElMessage.success(t('profile.country.updated'))
   } else {
-    ElMessage.error('Failed to update country.')
+    ElMessage.error(t('profile.country.failed'))
   }
 }
 
-// ── Logout ────────────────────────────────────────────────────────────────────
+// Logout
 const handleLogout = async () => {
   try {
-    await ElMessageBox.confirm('Are you sure you want to log out?', 'Confirm Logout', {
-      confirmButtonText: 'Logout',
-      cancelButtonText: 'Cancel',
-      type: 'warning',
-    })
+    await ElMessageBox.confirm(
+      t('profile.logout.confirm'),
+      t('profile.logout.title'),
+      {
+        confirmButtonText: t('profile.logout.button'),
+        cancelButtonText: t('profile.logout.cancel'),
+        type: 'warning'
+      }
+    )
+
     const authStore = useAuthenticationStore()
     authStore.handleLogout()
     navigate.redirectToLanding()
-  } catch {
-    // cancelled
-  }
+  } catch { }
 }
 
+// Init
 onMounted(async () => {
-  const [country, photo] = await Promise.all([getUserCountry(), getUserProfilePhoto()])
+  const [country, photo] = await Promise.all([
+    getUserCountry(),
+    getUserProfilePhoto()
+  ])
+
   profile.value.country = country ?? ''
   profile.value.avatar = photo ?? ''
 })
@@ -142,15 +190,15 @@ onMounted(async () => {
 <template>
   <div class="profile-root">
 
-    <!-- Page heading -->
+    <!-- Header -->
     <div class="profile-heading">
-      <h1 class="profile-title">My Profile</h1>
-      <p class="profile-subtitle">Manage your personal information and account security</p>
+      <h1 class="profile-title">{{ t('profile.title') }}</h1>
+      <p class="profile-subtitle">{{ t('profile.subtitle') }}</p>
     </div>
 
     <div class="profile-grid">
 
-      <!-- ── Left: Personal info ─────────────────────────────────────── -->
+      <!-- LEFT -->
       <div class="profile-card">
 
         <!-- Avatar -->
@@ -158,31 +206,43 @@ onMounted(async () => {
           <label class="avatar-label">
             <input type="file" accept="image/*" class="avatar-input" @change="handleFileChange" />
             <div class="avatar-circle">
-              <img v-if="profile.avatar" :src="profile.avatar" alt="Avatar" class="avatar-img" />
+              <img v-if="profile.avatar" :src="profile.avatar" class="avatar-img" />
               <div v-else class="avatar-placeholder">
                 <el-icon :size="36">
                   <User />
                 </el-icon>
               </div>
               <div class="avatar-overlay">
-                <span>Change photo</span>
+                {{ t('profile.avatar.change') }}
               </div>
             </div>
           </label>
+
           <div class="avatar-meta">
             <div v-if="!usernameForm.editing" class="username-display">
               <span class="username">{{ userProfile.username }}</span>
-              <el-button text :icon="Edit" size="small" @click="handleEditUsername" style="padding: 0 4px; margin-left: 2px; color: var(--color-text); opacity: 0.45" />
+              <el-button text :icon="Edit" size="small" @click="handleEditUsername" />
             </div>
+
             <div v-else class="username-edit">
-              <el-input v-model="usernameForm.value" size="small" placeholder="Display name" style="max-width: 180px" @keyup.enter="handleSaveUsername" />
+              <el-input v-model="usernameForm.value" :placeholder="t('profile.username.placeholder')"
+                @keyup.enter="handleSaveUsername" />
+
               <div class="username-edit-actions">
-                <el-button type="primary" size="small" :loading="usernameForm.saving" @click="handleSaveUsername">Save</el-button>
-                <el-button text size="small" @click="usernameForm.editing = false; usernameForm.error = ''">Cancel</el-button>
+                <el-button type="primary" @click="handleSaveUsername">
+                  {{ t('profile.username.save') }}
+                </el-button>
+                <el-button text @click="usernameForm.editing = false">
+                  {{ t('profile.username.cancel') }}
+                </el-button>
               </div>
-              <div v-if="usernameForm.error" class="username-error">{{ usernameForm.error }}</div>
+
+              <div v-if="usernameForm.error" class="username-error">
+                {{ usernameForm.error }}
+              </div>
             </div>
-            <div class="avatar-hint">Click photo to upload</div>
+
+            <div class="avatar-hint">{{ t('profile.avatar.hint') }}</div>
           </div>
         </div>
 
@@ -191,76 +251,84 @@ onMounted(async () => {
         <!-- Country -->
         <div class="info-block">
           <div class="info-label">
-            <el-icon style="margin-right: 4px; vertical-align: -2px">
+            <el-icon>
               <Location />
             </el-icon>
-            Country
+            {{ t('profile.country.label') }}
           </div>
+
           <div class="country-row">
-            <el-select v-model="profile.country" placeholder="Select country" filterable style="flex: 1">
+            <el-select v-model="profile.country" :placeholder="t('profile.country.select')" filterable>
               <el-option v-for="country in CountryList" :key="country.value" :label="country.label"
                 :value="country.value" />
             </el-select>
-            <el-button type="primary" @click="handleUpdateCountry">Update</el-button>
+
+            <el-button type="primary" @click="handleUpdateCountry">
+              {{ t('profile.country.update') }}
+            </el-button>
           </div>
         </div>
 
       </div>
 
-      <!-- ── Right: Security ────────────────────────────────────────── -->
+      <!-- RIGHT -->
       <div class="profile-card">
 
-        <div class="card-section-title">Change Password</div>
-        <p class="card-section-desc">Verify your current password before setting a new one.</p>
+        <div class="card-section-title">
+          {{ t('profile.password.title') }}
+        </div>
 
-        <form autocomplete="on" @submit.prevent>
-          <input type="text" :value="userProfile.username" autocomplete="username" aria-hidden="true"
-            style="display:none" tabindex="-1" />
-          <!-- Step 1: verify current -->
-          <div class="pw-step">
-            <div class="step-badge" :class="{ done: isPasswordValidated }">1</div>
-            <div class="step-body">
-              <label class="info-label" for="current-password">Current Password</label>
-              <div class="pw-row">
-                <el-input id="current-password" v-model="passwordForm.currentPassword"
-                  placeholder="Enter current password" show-password :prefix-icon="Lock" :disabled="isPasswordValidated"
-                  autocomplete="current-password" />
-                <el-button :type="isPasswordValidated ? 'success' : 'default'" :loading="isValidating"
-                  :disabled="isPasswordValidated" @click="handleValidatePassword">
-                  <el-icon v-if="isPasswordValidated">
-                    <Check />
-                  </el-icon>
-                  {{ isPasswordValidated ? 'Verified' : 'Verify' }}
-                </el-button>
-              </div>
-            </div>
-          </div>
+        <p class="card-section-desc">
+          {{ t('profile.password.desc') }}
+        </p>
 
-          <!-- Step 2: new password -->
-          <div class="pw-step" :class="{ disabled: !isPasswordValidated }">
-            <div class="step-badge" :class="{ done: isPasswordValidated }">2</div>
-            <div class="step-body">
-              <label class="info-label" for="new-password">New Password</label>
-              <el-input id="new-password" v-model="passwordForm.newPassword"
-                placeholder="Min. 12 chars, upper, number, special" show-password :prefix-icon="Lock"
-                :disabled="!isPasswordValidated" autocomplete="new-password" style="margin-bottom: 10px" />
-              <label class="info-label" for="confirm-password">Confirm Password</label>
-              <el-input id="confirm-password" v-model="passwordForm.confirmPassword" placeholder="Repeat new password"
-                show-password :prefix-icon="Lock" :disabled="!isPasswordValidated" autocomplete="new-password" />
-              <el-button type="primary" native-type="submit" :disabled="!isPasswordValidated"
-                @click="handleChangePassword" style="width: 100%; margin-top: 14px">
-                Update Password
+        <!-- Step 1 -->
+        <div class="pw-step">
+          <div class="step-badge" :class="{ done: isPasswordValidated }">1</div>
+
+          <div class="step-body">
+            <label>{{ t('profile.password.current') }}</label>
+
+            <div class="pw-row">
+              <el-input v-model="passwordForm.currentPassword" show-password :prefix-icon="Lock" />
+
+              <el-button :loading="isValidating" @click="handleValidatePassword">
+                {{ isPasswordValidated
+                  ? t('profile.password.verified')
+                  : t('profile.password.verify')
+                }}
               </el-button>
             </div>
           </div>
-        </form>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="pw-step" :class="{ disabled: !isPasswordValidated }">
+          <div class="step-badge">2</div>
+
+          <div class="step-body">
+            <label>{{ t('profile.password.new') }}</label>
+            <el-input v-model="passwordForm.newPassword" show-password
+              :placeholder="t('profile.password.requirement')" />
+
+            <label>{{ t('profile.password.confirm') }}</label>
+            <el-input v-model="passwordForm.confirmPassword" show-password />
+
+            <el-button type="primary" @click="handleChangePassword">
+              {{ t('profile.password.title') }}
+            </el-button>
+          </div>
+        </div>
 
         <div class="card-divider" />
 
-        <!-- Danger zone -->
+        <!-- Logout -->
         <div class="danger-zone">
-          <div class="danger-label">Danger Zone</div>
-          <el-button type="danger" plain @click="handleLogout">Log out of Aworkbench</el-button>
+          <div class="danger-label">{{ t('profile.logout.title') }}</div>
+
+          <el-button type="danger" plain @click="handleLogout">
+            {{ t('profile.logout.button') }}
+          </el-button>
         </div>
 
       </div>
@@ -268,7 +336,6 @@ onMounted(async () => {
     </div>
   </div>
 </template>
-
 <style scoped>
 .profile-root {
   max-width: 900px;

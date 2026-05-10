@@ -20,13 +20,6 @@ const modules = [
   //   icon: '📊',
   //   path: '/dashboard',
   // },
-  // {
-  //   key: 'schedule',
-  //   title: 'Schedule',
-  //   description: 'Calendar and event scheduling',
-  //   icon: '📅',
-  //   path: '/schedule',
-  // },
   {
     key: 'pphs',
     featureKey: 'pphs',

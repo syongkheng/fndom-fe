@@ -17,16 +17,16 @@ interface MediaItem {
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
-const linked           = ref<boolean | null>(null)   // null = loading
-const telegramHandle   = ref<string | null>(null)
+const linked = ref<boolean | null>(null)   // null = loading
+const telegramHandle = ref<string | null>(null)
 
-const linkToken        = ref<string | null>(null)
-const tokenExpiry      = ref<number | null>(null)
-const tokenLoading     = ref(false)
-const howItWorksOpen   = ref(false)
+const linkToken = ref<string | null>(null)
+const tokenExpiry = ref<number | null>(null)
+const tokenLoading = ref(false)
+const howItWorksOpen = ref(false)
 
-const mediaList        = ref<MediaItem[]>([])
-const mediaLoading     = ref(false)
+const mediaList = ref<MediaItem[]>([])
+const mediaLoading = ref(false)
 
 interface RetrieveResult {
   id: string
@@ -37,24 +37,24 @@ interface RetrieveResult {
   expiresAt: number | null
 }
 
-const retrieveId       = ref('')
-const retrieveResult   = ref<RetrieveResult | null>(null)
-const retrieveLoading  = ref(false)
+const retrieveId = ref('')
+const retrieveResult = ref<RetrieveResult | null>(null)
+const retrieveLoading = ref(false)
 
-const expiryInputs     = ref<Record<string, string>>({})
-const savingExpiry     = ref<Record<string, boolean>>({})
-const deletingId       = ref<string | null>(null)
+const expiryInputs = ref<Record<string, string>>({})
+const savingExpiry = ref<Record<string, boolean>>({})
+const deletingId = ref<string | null>(null)
 
-const uploadFile       = ref<File | null>(null)
+const uploadFile = ref<File | null>(null)
 const uploadPreviewUrl = ref<string | null>(null)
-const uploadLoading    = ref(false)
-const uploadProgress   = ref(0)
-const isDragging       = ref(false)
+const uploadLoading = ref(false)
+const uploadProgress = ref(0)
+const isDragging = ref(false)
 
-const previewUrls      = ref<Record<string, string>>({})
+const previewUrls = ref<Record<string, string>>({})
 
-const currentPage      = ref(1)
-const pageSize         = 12
+const currentPage = ref(1)
+const pageSize = 12
 
 // ─── Computed ─────────────────────────────────────────────────────────────────
 
@@ -66,12 +66,12 @@ const pagedMedia = computed(() => {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const FILE_TYPE_META: Record<string, { icon: string; color: string }> = {
-  photo:     { icon: '🖼',  color: '#3b82f6' },
-  video:     { icon: '🎬', color: '#8b5cf6' },
-  document:  { icon: '📄', color: '#f59e0b' },
-  audio:     { icon: '🎵', color: '#10b981' },
-  voice:     { icon: '🎤', color: '#06b6d4' },
-  animation: { icon: '🎞',  color: '#ec4899' },
+  photo: { icon: '🖼', color: '#3b82f6' },
+  video: { icon: '🎬', color: '#8b5cf6' },
+  document: { icon: '📄', color: '#f59e0b' },
+  audio: { icon: '🎵', color: '#10b981' },
+  voice: { icon: '🎤', color: '#06b6d4' },
+  animation: { icon: '🎞', color: '#ec4899' },
 }
 
 function fileMeta(t: string) {
@@ -241,9 +241,9 @@ async function retrieve() {
     const meta = res.data.data
     retrieveResult.value = {
       id,
-      fileType:  meta.fileType,
-      fileName:  meta.fileName,
-      fileSize:  meta.fileSize,
+      fileType: meta.fileType,
+      fileName: meta.fileName,
+      fileSize: meta.fileSize,
       createdAt: meta.createdAt,
       expiresAt: meta.expiresAt,
     }
@@ -341,13 +341,8 @@ onMounted(async () => {
 
       <!-- Quick retrieve -->
       <div class="retrieve-bar">
-        <el-input
-          v-model="retrieveId"
-          placeholder="Paste a file ID…"
-          clearable
-          @keyup.enter="retrieve"
-          class="retrieve-input"
-        >
+        <el-input v-model="retrieveId" placeholder="Paste a file ID…" clearable @keyup.enter="retrieve"
+          class="retrieve-input">
           <template #prefix><span style="opacity:0.4">⌕</span></template>
         </el-input>
         <el-button type="primary" :loading="retrieveLoading" @click="retrieve">Get</el-button>
@@ -360,11 +355,8 @@ onMounted(async () => {
             <span class="rr-icon">{{ fileMeta(retrieveResult.fileType).icon }}</span>
             <span class="rr-type">{{ fileTypeLabel(retrieveResult.fileType) }}</span>
             <code class="rr-id">{{ retrieveResult.id }}</code>
-            <el-tag
-              :type="expiryStatus(retrieveResult).type"
-              size="small"
-              class="rr-expiry"
-            >{{ expiryStatus(retrieveResult).label }}</el-tag>
+            <el-tag :type="expiryStatus(retrieveResult).type" size="small" class="rr-expiry">{{
+              expiryStatus(retrieveResult).label }}</el-tag>
           </div>
           <div class="rr-meta">
             <span v-if="retrieveResult.fileName" class="rr-filename">{{ retrieveResult.fileName }}</span>
@@ -382,14 +374,9 @@ onMounted(async () => {
         <div class="files-title">Direct Upload</div>
       </div>
 
-      <div
-        class="drop-zone"
-        :class="{ 'drop-zone--active': isDragging, 'drop-zone--filled': uploadFile }"
-        @dragover.prevent="isDragging = true"
-        @dragleave="isDragging = false"
-        @drop.prevent="onDrop"
-        @click="($refs.fileInput as HTMLInputElement).click()"
-      >
+      <div class="drop-zone" :class="{ 'drop-zone--active': isDragging, 'drop-zone--filled': uploadFile }"
+        @dragover.prevent="isDragging = true" @dragleave="isDragging = false" @drop.prevent="onDrop"
+        @click="($refs.fileInput as HTMLInputElement).click()">
         <input ref="fileInput" type="file" class="file-input-hidden" @change="onFileChange" />
 
         <template v-if="!uploadFile">
@@ -399,7 +386,8 @@ onMounted(async () => {
         </template>
 
         <template v-else>
-          <img v-if="uploadPreviewUrl" :src="uploadPreviewUrl" class="upload-preview-img" @error="uploadPreviewUrl = null" />
+          <img v-if="uploadPreviewUrl" :src="uploadPreviewUrl" class="upload-preview-img"
+            @error="uploadPreviewUrl = null" />
           <span v-if="!uploadPreviewUrl" class="drop-icon">📄</span>
           <span class="drop-label">{{ uploadFile.name }}</span>
           <span class="drop-hint">{{ formatSize(uploadFile.size) }}</span>
@@ -407,12 +395,7 @@ onMounted(async () => {
       </div>
 
       <div v-if="uploadFile" class="upload-actions">
-        <el-progress
-          v-if="uploadLoading"
-          :percentage="uploadProgress"
-          :stroke-width="6"
-          class="upload-progress"
-        />
+        <el-progress v-if="uploadLoading" :percentage="uploadProgress" :stroke-width="6" class="upload-progress" />
         <el-button type="primary" :loading="uploadLoading" @click="uploadMedia">
           Upload
         </el-button>
@@ -476,7 +459,9 @@ onMounted(async () => {
     <!-- My Files -->
     <section class="tg-files">
       <div class="files-header">
-        <div class="files-title">My Files <span v-if="mediaList.length" class="files-count">{{ mediaList.length }}</span></div>
+        <div class="files-title">My Files <span v-if="mediaList.length" class="files-count">{{ mediaList.length
+            }}</span>
+        </div>
         <el-button size="small" text :loading="mediaLoading" @click="loadMedia">Refresh</el-button>
       </div>
 
@@ -491,20 +476,13 @@ onMounted(async () => {
             <div class="card-strip" :style="{ background: fileMeta(item.fileType).color }">
               <span class="card-icon">{{ fileMeta(item.fileType).icon }}</span>
               <span class="card-type">{{ fileTypeLabel(item.fileType) }}</span>
-              <el-tag
-                :type="expiryStatus(item).type"
-                size="small"
-                class="card-expiry-tag"
-              >{{ expiryStatus(item).label }}</el-tag>
+              <el-tag :type="expiryStatus(item).type" size="small" class="card-expiry-tag">{{ expiryStatus(item).label
+                }}</el-tag>
             </div>
 
             <!-- Photo preview thumbnail -->
             <div v-if="previewUrls[item.id]" class="card-preview">
-              <img
-                :src="previewUrls[item.id]"
-                class="card-preview-img"
-                @error="delete previewUrls[item.id]"
-              />
+              <img :src="previewUrls[item.id]" class="card-preview-img" @error="delete previewUrls[item.id]" />
             </div>
 
             <!-- Card body -->
@@ -522,13 +500,8 @@ onMounted(async () => {
 
               <!-- Set expiry inline -->
               <div class="card-expiry-row">
-                <el-input
-                  v-model="expiryInputs[item.id]"
-                  placeholder="days (0=never)"
-                  size="small"
-                  class="expiry-input"
-                  @keyup.enter="saveExpiry(item)"
-                />
+                <el-input v-model="expiryInputs[item.id]" placeholder="days (0=never)" size="small" class="expiry-input"
+                  @keyup.enter="saveExpiry(item)" />
                 <el-button size="small" text :loading="savingExpiry[item.id]" @click="saveExpiry(item)">Set</el-button>
               </div>
 
@@ -537,13 +510,7 @@ onMounted(async () => {
                 <el-button size="small" type="primary" plain @click="downloadMedia(item.id)">
                   Download
                 </el-button>
-                <el-button
-                  size="small"
-                  type="danger"
-                  text
-                  :loading="deletingId === item.id"
-                  @click="deleteMedia(item)"
-                >
+                <el-button size="small" type="danger" text :loading="deletingId === item.id" @click="deleteMedia(item)">
                   Delete
                 </el-button>
               </div>
@@ -553,13 +520,8 @@ onMounted(async () => {
         </div>
 
         <div class="pagination-row" v-if="mediaList.length > pageSize">
-          <el-pagination
-            v-model:current-page="currentPage"
-            :page-size="pageSize"
-            :total="mediaList.length"
-            layout="prev, pager, next"
-            small
-          />
+          <el-pagination v-model:current-page="currentPage" :page-size="pageSize" :total="mediaList.length"
+            layout="prev, pager, next" small />
         </div>
       </div>
     </section>
@@ -664,7 +626,10 @@ onMounted(async () => {
   flex-wrap: wrap;
 }
 
-.rr-icon { font-size: 1.1rem; line-height: 1; }
+.rr-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
 
 .rr-type {
   font-weight: 700;
@@ -680,7 +645,9 @@ onMounted(async () => {
   border-radius: 4px;
 }
 
-.rr-expiry { flex-shrink: 0; }
+.rr-expiry {
+  flex-shrink: 0;
+}
 
 .rr-meta {
   display: flex;
@@ -721,7 +688,9 @@ onMounted(async () => {
   text-align: left;
 }
 
-.hiw-toggle:hover { opacity: 1; }
+.hiw-toggle:hover {
+  opacity: 1;
+}
 
 .hiw-chevron {
   font-size: 1.1rem;
@@ -762,7 +731,9 @@ onMounted(async () => {
   margin-top: 1px;
 }
 
-.hiw-body { flex: 1; }
+.hiw-body {
+  flex: 1;
+}
 
 .hiw-title {
   font-weight: 600;
@@ -820,7 +791,6 @@ onMounted(async () => {
 }
 
 /* ── Files ── */
-.tg-files { }
 
 .files-header {
   display: flex;
@@ -930,7 +900,9 @@ onMounted(async () => {
   color: var(--color-text);
 }
 
-.card-copy:hover { opacity: 0.9; }
+.card-copy:hover {
+  opacity: 0.9;
+}
 
 .card-meta {
   display: flex;

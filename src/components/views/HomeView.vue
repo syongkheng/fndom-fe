@@ -12,10 +12,6 @@ const handleHabitTrackingClick = () => {
   nav.redirectToHabit();
 };
 
-const handleScheduleManagementClick = () => {
-  nav.redirectToSchedule();
-};
-
 const handleFlatAnalysisClick = () => {
   nav.redirectToPphs();
 };
@@ -48,11 +44,6 @@ const handleFlatAnalysisClick = () => {
           <h3>Habit Tracking</h3>
           <p>Track your daily habits and build positive routines.</p>
           <el-button type="primary" @click="handleHabitTrackingClick">Start Tracking</el-button>
-        </div>
-        <div class="feature-card">
-          <h3>Schedule Management</h3>
-          <p>Organize your time, set reminders, and manage your daily tasks.</p>
-          <el-button type="primary" @click="handleScheduleManagementClick">Start Planning</el-button>
         </div>
         <div class="feature-card">
           <h3>Flat Analysis</h3>

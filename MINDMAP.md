@@ -52,7 +52,6 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   └── /admin/features        admin-features → FeatureFlagView
 │   │
 │   └── COMMENTED OUT
-│       ├── /schedule              ScheduleHomeView
 │       └── /habit                 HabitHomeView
 │
 ├── ROUTE GUARDS (src/hooks/useRouteGuards.ts)

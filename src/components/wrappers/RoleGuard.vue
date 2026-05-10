@@ -13,5 +13,5 @@ const allowed = computed(() => hasModuleAccess(props.module, props.minLevel))
 </script>
 
 <template>
-  <slot v-if="allowed" />
+  <slot v-if="allowed"></slot>
 </template>

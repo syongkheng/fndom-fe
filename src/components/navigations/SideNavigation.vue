@@ -37,14 +37,6 @@ const handleSetting = () => {
         <template #title>{{ 'Home' }}</template>
       </el-menu-item>
     </span>
-    <!-- <span @click="navigate.redirectToSchedule()">
-      <el-menu-item index="2">
-        <el-icon>
-          <Bell />
-        </el-icon>
-        <template #title>{{ 'Events' }}</template>
-      </el-menu-item>
-    </span> -->
     <el-divider />
     <span @click="navigate.redirectToPphs()">
       <el-menu-item index="7">
