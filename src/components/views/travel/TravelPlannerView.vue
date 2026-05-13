@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import { ref, computed, onMounted, watchEffect, nextTick, watch } from 'vue'
+import HttpClient from '@/interceptors/HttpClient'
+import { ApiRoute } from '@/constants/ApiRoute'
 import { useRoute } from 'vue-router'
 import { useNav } from '@/hooks/useNav'
 import { useItineraryStore } from '@/stores/itinerary'
@@ -173,6 +175,28 @@ const bookingBookedCount = computed(() =>
 const bookingsCollapsed = ref(false)
 const packingCollapsed = ref(false)
 
+const fileBlobs = ref<Map<string, string>>(new Map())
+
+const fetchFileBlobs = async (items: AgendaItem[]) => {
+  const allFiles = items.flatMap((item) => item.files ?? [])
+  if (!allFiles.length) return
+  await Promise.allSettled(
+    allFiles.map(async (file: any) => {
+      const shortCode = file.tgShortCode ?? file.tg_short_code
+      if (!file.uuid || !shortCode) return
+      if (fileBlobs.value.has(file.uuid)) return
+      const res = await HttpClient.get(ApiRoute.TG_IMG.GET(shortCode), { responseType: 'arraybuffer' }).catch(() => null)
+      if (res?.data) {
+        const bytes = new Uint8Array(res.data)
+        let binary = ''
+        bytes.forEach((b) => (binary += String.fromCharCode(b)))
+        const mime = ((res.headers?.['content-type'] as string | undefined) ?? 'image/jpeg').split(';')[0]
+        fileBlobs.value.set(file.uuid, `data:${mime};base64,${btoa(binary)}`)
+      }
+    }),
+  )
+}
+
 function parsePayment(payment: string | undefined): { label: string; date?: string; type: 'success' | 'warning' | 'info' } | null {
   if (!payment) return null
   const match = payment.match(/^([^(]+?)\s*(?:\(([^)]+)\))?$/)
@@ -257,6 +281,7 @@ const onDrawerSave = (item: AgendaItem) => {
     )
     if (idx !== -1) itinerary.value.agendaItems[idx] = { ...item }
   }
+  fetchFileBlobs([item])
   drawerVisible.value = false
 }
 
@@ -346,6 +371,9 @@ onMounted(async () => {
   }
   const loadResult = await itineraryStore.retrieveItineraryForUpdate(sessionId)
   loading.value = false
+  if (!loadResult.forbidden) {
+    fetchFileBlobs(itinerary.value.agendaItems ?? [])
+  }
   if (loadResult.forbidden) {
     ElMessage.error(t('travel.planner.notYours'))
     nav.redirectTo('/travel')
@@ -561,6 +589,21 @@ const onPrivacyClose = () => {
                   </template>
                 </div>
                 <div v-if="item.desc" class="card-notes">{{ item.desc }}</div>
+                <div v-if="(item.files ?? []).some((f: any) => fileBlobs.get(f.uuid))" class="card-images">
+                  <el-image
+                    v-for="(file, fi) in (item.files ?? []).filter((f: any) => fileBlobs.get(f.uuid))"
+                    :key="file.uuid ?? fi"
+                    :src="fileBlobs.get(file.uuid)"
+                    :preview-src-list="(item.files ?? []).map((f: any) => fileBlobs.get(f.uuid)).filter(Boolean)"
+                    :initial-index="fi"
+                    fit="cover"
+                    class="card-image-thumb"
+                    preview-teleported
+                  />
+                </div>
+                <div v-else-if="(item.files ?? []).length" class="card-photo-chip">
+                  📷 {{ item.files!.length }} photo{{ item.files!.length > 1 ? 's' : '' }}
+                </div>
               </div>
               <div class="card-right">
                 <div class="card-actions">
@@ -1175,6 +1218,35 @@ const onPrivacyClose = () => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   line-height: 1.45;
+}
+
+.card-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.card-image-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  cursor: zoom-in;
+  flex-shrink: 0;
+}
+
+.card-image-thumb :deep(img) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card-photo-chip {
+  font-size: 0.72rem;
+  color: var(--color-text-secondary, #888);
+  margin-top: 6px;
 }
 
 .card-right {
