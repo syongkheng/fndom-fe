@@ -60,7 +60,7 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   └── systemR5Guard        — SYSTEM_R5 role required
 │
 ├── STORES (src/stores/)  — 8 Pinia stores
-│   ├── authentication.ts   — login, register, OTP verify, logout, JWT
+│   ├── authentication.ts   — login, register, OTP verify, logout, JWT; exposes rules + registerRules (computed, locale-reactive)
 │   ├── layoutState.ts      — 10 dialog/nav toggles (loginDialog, loadingDialog, etc.)
 │   ├── theme.ts            — dark/light mode (persisted to localStorage)
 │   ├── featureFlags.ts     — fetch + cache feature flags
@@ -210,8 +210,8 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   └── Breakpoint.ts          — S/M/L/CALENDAR breakpoints
 │
 ├── VALIDATIONS (src/validations/)
-│   ├── LoginFormRules.ts
-│   └── RegisterFormRules.ts
+│   ├── LoginFormRules.ts          — getLoginFormRules(t) — accepts t() for i18n messages
+│   └── RegisterFormRules.ts       — getRegisterFormRules({ password }, t) — accepts t() for i18n messages
 │
 ├── ROLES & PERMISSIONS
 │   ├── Format: {MODULE}_{LEVEL}

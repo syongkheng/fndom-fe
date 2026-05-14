@@ -1,22 +1,20 @@
 import type { FormRules } from 'element-plus'
 
-export function getLoginFormRules(): FormRules {
+export function getLoginFormRules(t: (key: string) => string): FormRules {
   return {
     password: [
-      { required: true, message: 'Please input password', trigger: 'blur' },
-      { min: 8, message: 'Password must be at least 8 characters', trigger: 'blur' },
+      { required: true, message: t('auth.validation.password_required'), trigger: 'blur' },
     ],
     identity: [
-      { required: true, message: 'Please input username or email', trigger: 'blur' },
-      { min: 3, message: 'Username must be at least 3 characters', trigger: 'blur' },
+      { required: true, message: t('auth.validation.identity_required'), trigger: 'blur' },
+      { min: 3, message: t('auth.validation.identity_min'), trigger: 'blur' },
     ],
     terms: [
-      { required: true, message: 'You must agree with the terms and conditions!' },
+      { required: true, message: t('auth.validation.terms_required') },
       {
         validator: (_, value, callback) => {
           if (!value) {
-            console.error('Must agree to T&C')
-            callback(new Error('You must agree with the terms and conditions!'))
+            callback(new Error(t('auth.validation.terms_required')))
           }
         },
         trigger: 'change',

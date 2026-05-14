@@ -14,7 +14,13 @@ const layoutStore = useLayoutStateStore()
 const authStore = useAuthenticationStore()
 const navigate = useNav()
 
-const { authenticationStep, form, loading, registerError } = storeToRefs(authStore)
+const { authenticationStep, form, loading, registerError, rules, registerRules } = storeToRefs(authStore)
+
+const activeRules = computed(() =>
+  authenticationStep.value === 'register' ? registerRules.value : rules.value
+)
+
+watch(form, () => { registerError.value = '' })
 const {
   handleAuthenticate,
   handleLogin,
@@ -128,10 +134,10 @@ const handleOnClose = () => {
         </p>
       </div>
 
-      <el-form @submit.prevent="handleSubmit">
+      <el-form :model="form" :rules="activeRules" @submit.prevent="handleSubmit">
 
         <!-- EMAIL -->
-        <el-form-item v-if="authenticationStep === 'email'">
+        <el-form-item v-if="authenticationStep === 'email'" prop="email">
           <el-input v-model="form.email" :placeholder="t('auth.email.placeholder')" :prefix-icon="Message" clearable />
         </el-form-item>
 
@@ -141,11 +147,11 @@ const handleOnClose = () => {
             <el-input v-model="form.email" disabled />
           </el-form-item>
 
-          <el-form-item>
+          <el-form-item prop="username">
             <el-input v-model="form.username" :placeholder="t('auth.username.placeholder')" :prefix-icon="User" />
           </el-form-item>
 
-          <el-form-item>
+          <el-form-item prop="password">
             <el-input v-model="form.password" :placeholder="t('auth.password.placeholder')" :prefix-icon="Lock"
               type="password" show-password />
           </el-form-item>
@@ -157,7 +163,7 @@ const handleOnClose = () => {
             <el-input v-model="form.email" disabled />
           </el-form-item>
 
-          <el-form-item>
+          <el-form-item prop="password">
             <el-input v-model="form.password" :placeholder="t('auth.password.placeholder')" :prefix-icon="Lock"
               type="password" show-password />
           </el-form-item>
@@ -263,7 +269,7 @@ const handleOnClose = () => {
   gap: 4px;
   font-size: 0.82rem;
   color: var(--color-text);
-  margin-top: -4px;
+  margin-top: 4px;
 }
 
 .disclaimer {

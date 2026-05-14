@@ -1,4 +1,4 @@
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ElMessage, type FormInstance } from 'element-plus'
 import { ApiRoute } from '@/constants/ApiRoute'
@@ -6,7 +6,12 @@ import HttpClient from '@/interceptors/HttpClient'
 import type { LoginForm } from '@/interfaces/forms/LoginForm.model'
 import { StorageUtils, StorageKey } from '@/utilities/StorageUtils'
 import { getLoginFormRules } from '@/validations/LoginFormRules'
+import { getRegisterFormRules } from '@/validations/RegisterFormRules'
 import type { AxiosError } from 'axios'
+import { i18n } from '@/i18n'
+
+const t = (key: string) => i18n.global.t(key)
+const isNetworkError = (err: AxiosError) => !err.response && !!err.request
 
 export const useAuthenticationStore = defineStore('authentication', () => {
   const isAuthenticated = ref(false)
@@ -31,7 +36,8 @@ export const useAuthenticationStore = defineStore('authentication', () => {
     terms: true,
   })
 
-  const rules = getLoginFormRules()
+  const rules = computed(() => getLoginFormRules(t))
+  const registerRules = computed(() => getRegisterFormRules(form, t))
 
   const resetForm = () => {
     form.email = ''
@@ -48,16 +54,19 @@ export const useAuthenticationStore = defineStore('authentication', () => {
     registerError.value = ''
     try {
       if (!form.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-        registerError.value = 'Please enter a valid email address'
+        registerError.value = t('auth.errors.invalid_email_format')
         return
       }
       const res = await HttpClient.post(ApiRoute.AUTHENTICATE.PREFLIGHT, {
         email: form.email,
         system: 'fnd',
-      }).catch(() => null)
+      }).catch((err: AxiosError) => {
+        if (isNetworkError(err)) registerError.value = t('auth.errors.network')
+        return null
+      })
       return res?.data?.data?.exist ?? false
     } catch {
-      registerError.value = 'Something went wrong. Please try again.'
+      registerError.value = t('auth.errors.unknown')
     } finally {
       loading.value = false
     }
@@ -69,7 +78,7 @@ export const useAuthenticationStore = defineStore('authentication', () => {
     registerError.value = ''
     try {
       if (!form.terms) {
-        registerError.value = 'You must agree to the terms and conditions'
+        registerError.value = t('auth.errors.terms_required')
         return false
       }
       const res = await HttpClient.post(ApiRoute.AUTHENTICATE.LOGIN, {
@@ -77,12 +86,18 @@ export const useAuthenticationStore = defineStore('authentication', () => {
         password: form.password,
         system: 'fnd',
       }).catch((err: AxiosError) => {
-        const data = err.response?.data as any
-        if (data?.data?.code === 'email_not_verified') {
+        if (isNetworkError(err)) {
+          registerError.value = t('auth.errors.network')
+          return null
+        }
+        const code = (err.response?.data as any)?.data?.code
+        if (code === 'email_not_verified') {
           authenticationStep.value = 'verify'
-          registerError.value = 'Please verify your email first.'
+          registerError.value = t('auth.errors.email_not_verified')
+        } else if (code === 'invalid_login_credentials' || code === 'token_expired') {
+          registerError.value = t('auth.errors.invalid_login_credentials')
         } else {
-          ElMessage.error('Invalid credentials.')
+          registerError.value = t('auth.errors.invalid_login_credentials')
         }
         return null
       })
@@ -90,11 +105,11 @@ export const useAuthenticationStore = defineStore('authentication', () => {
 
       const token = res.data.data.token.replace(/^"|"$/g, '')
       StorageUtils.set(StorageKey.JWT, token, 'local')
-      ElMessage.success('Login successful')
+      ElMessage.success(t('auth.success.login'))
       isAuthenticated.value = true
       return true
     } catch {
-      registerError.value = 'Login failed. Please try again.'
+      registerError.value = t('auth.errors.login_failed')
       return false
     } finally {
       loading.value = false
@@ -107,15 +122,15 @@ export const useAuthenticationStore = defineStore('authentication', () => {
     registerError.value = ''
     try {
       if (!form.terms) {
-        registerError.value = 'You must agree to the terms and conditions'
+        registerError.value = t('auth.errors.terms_required')
         return false
       }
       if (form.username.trim().length < 3) {
-        registerError.value = 'Display name must be at least 3 characters'
+        registerError.value = t('auth.validation.username_min')
         return false
       }
       if (form.password.length < 8) {
-        registerError.value = 'Password must be at least 8 characters'
+        registerError.value = t('auth.validation.password_min')
         return false
       }
       const res = await HttpClient.post(ApiRoute.AUTHENTICATE.REGISTER, {
@@ -124,25 +139,38 @@ export const useAuthenticationStore = defineStore('authentication', () => {
         password: form.password,
         system: 'fnd',
       }).catch((err: AxiosError) => {
+        if (isNetworkError(err)) {
+          registerError.value = t('auth.errors.network')
+          return null
+        }
         const data = err.response?.data as any
         const code = data?.data?.code
         if (code === 'email_already_registered') {
-          registerError.value = 'This email is already registered.'
+          registerError.value = t('auth.errors.email_already_registered')
         } else if (code === 'username_already_taken') {
-          registerError.value = 'This username is already taken.'
+          registerError.value = t('auth.errors.username_already_taken')
+        } else if (code === 'weak_password') {
+          registerError.value = t('auth.errors.weak_password')
+        } else if (code === 'registration_failed') {
+          registerError.value = t('auth.errors.registration_failed')
+        } else if (code?.startsWith('invalid_request_')) {
+          const field = code.replace('invalid_request_', '')
+          const key = `auth.errors.invalid_request_${field}`
+          registerError.value = i18n.global.te(key)
+            ? t(key)
+            : t('auth.errors.invalid_request_generic')
         } else {
-          registerError.value = data?.data?.message ?? 'Registration failed. Please try again.'
+          registerError.value = t('auth.errors.registration_failed')
         }
         return null
       })
       if (!res) return false
 
-      // Backend sends verification email — move to verify step
       authenticationStep.value = 'verify'
-      ElMessage.success('Account created! Check your email for the verification code.')
+      ElMessage.success(t('auth.success.register'))
       return true
     } catch {
-      registerError.value = 'Registration failed. Please try again.'
+      registerError.value = t('auth.errors.registration_failed')
       return false
     } finally {
       loading.value = false
@@ -155,7 +183,7 @@ export const useAuthenticationStore = defineStore('authentication', () => {
     registerError.value = ''
     try {
       if (!/^\d{6}$/.test(form.verifyCode)) {
-        registerError.value = 'Please enter the 6-digit code from your email'
+        registerError.value = t('auth.errors.invalid_otp_format')
         return false
       }
       const res = await HttpClient.post(ApiRoute.AUTHENTICATE.VERIFY_EMAIL, {
@@ -163,13 +191,17 @@ export const useAuthenticationStore = defineStore('authentication', () => {
         system: 'fnd',
         code: form.verifyCode,
       }).catch((err: AxiosError) => {
+        if (isNetworkError(err)) {
+          registerError.value = t('auth.errors.network')
+          return null
+        }
         const code = (err.response?.data as any)?.data?.code
         if (code === 'code_expired') {
-          registerError.value = "Your code has expired. Click 'Resend code' to get a new one."
+          registerError.value = t('auth.errors.code_expired')
         } else if (code === 'max_verify_attempts') {
-          registerError.value = "Too many incorrect attempts. Click 'Resend code' for a new code."
+          registerError.value = t('auth.errors.max_verify_attempts')
         } else {
-          registerError.value = 'Incorrect code. Please try again.'
+          registerError.value = t('auth.errors.verify_failed')
         }
         return null
       })
@@ -177,11 +209,11 @@ export const useAuthenticationStore = defineStore('authentication', () => {
 
       const token = res.data.data.token.replace(/^"|"$/g, '')
       StorageUtils.set(StorageKey.JWT, token, 'local')
-      ElMessage.success('Email verified! Welcome.')
+      ElMessage.success(t('auth.success.verified'))
       isAuthenticated.value = true
       return true
     } catch {
-      registerError.value = 'Verification failed. Please try again.'
+      registerError.value = t('auth.errors.verify_failed')
       return false
     } finally {
       loading.value = false
@@ -195,9 +227,10 @@ export const useAuthenticationStore = defineStore('authentication', () => {
         email: form.email,
         system: 'fnd',
       })
-      ElMessage.success('A new code has been sent to your email.')
-    } catch {
-      ElMessage.error('Could not resend the code. Please try again.')
+      ElMessage.success(t('auth.success.resent'))
+    } catch (err) {
+      const e = err as AxiosError
+      ElMessage.error(isNetworkError(e) ? t('auth.errors.network') : t('auth.errors.resend_failed'))
     }
   }
 
@@ -210,7 +243,7 @@ export const useAuthenticationStore = defineStore('authentication', () => {
     StorageUtils.remove(StorageKey.JWT, 'local')
     isAuthenticated.value = false
     userProfile.value = { username: '', roles: [] }
-    ElMessage.success('Logged out successfully.')
+    ElMessage.success(t('auth.success.logged_out'))
   }
 
   return {
@@ -221,6 +254,7 @@ export const useAuthenticationStore = defineStore('authentication', () => {
     formRef,
     form,
     rules,
+    registerRules,
     resetForm,
     handleAuthenticate,
     handleLogin,

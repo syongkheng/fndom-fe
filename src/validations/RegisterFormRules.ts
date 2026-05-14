@@ -1,17 +1,15 @@
-// import type { RegisterForm } from '@/interfaces/RegisterForm'
 import type { FormRules } from 'element-plus'
-import type { RegisterForm } from '@/interfaces/forms/RegisterForm.model'
 
-export function getRegisterFormRules(form: RegisterForm): FormRules {
+export function getRegisterFormRules(form: { password: string }, t: (key: string) => string): FormRules {
   return {
     email: [
-      { required: true, message: 'Please input email address', trigger: 'blur' },
+      { required: true, message: t('auth.validation.email_required'), trigger: 'blur' },
       {
         validator: (_, value, callback) => {
           const emailRegex =
             /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
           if (value && !emailRegex.test(value)) {
-            callback(new Error('Please input correct email address'))
+            callback(new Error(t('auth.validation.email_invalid')))
           } else {
             callback()
           }
@@ -20,32 +18,30 @@ export function getRegisterFormRules(form: RegisterForm): FormRules {
       },
     ],
     password: [
-      { required: true, message: 'Please input password', trigger: 'blur' },
-      { min: 8, message: 'Password must be at least 8 characters', trigger: 'blur' },
+      { required: true, message: t('auth.validation.password_required'), trigger: 'blur' },
+      { min: 8, message: t('auth.validation.password_min'), trigger: 'blur' },
     ],
     confirmPassword: [
-      { required: true, message: 'Please confirm password', trigger: 'blur' },
+      { required: true, message: t('auth.validation.confirm_password_required'), trigger: 'blur' },
       {
         validator: (_, value, callback) => {
           if (value !== form.password) {
-            console.error('Password mismatch')
-            callback(new Error('Password Mismatch'))
+            callback(new Error(t('auth.validation.confirm_password_mismatch')))
           }
         },
         trigger: ['blur', 'change'],
       },
     ],
     username: [
-      { required: true, message: 'Please input username', trigger: 'blur' },
-      { min: 3, message: 'Username must be at least 3 characters', trigger: 'blur' },
+      { required: true, message: t('auth.validation.username_required'), trigger: 'blur' },
+      { min: 3, message: t('auth.validation.username_min'), trigger: 'blur' },
     ],
     terms: [
-      { required: true, message: 'You must agree with the terms and conditions!' },
+      { required: true, message: t('auth.validation.terms_required') },
       {
         validator: (_, value, callback) => {
           if (!value) {
-            console.error('Must agree to T&C')
-            callback(new Error('You must agree with the terms and conditions!'))
+            callback(new Error(t('auth.validation.terms_required')))
           }
         },
         trigger: 'change',
