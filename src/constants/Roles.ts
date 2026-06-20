@@ -19,8 +19,6 @@ export const GRANTABLE_ROLES: RoleDefinition[] = [
   { value: 'TRAVEL_R1', label: 'Travel Member', module: 'TRAVEL', level: 1, description: 'Authenticated — can upload files in Travel' },
   { value: 'TRAVEL_R4', label: 'Travel Admin',  module: 'TRAVEL', level: 4, description: 'Travel admin privileges' },
   { value: 'TRAVEL_R5', label: 'Travel Super',  module: 'TRAVEL', level: 5, description: 'Full Travel control', danger: true },
-  // Sleep
-  { value: 'SLP_R5', label: 'Sleep AI Parser', module: 'SLP', level: 5, description: 'Can use AI screenshot parsing to import sleep data (requires feature flag)', danger: false },
   // System
   { value: 'SYSTEM_R5', label: 'System Super Admin', module: 'SYSTEM', level: 5, description: 'Full platform access — all modules', danger: true },
 ]
@@ -29,6 +27,5 @@ export const MODULE_COLORS: Record<string, string> = {
   KS:     'primary',
   PPHS:   'warning',
   TRAVEL: 'success',
-  SLP:    'info',
   SYSTEM: 'danger',
 }

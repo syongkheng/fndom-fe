@@ -5,6 +5,7 @@ export enum StorageKey {
   JWT = 'token',
   DOUYIN_RECENT = 'douyinRecent',
   SCENIC_CHECKLIST = 'scenicChecklist',
+  SS_API_KEY = 'ssApiKey',
 }
 
 type StorageType = 'local' | 'session'

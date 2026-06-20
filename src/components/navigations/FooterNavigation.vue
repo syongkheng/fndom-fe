@@ -1,12 +1,10 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 import { useNav } from '@/hooks/useNav'
-import { useFeatureFlagStore } from '@/stores/featureFlags'
 import { usePermission } from '@/composables/usePermission'
 import { useI18n } from 'vue-i18n'
 
 const { redirectTo } = useNav()
-const flagStore = useFeatureFlagStore()
 const { hasModuleAccess } = usePermission()
 const { t } = useI18n()
 const isInternal = computed(() => hasModuleAccess('SYSTEM', 5))
@@ -30,7 +28,7 @@ const year = new Date().getFullYear()
       <!-- Sitemap -->
       <div class="footer-sitemap">
 
-        <div class="footer-col" v-if="!isInternal && flagStore.isEnabled('travel')">
+        <div class="footer-col" v-if="!isInternal">
           <div class="col-heading">{{ t('footer.sections.plan') }}</div>
           <ul class="col-links">
             <li><button class="footer-link" @click="redirectTo('/travel')">{{ t('nav.travel') }}</button></li>
@@ -42,7 +40,9 @@ const year = new Date().getFullYear()
           <ul class="col-links">
             <li><button class="footer-link" @click="redirectTo('/')">{{ t('footer.links.home') }}</button></li>
             <li><button class="footer-link" @click="redirectTo('/profile')">{{ t('footer.links.profile') }}</button></li>
+            <li><button class="footer-link" @click="redirectTo('/baby')">{{ t('footer.links.babyTracker') }}</button></li>
             <li v-if="isInternal"><button class="footer-link" @click="redirectTo('/workbench')">{{ t('footer.links.workbench') }}</button></li>
+            <li v-if="isInternal"><button class="footer-link" @click="redirectTo('/llm')">Marketplace</button></li>
           </ul>
         </div>
 

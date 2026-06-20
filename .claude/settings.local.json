@@ -6,7 +6,9 @@
       "Bash(java -version)",
       "Bash(tree:*)",
       "Bash(cd:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Read(//Users/rowense/Desktop/dev/qindom/**)",
+      "Bash(npm run *)"
     ]
   }
 }

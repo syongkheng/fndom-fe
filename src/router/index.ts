@@ -25,87 +25,88 @@ const router = createRouter({
       path: '/pphs',
       name: 'pphs',
       component: () => import('../components/views/hdb/HomeView.vue'),
-      beforeEnter: [
-        async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
-        async (to, from, next) => useRouteGuards().featureGuard({ next, featureKey: 'pphs' }),
-      ],
+      beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
     },
     {
       path: '/scenic',
       name: 'scenic',
       component: () => import('../components/views/scenic/HomeView.vue'),
-      beforeEnter: [
-        async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
-        async (to, from, next) =>
-          useRouteGuards().featureGuard({ next, featureKey: 'china-scenic' }),
-      ],
+      beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
     },
     {
       path: '/flat',
       name: 'flat',
       component: () => import('../components/views/flat/HomeView.vue'),
-      beforeEnter: [
-        async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
-        async (to, from, next) =>
-          useRouteGuards().featureGuard({ next, featureKey: 'flat-analysis' }),
-      ],
+      beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
     },
     {
       path: '/travel',
       name: 'travel',
       component: () => import('../components/views/travel/TravelListView.vue'),
-      beforeEnter: [
-        async (to, from, next) => useRouteGuards().authGuard({ next }),
-        async (to, from, next) => useRouteGuards().featureGuard({ next, featureKey: 'travel' }),
-      ],
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
     },
     {
       path: '/travel/v/:shortCode',
       name: 'travel-viewer',
       component: () => import('../components/views/travel/TravelViewerView.vue'),
-      beforeEnter: async (to, from, next) =>
-        useRouteGuards().featureGuard({ next, featureKey: 'travel' }),
     },
     {
       path: '/travel/draft',
       name: 'travel-draft',
       component: () => import('../components/views/travel/TravelPlannerView.vue'),
-      beforeEnter: async (to, from, next) =>
-        useRouteGuards().featureGuard({ next, featureKey: 'travel' }),
     },
     {
       path: '/travel/:sessionId',
       name: 'travel-planner',
       component: () => import('../components/views/travel/TravelPlannerView.vue'),
-      beforeEnter: async (to, from, next) =>
-        useRouteGuards().featureGuard({ next, featureKey: 'travel' }),
+    },
+    {
+      path: '/baby',
+      name: 'baby-tracker',
+      component: () => import('../components/views/baby/BabyTrackerView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
     },
     {
       path: '/douyin',
       name: 'douyin',
       component: () => import('../components/views/douyin/HomeView.vue'),
-      beforeEnter: [
-        async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
-        async (to, from, next) => useRouteGuards().featureGuard({ next, featureKey: 'douyin' }),
-      ],
-    },
-    {
-      path: '/sleep',
-      name: 'sleep',
-      component: () => import('../components/views/sleep/HomeView.vue'),
-      beforeEnter: [
-        async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
-        async (to, from, next) => useRouteGuards().featureGuard({ next, featureKey: 'sleep' }),
-      ],
+      beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
     },
     {
       path: '/telegram',
       name: 'telegram',
       component: () => import('../components/views/telegram/HomeView.vue'),
-      beforeEnter: [
-        async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
-        async (to, from, next) => useRouteGuards().featureGuard({ next, featureKey: 'telegram' }),
-      ],
+      beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
+    },
+    {
+      path: '/ippt',
+      name: 'ippt',
+      component: () => import('../components/views/ippt/HomeView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
+    },
+    {
+      path: '/llm',
+      name: 'llm',
+      component: () => import('../components/views/marketplace/MarketplaceView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
+    },
+    {
+      path: '/llm/chat',
+      name: 'llm-chat',
+      component: () => import('../components/views/marketplace/ChatView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
+    },
+    {
+      path: '/llm/wallet',
+      name: 'llm-wallet',
+      component: () => import('../components/views/marketplace/WalletView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
+    },
+    {
+      path: '/llm/api-key',
+      name: 'llm-api-key',
+      component: () => import('../components/views/marketplace/ApiKeyView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
     },
     {
       path: '/admin',
@@ -120,15 +121,15 @@ const router = createRouter({
       beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
     },
     {
-      path: '/admin/features',
-      name: 'admin-features',
-      component: () => import('../components/views/admin/FeatureFlagView.vue'),
-      beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
-    },
-    {
       path: '/admin/tg-image',
       name: 'admin-tg-image',
       component: () => import('../components/views/admin/TgImageAdminView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
+    },
+    {
+      path: '/admin/llm-pricing',
+      name: 'admin-llm-pricing',
+      component: () => import('../components/views/admin/MarketplacePricingView.vue'),
       beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
     },
     {

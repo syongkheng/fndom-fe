@@ -1,28 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
 import { useNav } from '@/hooks/useNav'
 import { usePermission } from '@/composables/usePermission'
-import { useFeatureFlagStore } from '@/stores/featureFlags'
 
 const nav = useNav()
 const { hasModuleAccess } = usePermission()
-const flagStore = useFeatureFlagStore()
-
-onMounted(async () => {
-  if (!flagStore.loaded) await flagStore.fetchFlags()
-})
 
 const modules = [
-  // {
-  //   key: 'dashboard',
-  //   title: 'Dashboard',
-  //   description: 'Overview of your activity and stats',
-  //   icon: '📊',
-  //   path: '/dashboard',
-  // },
   {
     key: 'pphs',
-    featureKey: 'pphs',
     title: 'PPHS',
     description: 'Public housing info, bus stops and MRT proximity',
     icon: '🏢',
@@ -30,7 +15,6 @@ const modules = [
   },
   {
     key: 'flat',
-    featureKey: 'flat-analysis',
     title: 'Flat Analysis',
     description: 'Search by postal code · MRT and bus stop proximity',
     icon: '🏠',
@@ -38,7 +22,6 @@ const modules = [
   },
   {
     key: 'scenic',
-    featureKey: 'china-scenic',
     title: 'Scenic Spots',
     description: 'China 5A scenic spots · Track your visits by province',
     icon: '🏔️',
@@ -46,7 +29,6 @@ const modules = [
   },
   {
     key: 'travel',
-    featureKey: 'travel',
     title: 'Travel',
     description: 'Itinerary planning and collaboration',
     icon: '✈️',
@@ -54,40 +36,33 @@ const modules = [
   },
   {
     key: 'douyin',
-    featureKey: 'douyin',
     title: 'Douyin Live',
     description: 'Check if a Douyin user is livestreaming',
     icon: '📺',
     path: '/douyin',
   },
   {
-    key: 'sleep',
-    featureKey: 'sleep',
-    title: 'Sleep',
-    description: 'Track nightly sleep stages, SpO2 and body battery',
-    icon: '😴',
-    path: '/sleep',
-  },
-  {
     key: 'telegram',
-    featureKey: 'telegram',
     title: 'Telegram Storage',
     description: 'Upload media via Telegram bot and retrieve by ID',
     icon: '📦',
     path: '/telegram',
   },
-  // {
-  //   key: 'habit',
-  //   title: 'Habit',
-  //   description: 'Track and build daily habits',
-  //   icon: '📋',
-  //   path: '/habit',
-  // },
+  {
+    key: 'ippt',
+    title: 'IPPT · Strider',
+    description: 'Track push-ups, sit-ups and 2.4km run · Project your score',
+    icon: '🪖',
+    path: '/ippt',
+  },
+  {
+    key: 'marketplace',
+    title: 'Marketplace',
+    description: 'Browse and chat with AI-powered services',
+    icon: '🛒',
+    path: '/llm',
+  },
 ]
-
-const visibleModules = computed(() =>
-  modules.filter(m => flagStore.isEnabled(m.featureKey))
-)
 </script>
 
 <template>
@@ -98,7 +73,7 @@ const visibleModules = computed(() =>
     </section>
 
     <div class="module-grid">
-      <div v-for="mod in visibleModules" :key="mod.key" class="module-tile" @click="nav.redirectTo(mod.path)">
+      <div v-for="mod in modules" :key="mod.key" class="module-tile" @click="nav.redirectTo(mod.path)">
         <span class="module-icon">{{ mod.icon }}</span>
         <div class="module-text">
           <div class="module-title">{{ mod.title }}</div>
@@ -110,7 +85,7 @@ const visibleModules = computed(() =>
         <span class="module-icon">⚙️</span>
         <div class="module-text">
           <div class="module-title">Admin</div>
-          <div class="module-desc">Manage users, roles, and feature flags</div>
+          <div class="module-desc">Manage users, roles, and system settings</div>
         </div>
       </div>
     </div>

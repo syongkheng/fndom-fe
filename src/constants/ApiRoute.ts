@@ -41,10 +41,6 @@ export const ApiRoute = {
   ADMIN: {
     LIST_USERS: `/api/auth/admin/users`,
     UPDATE_USER_ROLES: (id: number) => `/api/auth/admin/users/${id}/roles`,
-    LIST_FLAGS: `/api/feature/admin`,
-    CREATE_FLAG: `/api/feature/create`,
-    UPDATE_FLAG: (key: string) => `/api/feature/${key}/update`,
-    TOGGLE_FLAG: (key: string) => `/api/feature/${key}/toggle`,
   },
   FILE: {
     CREATE_TG: `/api/file/tg`,
@@ -59,21 +55,9 @@ export const ApiRoute = {
       REMOVE: `/api/img/admin/remove`,
     },
   },
-  FEATURE: {
-    GET_ALL: `/api/feature`,
-    TOGGLE: (key: string) => `/api/feature/${key}/toggle`,
-  },
   DOUYIN: {
     CHECK_LIVE: `/api/douyin/live`,
     RANK_LIST: `/api/douyin/ranklist`,
-  },
-  SLEEP: {
-    GET_ALL: `/api/sleep`,
-    CREATE: `/api/sleep`,
-    UPDATE: `/api/sleep/update`,
-    DELETE: `/api/sleep/delete`,
-    BULK: `/api/sleep/bulk`,
-    PARSE_SCREENSHOT: `/api/sleep/parse-screenshot`,
   },
   SCENIC: {
     GET_ALL: `/api/scenic`,
@@ -90,6 +74,27 @@ export const ApiRoute = {
     MEDIA_EXPIRE: (id: string) => `/api/telegram/media/${id}/expire`,
     MEDIA_UPLOAD: `/api/telegram/media/upload`,
     MEDIA_PREVIEW: (id: string) => `/api/telegram/media/${id}/preview`,
+  },
+  MARKETPLACE: {
+    TRIAL_KEY:        `/api/llm/trial-key`,
+    WALLET:           `/api/llm/wallet`,
+    TOPUP:            `/api/llm/wallet/topup`,
+    API_KEY:          `/api/llm/api-key`,
+    ROTATE_API_KEY:   `/api/llm/api-key/rotate`,
+    CHAT:             `/api/llm/chat`,
+    TRIAL_CHAT:       `/api/llm/trial/chat`,
+    SESSIONS:         `/api/llm/sessions`,
+    SESSION_MESSAGES: (sessionId: string) => `/api/llm/sessions/${sessionId}`,
+    DELETE_SESSION:   (sessionId: string) => `/api/llm/sessions/${sessionId}/delete`,
+    MODELS:           `/api/llm/models`,
+    ADMIN_MODELS:     `/api/llm/admin/models`,
+    ADMIN_MODEL:      (modelId: string) => `/api/llm/admin/models/${encodeURIComponent(modelId)}`,
+    ADMIN_SETTINGS:   `/api/llm/admin/settings`,
+  },
+  SS_BABY: {
+    FEEDING:  `/v1/ss/baby/feeding`,
+    DIAPER:   `/v1/ss/baby/diaper`,
+    API_KEY:  `/api/baby/api-key`,
   },
   DATA_GOV_SG: {
     // HDB Resale Flat Prices (Jan 2017 onwards) — update resource ID here if dataset changes

@@ -66,6 +66,7 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   ├── featureFlags.ts     — fetch + cache feature flags
 │   ├── itinerary.ts        — travel CRUD, file upload, collaborators
 │   ├── pphs.ts             — PPHS/HDB records + coordinate updates
+│   ├── ippt.ts             — IPPT profile, activity log, badges, plan, events (localStorage persisted)
 │   ├── event.ts            — FND events (commented out)
 │   └── notice.ts           — FND notices (commented out)
 │
@@ -120,7 +121,10 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   ├── TELEGRAM  /telegram  — auth + feature
 │   │   └── HomeView.vue           — media management
 │   │
-│   └── ADMIN  /admin  — SYSTEM_R5 only
+│   ├── IPPT / STRIDER  /ippt  — SYSTEM_R5 + feature:ippt
+   │   └── HomeView.vue           — single-SFC with 5-tab internal nav (dashboard, log, calculator, schedule, plan) + pushed achievements/profile; onboarding modal on first open
+   │
+   └── ADMIN  /admin  — SYSTEM_R5 only
 │       ├── AdminView.vue
 │       ├── UserManagementView.vue
 │       └── FeatureFlagView.vue

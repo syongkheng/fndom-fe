@@ -171,6 +171,7 @@ const fetchRankList = async () => {
       params: {
         roomId: result.value.roomId,
         anchorId: result.value.anchorId,
+        secAnchorId: result.value.secAnchorId,
       },
     })
     rankList.value = res.data.data as DouyinRankUser[]

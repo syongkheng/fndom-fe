@@ -1,6 +1,5 @@
 import { useTokenVerification } from '@/hooks/useTokenVerification'
 import { useAuthenticationStore } from '@/stores/authentication'
-import { useFeatureFlagStore } from '@/stores/featureFlags'
 import { ElMessage } from 'element-plus'
 import type { NavigationGuardNext } from 'vue-router'
 
@@ -60,30 +59,9 @@ export function useRouteGuards() {
     }
   }
 
-  const featureGuard = async ({
-    next,
-    featureKey,
-  }: {
-    next: NavigationGuardNext
-    featureKey: string
-  }) => {
-    try {
-      const flagStore = useFeatureFlagStore()
-      if (!flagStore.loaded) await flagStore.fetchFlags()
-      if (!flagStore.isEnabled(featureKey)) {
-        ElMessage.warning('This feature is currently unavailable.')
-        return next('/')
-      }
-      next()
-    } catch {
-      next('/')
-    }
-  }
-
   return {
     authGuard,
     collabListGuard,
     systemR5Guard,
-    featureGuard,
   }
 }

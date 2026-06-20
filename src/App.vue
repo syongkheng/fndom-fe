@@ -33,10 +33,10 @@ watch(() => route.query.showLogin, (newVal) => {
       <!-- <SideNavigation /> -->
       <MobileNavigation />
       <main>
-        <div class="wrapper">
+        <div class="wrapper" :class="{ 'wrapper--fullbleed': ['llm', 'llm-chat'].includes(route.name as string) }">
           <RouterView />
         </div>
-        <footer>
+        <footer v-if="route.name !== 'llm-chat'">
           <FooterNavigation />
         </footer>
       </main>
@@ -52,15 +52,18 @@ watch(() => route.query.showLogin, (newVal) => {
   display: flex;
   padding: 1em;
   flex: 1;
-  /* fill available space in main */
   overflow-y: auto;
-  /* enable vertical scrolling if content exceeds height */
   overflow-x: hidden;
-  /* prevent horizontal overflow */
   box-sizing: border-box;
   min-height: calc(100vh - 80px - 220px);
   justify-content: center;
   width: 100vw;
+}
+
+.wrapper--fullbleed {
+  padding: 0;
+  justify-content: flex-start;
+  min-height: 0;
 }
 
 main {

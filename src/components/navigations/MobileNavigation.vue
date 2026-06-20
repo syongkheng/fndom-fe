@@ -4,14 +4,12 @@ import { ElDialog, ElDivider, ElMessage } from 'element-plus'
 import { useLayoutStateStore } from '@/stores/layoutState'
 import { useNav } from '@/hooks/useNav'
 import { useAuthenticationStore } from '@/stores/authentication'
-import { useFeatureFlagStore } from '@/stores/featureFlags'
 import { usePermission } from '@/composables/usePermission'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 
 const authStore = useAuthenticationStore()
 const layoutStore = useLayoutStateStore()
-const flagStore = useFeatureFlagStore()
 const navigate = useNav()
 const { hasModuleAccess } = usePermission()
 const { t } = useI18n()
@@ -31,20 +29,17 @@ const handleLogout = () => {
 }
 
 const publicModules = [
-  { label: 'PPHS', path: '/pphs', featureKey: 'pphs' },
-  { label: 'Flat Analysis', path: '/flat', featureKey: 'flat-analysis' },
-  { label: 'Scenic Spots', path: '/scenic', featureKey: 'china-scenic' },
+  { label: 'PPHS', path: '/pphs' },
+  { label: 'Flat Analysis', path: '/flat' },
+  { label: 'Scenic Spots', path: '/scenic' },
 ]
 
 const personalModules = [
-  { label: 'Travel', path: '/travel', featureKey: 'travel' },
-  { label: 'Sleep', path: '/sleep', featureKey: 'sleep' },
-  { label: 'Douyin', path: '/douyin', featureKey: 'douyin' },
-  { label: 'Telegram Storage', path: '/telegram', featureKey: 'telegram' },
+  { label: 'Travel', path: '/travel' },
+  { label: 'Douyin', path: '/douyin' },
+  { label: 'Telegram Storage', path: '/telegram' },
+  { label: 'Marketplace', path: '/llm' },
 ]
-
-const visiblePublic = computed(() => publicModules.filter(m => flagStore.isEnabled(m.featureKey)))
-const visiblePersonal = computed(() => personalModules.filter(m => flagStore.isEnabled(m.featureKey)))
 </script>
 
 <template>
@@ -60,25 +55,33 @@ const visiblePersonal = computed(() => personalModules.filter(m => flagStore.isE
       </span>
 
       <!-- Travel — visible to everyone -->
-      <template v-if="flagStore.isEnabled('travel')">
+      <template>
         <el-divider class="menu-divider" />
         <span class="menu-item" @click="handleMenuClick(() => navigate.redirectTo('/travel'))">
           <span class="menu-label">{{ t('nav.travel') }}</span>
         </span>
       </template>
 
-      <!-- Internal modules — SYSTEM_R5 only -->
-      <template v-if="isInternal && visiblePublic.length">
+      <!-- Baby Tracker — any logged-in user -->
+      <template v-if="isAuthenticated">
         <el-divider class="menu-divider" />
-        <span v-for="mod in visiblePublic" :key="mod.path" class="menu-item"
+        <span class="menu-item" @click="handleMenuClick(() => navigate.redirectTo('/baby'))">
+          <span class="menu-label">{{ t('nav.babyTracker') }}</span>
+        </span>
+      </template>
+
+      <!-- Internal modules — SYSTEM_R5 only -->
+      <template v-if="isInternal">
+        <el-divider class="menu-divider" />
+        <span v-for="mod in publicModules" :key="mod.path" class="menu-item"
           @click="handleMenuClick(() => navigate.redirectTo(mod.path))">
           <span class="menu-label">{{ mod.label }}</span>
         </span>
       </template>
 
-      <template v-if="isInternal && isAuthenticated && visiblePersonal.length">
+      <template v-if="isInternal && isAuthenticated">
         <el-divider class="menu-divider" />
-        <span v-for="mod in visiblePersonal.filter(m => m.path !== '/travel')" :key="mod.path" class="menu-item"
+        <span v-for="mod in personalModules.filter(m => m.path !== '/travel')" :key="mod.path" class="menu-item"
           @click="handleMenuClick(() => navigate.redirectTo(mod.path))">
           <span class="menu-label">{{ mod.label }}</span>
         </span>
