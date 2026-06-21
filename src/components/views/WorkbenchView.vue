@@ -49,6 +49,13 @@ const modules = [
     path: '/telegram',
   },
   {
+    key: 'imghost',
+    title: 'Image CDN',
+    description: 'Upload an image · Get a shareable CDN link',
+    icon: '🖼️',
+    path: '/imghost',
+  },
+  {
     key: 'ippt',
     title: 'IPPT · Strider',
     description: 'Track push-ups, sit-ups and 2.4km run · Project your score',

@@ -133,6 +133,12 @@ const router = createRouter({
       beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
     },
     {
+      path: '/imghost',
+      name: 'imghost',
+      component: () => import('../components/views/imghost/HomeView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
+    },
+    {
       path: '/404',
       name: '404',
       component: () => import('../components/views/UnauthorizedView.vue'),

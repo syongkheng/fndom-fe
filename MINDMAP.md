@@ -121,6 +121,9 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   ├── TELEGRAM  /telegram  — auth + feature
 │   │   └── HomeView.vue           — media management
 │   │
+│   ├── IMAGE CDN  /imghost  — SYSTEM_R5
+│   │   └── HomeView.vue           — drag-drop upload → shareable Telegram CDN URL
+│   │
 │   ├── IPPT / STRIDER  /ippt  — SYSTEM_R5 + feature:ippt
    │   └── HomeView.vue           — single-SFC with 5-tab internal nav (dashboard, log, calculator, schedule, plan) + pushed achievements/profile; onboarding modal on first open
    │
