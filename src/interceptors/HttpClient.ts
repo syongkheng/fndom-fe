@@ -1,5 +1,10 @@
 import { StorageKey, StorageUtils } from '@/utilities/StorageUtils'
-import axios from 'axios'
+import axios, { type AxiosError } from 'axios'
+import { ElMessage } from 'element-plus'
+import { i18n } from '@/i18n'
+const t = (key: string) => i18n.global.t(key)
+import { useAuthenticationStore } from '@/stores/authentication'
+import { useLayoutStateStore } from '@/stores/layoutState'
 
 // Holds the active X-API-Key (personal key takes priority over trial key).
 // Updated by the marketplace store whenever the key changes.
@@ -38,6 +43,24 @@ HttpClient.interceptors.request.use(
     return config
   },
   (error) => {
+    return Promise.reject(error)
+  },
+)
+
+// Response interceptor — handles globally when the server rejects a JWT
+HttpClient.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError) => {
+    const data = error.response?.data as { status?: string } | undefined
+    if (error.response?.status === 401 && data?.status === 'token_invalid') {
+      const authStore = useAuthenticationStore()
+      if (authStore.isAuthenticated) {
+        const layoutStore = useLayoutStateStore()
+        authStore.handleLogout()
+        ElMessage.warning(t('toast.sessionExpired'))
+        layoutStore.loginDialog.setTrue()
+      }
+    }
     return Promise.reject(error)
   },
 )

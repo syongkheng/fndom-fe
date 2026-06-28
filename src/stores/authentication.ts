@@ -9,6 +9,7 @@ import { getLoginFormRules } from '@/validations/LoginFormRules'
 import { getRegisterFormRules } from '@/validations/RegisterFormRules'
 import type { AxiosError } from 'axios'
 import { i18n } from '@/i18n'
+import { Analytics } from '@/analytics/events'
 
 const t = (key: string) => i18n.global.t(key)
 const isNetworkError = (err: AxiosError) => !err.response && !!err.request
@@ -107,6 +108,7 @@ export const useAuthenticationStore = defineStore('authentication', () => {
       StorageUtils.set(StorageKey.JWT, token, 'local')
       ElMessage.success(t('auth.success.login'))
       isAuthenticated.value = true
+      Analytics.authLogin()
       return true
     } catch {
       registerError.value = t('auth.errors.login_failed')
@@ -168,6 +170,7 @@ export const useAuthenticationStore = defineStore('authentication', () => {
 
       authenticationStep.value = 'verify'
       ElMessage.success(t('auth.success.register'))
+      Analytics.authRegister()
       return true
     } catch {
       registerError.value = t('auth.errors.registration_failed')
@@ -211,6 +214,7 @@ export const useAuthenticationStore = defineStore('authentication', () => {
       StorageUtils.set(StorageKey.JWT, token, 'local')
       ElMessage.success(t('auth.success.verified'))
       isAuthenticated.value = true
+      Analytics.authVerified()
       return true
     } catch {
       registerError.value = t('auth.errors.verify_failed')
@@ -240,6 +244,7 @@ export const useAuthenticationStore = defineStore('authentication', () => {
   }
 
   const handleLogout = () => {
+    Analytics.authLogout()
     StorageUtils.remove(StorageKey.JWT, 'local')
     isAuthenticated.value = false
     userProfile.value = { username: '', roles: [] }

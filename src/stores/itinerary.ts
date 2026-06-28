@@ -2,6 +2,8 @@ import { reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { DateUtils } from '@/utilities/DateUtils'
 import { ElMessage } from 'element-plus'
+import { i18n } from '@/i18n'
+const t = (key: string, values?: Record<string, unknown>) => i18n.global.t(key, values ?? {})
 import HttpClient from '@/interceptors/HttpClient'
 import type { Itinerary } from '@/interfaces/forms/itinerary/Itinerary'
 import { ApiRoute } from '@/constants/ApiRoute'
@@ -256,7 +258,7 @@ export const useItineraryStore = defineStore('itinerary', () => {
         itinerary.durationInDays = newDays
         if (differenceInDays < 0) {
           ElMessage({
-            message: `There is a difference of ${differenceInDays} days. Any existing activities will have to be rescheduled.`,
+            message: t('toast.itineraryDaysDiff', { days: Math.abs(differenceInDays) }),
             type: 'warning',
             plain: false,
             duration: 6000,

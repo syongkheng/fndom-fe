@@ -2,10 +2,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
 
 const router = useRouter()
+const { t } = useI18n()
 const loading        = ref(true)
 const saving         = ref<string | null>(null)
 const savingSettings = ref(false)
@@ -67,7 +69,7 @@ async function load() {
     exchangeRate.value = s.exchangeRateUsdSgd
     markupPct.value    = s.platformMarkupPct
   } catch {
-    ElMessage.error('Failed to load pricing config.')
+    ElMessage.error(t('toast.adminPricingLoadFailed'))
   } finally {
     loading.value = false
   }
@@ -80,9 +82,9 @@ async function saveSettings() {
       exchangeRateUsdSgd: exchangeRate.value,
       platformMarkupPct:  markupPct.value,
     })
-    ElMessage.success('Global settings saved.')
+    ElMessage.success(t('toast.adminPricingSettingsSaved'))
   } catch {
-    ElMessage.error('Failed to save settings.')
+    ElMessage.error(t('toast.adminPricingSettingsFailed'))
   } finally {
     savingSettings.value = false
   }
@@ -99,9 +101,9 @@ async function saveRow(row: AdminRow) {
     })
     row.isActive = row._active
     row.badge    = row._badge || null
-    ElMessage.success(`${row.displayName} updated.`)
+    ElMessage.success(t('toast.adminPricingModelUpdated', { name: row.displayName }))
   } catch {
-    ElMessage.error('Failed to save. Please try again.')
+    ElMessage.error(t('toast.adminPricingModelFailed'))
   } finally {
     saving.value = null
   }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { CopyDocument } from '@element-plus/icons-vue'
 import { Bar, Doughnut } from 'vue-chartjs'
 import {
@@ -19,6 +20,7 @@ import type { DiaperLoadLevel } from '@/interfaces/Baby.model'
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend)
 
 const store = useBabyTrackingStore()
+const { t } = useI18n()
 
 // ── Main tab ─────────────────────────────────────────────────
 const activeMainTab = ref<'dashboard' | 'log' | 'history' | 'api-key'>(
@@ -37,7 +39,7 @@ const freshlyGeneratedKey = ref('')
 
 async function copyAndDismiss() {
   await navigator.clipboard.writeText(freshlyGeneratedKey.value)
-  ElMessage.success('API key copied.')
+  ElMessage.success(t('toast.babyKeyCopied'))
   freshlyGeneratedKey.value = ''
 }
 
@@ -71,9 +73,9 @@ async function handleGenerateKey() {
     localKeyPresent.value = true
     apiKeyStatus.value = await store.fetchApiKeyStatus()
     await Promise.allSettled([store.fetchFeeding(), store.fetchDiaper()])
-    ElMessage({ type: 'warning', message: 'Save this key now — it will not be shown again.', duration: 6000 })
+    ElMessage({ type: 'warning', message: t('toast.babyKeyWarning'), duration: 6000 })
   } catch {
-    ElMessage.error('Failed to generate API key.')
+    ElMessage.error(t('toast.babyKeyFailed'))
   } finally {
     keyGenerating.value = false
   }
@@ -102,7 +104,7 @@ async function handleRevokeKey() {
     localKeyPresent.value = false
     freshlyGeneratedKey.value = ''
     apiKeyStatus.value = { hasKey: false, createdDt: null, keyHint: null }
-    ElMessage.success('API key revoked.')
+    ElMessage.success(t('toast.babyKeyRevoked'))
   } catch {
     // ElMessageBox cancel throws — ignore
   } finally {
@@ -136,11 +138,11 @@ const disableFutureDates = (date: Date) => date.getTime() > Date.now()
 
 async function handleLogDiaper() {
   if (diaperHasStool.value && !diaperStoolLoad.value) {
-    ElMessage.warning('Please select a stool load.')
+    ElMessage.warning(t('toast.babyStoolRequired'))
     return
   }
   if (diaperHasUrine.value && !diaperUrineLoad.value) {
-    ElMessage.warning('Please select a urine load.')
+    ElMessage.warning(t('toast.babyUrineRequired'))
     return
   }
 
@@ -153,14 +155,14 @@ async function handleLogDiaper() {
       stoolLoad: diaperHasStool.value ? diaperStoolLoad.value : undefined,
       urineLoad: diaperHasUrine.value ? diaperUrineLoad.value : undefined,
     })
-    ElMessage.success('Diaper change logged.')
+    ElMessage.success(t('toast.babyDiaperLogged'))
     diaperChangedAt.value = new Date()
     diaperHasStool.value = false
     diaperHasUrine.value = false
     diaperStoolLoad.value = undefined
     diaperUrineLoad.value = undefined
   } catch {
-    ElMessage.error('Failed to log diaper change.')
+    ElMessage.error(t('toast.babyDiaperFailed'))
   } finally {
     diaperSaving.value = false
   }
@@ -173,18 +175,18 @@ const feedingSaving = ref(false)
 
 async function handleLogFeeding() {
   if (!feedingTiming.value || !feedingQty.value) {
-    ElMessage.warning('Please fill in both timing and quantity.')
+    ElMessage.warning(t('toast.babyFeedingRequired'))
     return
   }
 
   feedingSaving.value = true
   try {
     await store.logFeeding({ timing: feedingTiming.value, qty: feedingQty.value })
-    ElMessage.success('Feeding logged.')
+    ElMessage.success(t('toast.babyFeedingLogged'))
     feedingTiming.value = ''
     feedingQty.value = ''
   } catch {
-    ElMessage.error('Failed to log feeding.')
+    ElMessage.error(t('toast.babyFeedingFailed'))
   } finally {
     feedingSaving.value = false
   }

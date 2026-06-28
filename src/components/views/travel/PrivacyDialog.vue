@@ -1,6 +1,8 @@
 <script lang="ts" setup>
 import { ref, computed, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 import OtpInput from '@/components/common/OtpInput.vue'
 
 const props = defineProps<{
@@ -28,7 +30,7 @@ const clearChallenge = () => {
 const saveChallenge = () => {
   const code = challengeDraft.value
   if (code && code.length !== 6) {
-    ElMessage.warning('Access code must be exactly 6 digits.')
+    ElMessage.warning(t('toast.travelInvalidCode'))
     return
   }
   emit('save', code || undefined)

@@ -1,99 +1,68 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useNav } from '@/hooks/useNav'
 import { usePermission } from '@/composables/usePermission'
+import { useI18n } from 'vue-i18n'
 
 const nav = useNav()
 const { hasModuleAccess } = usePermission()
+const { t } = useI18n()
 
-const modules = [
-  {
-    key: 'pphs',
-    title: 'PPHS',
-    description: 'Public housing info, bus stops and MRT proximity',
-    icon: '🏢',
-    path: '/pphs',
-  },
-  {
-    key: 'flat',
-    title: 'Flat Analysis',
-    description: 'Search by postal code · MRT and bus stop proximity',
-    icon: '🏠',
-    path: '/flat',
-  },
-  {
-    key: 'scenic',
-    title: 'Scenic Spots',
-    description: 'China 5A scenic spots · Track your visits by province',
-    icon: '🏔️',
-    path: '/scenic',
-  },
-  {
-    key: 'travel',
-    title: 'Travel',
-    description: 'Itinerary planning and collaboration',
-    icon: '✈️',
-    path: '/travel',
-  },
-  {
-    key: 'douyin',
-    title: 'Douyin Live',
-    description: 'Check if a Douyin user is livestreaming',
-    icon: '📺',
-    path: '/douyin',
-  },
-  {
-    key: 'telegram',
-    title: 'Telegram Storage',
-    description: 'Upload media via Telegram bot and retrieve by ID',
-    icon: '📦',
-    path: '/telegram',
-  },
-  {
-    key: 'imghost',
-    title: 'Image CDN',
-    description: 'Upload an image · Get a shareable CDN link',
-    icon: '🖼️',
-    path: '/imghost',
-  },
-  {
-    key: 'ippt',
-    title: 'IPPT · Strider',
-    description: 'Track push-ups, sit-ups and 2.4km run · Project your score',
-    icon: '🪖',
-    path: '/ippt',
-  },
-  {
-    key: 'marketplace',
-    title: 'Marketplace',
-    description: 'Browse and chat with AI-powered services',
-    icon: '🛒',
-    path: '/llm',
-  },
-]
+const MODULE_ICONS: Record<string, string> = {
+  pphs: '🏢', flat: '🏠', scenic: '🏔️', travel: '✈️',
+  douyin: '📺', telegram: '📦', imghost: '🖼️', ippt: '🪖', marketplace: '🛒',
+}
+const MODULE_PATHS: Record<string, string> = {
+  pphs: '/pphs', flat: '/flat', scenic: '/scenic', travel: '/travel',
+  douyin: '/douyin', telegram: '/telegram', imghost: '/imghost', ippt: '/ippt', marketplace: '/llm',
+}
+const MODULE_KEYS = ['pphs', 'flat', 'scenic', 'travel', 'douyin', 'telegram', 'imghost', 'ippt', 'marketplace'] as const
+
+const modules = computed(() =>
+  MODULE_KEYS.map(key => ({
+    key,
+    title: t(`workbench.tiles.${key}.label`),
+    description: t(`workbench.tiles.${key}.desc`),
+    icon: MODULE_ICONS[key],
+    path: MODULE_PATHS[key],
+  }))
+)
 </script>
 
 <template>
   <div class="page-container">
     <section class="workbench-header">
-      <h1 class="workbench-title">Workbench</h1>
-      <p class="workbench-subtitle">Pick a module to get started</p>
+      <p class="workbench-eyebrow">{{ t('workbench.eyebrow') }}</p>
+      <h1 class="workbench-title">{{ t('workbench.title') }}</h1>
+      <p class="workbench-subtitle">{{ t('workbench.subtitle') }}</p>
     </section>
 
     <div class="module-grid">
-      <div v-for="mod in modules" :key="mod.key" class="module-tile" @click="nav.redirectTo(mod.path)">
-        <span class="module-icon">{{ mod.icon }}</span>
-        <div class="module-text">
-          <div class="module-title">{{ mod.title }}</div>
-          <div class="module-desc">{{ mod.description }}</div>
+      <div
+        v-for="mod in modules"
+        :key="mod.key"
+        class="module-tile"
+        @click="nav.redirectTo(mod.path)"
+      >
+        <div class="tile-icon-wrap">{{ mod.icon }}</div>
+        <div class="tile-body">
+          <div class="tile-title">{{ mod.title }}</div>
+          <div class="tile-desc">{{ mod.description }}</div>
         </div>
+        <span class="tile-arrow">→</span>
       </div>
 
-      <div v-if="hasModuleAccess('SYSTEM', 5)" class="module-tile module-tile--admin" @click="nav.redirectTo('/admin')">
-        <span class="module-icon">⚙️</span>
-        <div class="module-text">
-          <div class="module-title">Admin</div>
-          <div class="module-desc">Manage users, roles, and system settings</div>
+      <div
+        v-if="hasModuleAccess('SYSTEM', 5)"
+        class="module-tile module-tile--admin"
+        @click="nav.redirectTo('/admin')"
+      >
+        <div class="tile-icon-wrap tile-icon-wrap--admin">⚙️</div>
+        <div class="tile-body">
+          <div class="tile-title">{{ t('workbench.tiles.admin.label') }}</div>
+          <div class="tile-desc">{{ t('workbench.tiles.admin.desc') }}</div>
         </div>
+        <span class="tile-arrow">→</span>
       </div>
     </div>
   </div>
@@ -101,88 +70,132 @@ const modules = [
 
 <style scoped>
 .workbench-header {
-  text-align: center;
-  padding: 28px 16px 32px;
+  padding: 40px 16px 32px;
+}
+
+.workbench-eyebrow {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--el-color-primary);
   margin-bottom: 8px;
 }
 
 .workbench-title {
-  font-size: 1.8rem;
+  font-size: 1.9rem;
   font-weight: 800;
-  letter-spacing: 0.3px;
+  letter-spacing: -0.3px;
   color: var(--color-heading);
+  margin-bottom: 6px;
 }
 
 .workbench-subtitle {
-  margin-top: 6px;
   font-size: 0.9rem;
   color: var(--color-text);
-  opacity: 0.6;
+  opacity: 0.55;
 }
 
+/* Grid */
 .module-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
-  max-width: 800px;
-  margin: 0 auto;
+  max-width: 860px;
+  padding: 0 16px 40px;
 }
 
+/* Tile */
 .module-tile {
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 18px 16px;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: 14px;
   cursor: pointer;
-  transition:
-    border-color 0.15s,
-    background 0.15s;
   background: var(--color-background-soft);
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 
 .module-tile:hover {
-  border-color: var(--color-border-hover);
-  background: var(--color-background-mute);
+  border-color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 4%, var(--color-background-soft));
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
 }
 
 .module-tile--admin {
   border-style: dashed;
-  opacity: 0.75;
+  opacity: 0.7;
 }
 
 .module-tile--admin:hover {
   border-color: var(--el-color-danger);
   opacity: 1;
+  background: color-mix(in srgb, var(--el-color-danger) 4%, var(--color-background-soft));
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--el-color-danger) 10%, transparent);
 }
 
-.module-icon {
-  font-size: 1.6rem;
+/* Icon wrapper */
+.tile-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  font-size: 1.35rem;
   flex-shrink: 0;
+  transition: background 0.15s;
 }
 
-.module-title {
-  font-size: 0.95rem;
+.module-tile:hover .tile-icon-wrap {
+  background: color-mix(in srgb, var(--el-color-primary) 16%, transparent);
+}
+
+.tile-icon-wrap--admin {
+  background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
+}
+
+/* Body */
+.tile-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.tile-title {
+  font-size: 0.92rem;
   font-weight: 700;
   color: var(--color-heading);
+  margin-bottom: 3px;
 }
 
-.module-desc {
-  font-size: 0.8rem;
+.tile-desc {
+  font-size: 0.78rem;
   color: var(--color-text);
-  opacity: 0.65;
-  margin-top: 2px;
+  opacity: 0.58;
   line-height: 1.4;
 }
 
-@media (min-width: 640px) {
-  .module-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
+/* Arrow */
+.tile-arrow {
+  font-size: 0.95rem;
+  color: var(--el-color-primary);
+  opacity: 0;
+  flex-shrink: 0;
+  transition: opacity 0.15s, transform 0.15s;
+  transform: translateX(-4px);
+}
 
-  .workbench-title {
-    font-size: 2.2rem;
-  }
+.module-tile:hover .tile-arrow {
+  opacity: 0.8;
+  transform: translateX(0);
+}
+
+/* Responsive */
+@media (min-width: 640px) {
+  .module-grid { grid-template-columns: repeat(3, 1fr); }
+  .workbench-title { font-size: 2.3rem; }
 }
 </style>

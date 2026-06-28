@@ -5,6 +5,7 @@ import { useLayoutStateStore } from '@/stores/layoutState'
 import { Message, Lock, User } from '@element-plus/icons-vue'
 import { storeToRefs } from 'pinia'
 import { computed, ref, nextTick, watch } from 'vue'
+import { ElMessage } from 'element-plus'
 import OtpInput from '@/components/common/OtpInput.vue'
 import { useI18n } from 'vue-i18n'
 
@@ -30,17 +31,24 @@ const {
   resetForm
 } = authStore
 
-// ── Computed UI text ──────────────────────────────────────────────────────────
-const stepTitle = computed(() =>
-  t(`auth.stepTitles.${authenticationStep.value}`)
+// ── Step meta ────────────────────────────────────────────────────────────────
+const stepTitle = computed(() => t(`auth.stepTitles.${authenticationStep.value}`))
+
+const stepIndex = computed(() => {
+  const map = { email: 0, register: 1, login: 1, verify: 2 }
+  return map[authenticationStep.value]
+})
+
+const totalSteps = computed(() =>
+  authenticationStep.value === 'login' ? 2 : 3
 )
 
 const buttonText = computed(() => {
   const map = {
-    email: loading.value ? 'checking' : 'continue',
-    register: loading.value ? 'creating' : 'create',
-    login: loading.value ? 'loggingIn' : 'login',
-    verify: loading.value ? 'verifying' : 'verify',
+    email:    loading.value ? 'checking'  : 'continue',
+    register: loading.value ? 'creating'  : 'create',
+    login:    loading.value ? 'loggingIn' : 'login',
+    verify:   loading.value ? 'verifying' : 'verify',
   }
   return t(`auth.buttons.${map[authenticationStep.value]}`)
 })
@@ -78,10 +86,10 @@ const _handleVerify = async () => {
 
 const handleSubmit = () => {
   const actions = {
-    email: _handleAuthenticate,
+    email:    _handleAuthenticate,
     register: _handleRegister,
-    login: _handleLogin,
-    verify: _handleVerify,
+    login:    _handleLogin,
+    verify:   _handleVerify,
   }
   actions[authenticationStep.value]()
 }
@@ -91,6 +99,10 @@ const handleBack = () => {
   form.value.password = ''
   form.value.verifyCode = ''
   registerError.value = ''
+}
+
+const handleForgotPassword = () => {
+  ElMessage.info(t('auth.forgotPasswordMessage'))
 }
 
 // ── OTP ───────────────────────────────────────────────────────────────────────
@@ -118,68 +130,141 @@ const handleOnClose = () => {
   resetForm()
 }
 </script>
-tb
+
 <template>
-  <el-dialog v-model="layoutStore.loginDialog.isVisible" :show-close="false" class="login-dialog"
-    style="width: 90%; max-width: 400px;" :before-close="handleOnClose">
-    <div class="login-dialog-content-container">
+  <el-dialog
+    v-model="layoutStore.loginDialog.isVisible"
+    :show-close="false"
+    class="login-dialog"
+    style="width: 90%; max-width: 420px;"
+    :before-close="handleOnClose"
+  >
+    <div class="dlg">
 
-      <!-- Title -->
-      <div class="login-title-container">
-        <h3>{{ stepTitle }}</h3>
+      <!-- Close button -->
+      <button class="dlg-close" @click="handleOnClose" aria-label="Close">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+        </svg>
+      </button>
 
-        <p v-if="authenticationStep === 'verify'" class="step-hint">
-          {{ t('auth.verify.hint') }}
-          <strong>{{ form.email }}</strong>
+      <!-- Brand header -->
+      <div class="dlg-brand">
+        <img src="/awense-logo.png" alt="Awense" width="32" class="dlg-logo" />
+        <span class="dlg-brand-name">Awense</span>
+      </div>
+
+      <!-- Step progress -->
+      <div class="step-track" aria-hidden="true">
+        <div
+          v-for="i in totalSteps"
+          :key="i"
+          class="step-segment"
+          :class="{
+            'step-segment--done':   i - 1 < stepIndex,
+            'step-segment--active': i - 1 === stepIndex,
+          }"
+        />
+      </div>
+
+      <!-- Title + email context -->
+      <div class="dlg-heading">
+        <p class="dlg-eyebrow">{{ t(`auth.eyebrow.${authenticationStep}`) }}</p>
+        <h3 class="dlg-title">{{ stepTitle }}</h3>
+
+        <!-- Email chip shown on steps after email entry -->
+        <button
+          v-if="authenticationStep !== 'email'"
+          class="email-chip"
+          @click="handleBack"
+          type="button"
+        >
+          {{ form.email }}
+          <span class="email-chip-change">{{ t('auth.emailChipChange') }}</span>
+        </button>
+
+        <!-- Verify hint -->
+        <p v-if="authenticationStep === 'verify'" class="verify-hint">
+          {{ t('auth.verify.hint') }} <strong>{{ form.email }}</strong>
         </p>
       </div>
 
-      <el-form :model="form" :rules="activeRules" @submit.prevent="handleSubmit">
+      <!-- Form -->
+      <el-form :model="form" :rules="activeRules" @submit.prevent="handleSubmit" class="dlg-form">
 
         <!-- EMAIL -->
         <el-form-item v-if="authenticationStep === 'email'" prop="email">
-          <el-input v-model="form.email" :placeholder="t('auth.email.placeholder')" :prefix-icon="Message" clearable />
+          <el-input
+            v-model="form.email"
+            :placeholder="t('auth.email.placeholder')"
+            :prefix-icon="Message"
+            clearable
+            size="large"
+          />
         </el-form-item>
 
         <!-- REGISTER -->
         <template v-else-if="authenticationStep === 'register'">
-          <el-form-item>
-            <el-input v-model="form.email" disabled />
-          </el-form-item>
-
           <el-form-item prop="username">
-            <el-input v-model="form.username" :placeholder="t('auth.username.placeholder')" :prefix-icon="User" />
+            <el-input
+              v-model="form.username"
+              :placeholder="t('auth.username.placeholder')"
+              :prefix-icon="User"
+              size="large"
+            />
           </el-form-item>
-
           <el-form-item prop="password">
-            <el-input v-model="form.password" :placeholder="t('auth.password.placeholder')" :prefix-icon="Lock"
-              type="password" show-password />
+            <el-input
+              v-model="form.password"
+              :placeholder="t('auth.password.placeholder')"
+              :prefix-icon="Lock"
+              type="password"
+              show-password
+              size="large"
+            />
           </el-form-item>
+          <p class="pw-req">{{ t('profile.password.requirement') }}</p>
         </template>
 
         <!-- LOGIN -->
         <template v-else-if="authenticationStep === 'login'">
-          <el-form-item>
-            <el-input v-model="form.email" disabled />
-          </el-form-item>
-
           <el-form-item prop="password">
-            <el-input v-model="form.password" :placeholder="t('auth.password.placeholder')" :prefix-icon="Lock"
-              type="password" show-password />
+            <el-input
+              v-model="form.password"
+              :placeholder="t('auth.password.placeholder')"
+              :prefix-icon="Lock"
+              type="password"
+              show-password
+              size="large"
+            />
           </el-form-item>
+          <div class="forgot-row">
+            <button type="button" class="forgot-link" @click="handleForgotPassword">
+              {{ t('auth.forgotPassword') }}
+            </button>
+          </div>
         </template>
 
-        <!-- VERIFY -->
-        <OtpInput v-else ref="otpRef" v-model="verifyDigits" @update:model-value="onOtpUpdate"
-          @complete="handleSubmit" />
+        <!-- VERIFY (OTP) -->
+        <OtpInput
+          v-else
+          ref="otpRef"
+          v-model="verifyDigits"
+          @update:model-value="onOtpUpdate"
+          @complete="handleSubmit"
+        />
 
         <!-- Error -->
-        <p v-if="registerError" class="error-text">
-          {{ registerError }}
-        </p>
+        <p v-if="registerError" class="error-text">{{ registerError }}</p>
 
         <!-- Submit -->
-        <el-button type="primary" native-type="submit" class="submit-button" :loading="loading">
+        <el-button
+          type="primary"
+          native-type="submit"
+          class="submit-btn"
+          size="large"
+          :loading="loading"
+        >
           {{ buttonText }}
         </el-button>
 
@@ -191,23 +276,11 @@ tb
           </el-button>
         </div>
 
-        <!-- Back -->
-        <div v-if="authenticationStep !== 'email'" class="back-row">
-          <el-button link @click="handleBack">
-            {{ t('auth.back.useDifferentEmail') }}
-          </el-button>
-        </div>
-
         <!-- Terms -->
-        <template v-if="termsMessage">
-          <el-divider />
-          <p class="disclaimer">
-            {{ termsMessage }}
-            <span class="hyperlink">
-              {{ t('auth.terms.suffix') }}
-            </span>
-          </p>
-        </template>
+        <p v-if="termsMessage" class="terms-text">
+          {{ termsMessage }}
+          <span class="terms-link">{{ t('auth.terms.suffix') }}</span>
+        </p>
 
       </el-form>
     </div>
@@ -215,93 +288,233 @@ tb
 </template>
 
 <style lang="css" scoped>
-.login-dialog :deep(.el-dialog__header) {
-  display: none;
-}
-
+/* ── Dialog shell ───────────────────────────────────────── */
+.login-dialog :deep(.el-dialog__header) { display: none; }
+.login-dialog :deep(.el-dialog__body)   { padding: 0; }
 .login-dialog :deep(.el-dialog) {
-  border-radius: 0.75rem;
-  max-width: 400px;
-  width: 90%;
+  border-radius: 18px;
+  overflow: hidden;
 }
 
-.login-dialog-content-container {
-  padding: 1rem 1.5rem;
+.dlg {
+  padding: 28px 28px 24px;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0;
+  position: relative;
 }
 
-.login-title-container {
-  text-align: center;
-  margin-bottom: 0.5rem;
+/* ── Close ──────────────────────────────────────────────── */
+.dlg-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text);
+  opacity: 0.35;
+  transition: opacity 0.15s, background 0.15s;
 }
 
-.login-title-container h3 {
+.dlg-close:hover {
+  opacity: 0.75;
+  background: var(--color-background-mute);
+}
+
+/* ── Brand ──────────────────────────────────────────────── */
+.dlg-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 22px;
+}
+
+.dlg-logo { display: block; }
+
+.dlg-brand-name {
+  font-size: 0.95rem;
+  font-weight: 800;
   color: var(--color-heading);
-  font-size: 1.5rem;
-  margin: 0 0 4px;
+  letter-spacing: -0.2px;
 }
 
-.step-hint {
+/* ── Step track ─────────────────────────────────────────── */
+.step-track {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+}
+
+.step-segment {
+  height: 3px;
+  flex: 1;
+  border-radius: 999px;
+  background: var(--color-border);
+  transition: background 0.25s;
+}
+
+.step-segment--done,
+.step-segment--active {
+  background: var(--el-color-primary);
+}
+
+.step-segment--active {
+  opacity: 0.55;
+}
+
+/* ── Heading ────────────────────────────────────────────── */
+.dlg-heading {
+  margin-bottom: 20px;
+}
+
+.dlg-eyebrow {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--el-color-primary);
+  margin-bottom: 6px;
+}
+
+.dlg-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--color-heading);
+  margin: 0 0 10px;
+}
+
+/* Email chip — replaces the disabled input */
+.email-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-background-mute);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: border-color 0.15s;
+  margin-bottom: 4px;
+}
+
+.email-chip:hover {
+  border-color: var(--el-color-primary);
+}
+
+.email-chip-change {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--el-color-primary);
+  opacity: 0.8;
+}
+
+/* Verify hint */
+.verify-hint {
   font-size: 0.82rem;
   color: var(--color-text);
-  opacity: 0.7;
-  margin: 4px 0 0;
+  opacity: 0.65;
+  margin: 8px 0 0;
+  line-height: 1.5;
 }
 
-.submit-button {
-  width: 100%;
-  margin-top: 0.5rem;
+/* ── Form ───────────────────────────────────────────────── */
+.dlg-form {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
+.dlg-form :deep(.el-form-item) {
+  margin-bottom: 12px;
+}
+
+/* Password requirement hint */
+.pw-req {
+  font-size: 0.72rem;
+  color: var(--color-text);
+  opacity: 0.4;
+  margin: -6px 0 10px;
+  line-height: 1.4;
+}
+
+/* Forgot password */
+.forgot-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: -6px 0 10px;
+}
+
+.forgot-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--el-color-primary);
+  opacity: 0.75;
+  transition: opacity 0.15s;
+}
+
+.forgot-link:hover { opacity: 1; }
+
+/* Error */
 .error-text {
   color: var(--el-color-danger);
-  font-size: 0.82rem;
-  margin: -6px 0 4px;
+  font-size: 0.8rem;
+  margin: -4px 0 8px;
 }
 
-.resend-row,
-.back-row {
+/* Submit */
+.submit-btn {
+  width: 100%;
+  margin-top: 4px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* Resend row */
+.resend-row {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
   font-size: 0.82rem;
   color: var(--color-text);
-  margin-top: 4px;
+  opacity: 0.7;
+  margin-top: 10px;
 }
 
-.disclaimer {
+/* Terms */
+.terms-text {
+  font-size: 0.75rem;
   color: var(--color-text);
-  opacity: 0.6;
-  font-size: 0.82rem;
-  line-height: 1.4;
+  opacity: 0.5;
+  line-height: 1.5;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
 }
 
-.hyperlink {
+.terms-link {
   color: var(--el-color-primary);
+  opacity: 0.9;
   cursor: pointer;
 }
 
-
-@media (max-width: 600px) {
-  .login-dialog :deep(.el-dialog) {
-    width: 95%;
-    margin: 0 1rem;
-  }
-
-  .login-dialog-content-container {
-    padding: 0.75rem;
-  }
-
-  .login-title-container h3 {
-    font-size: 1.25rem;
-  }
-
-  .submit-button {
-    font-size: 0.95rem;
-    padding: 0.75rem;
-  }
+/* ── Mobile ─────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .dlg { padding: 22px 20px 20px; }
+  .dlg-title { font-size: 1.2rem; }
 }
 </style>

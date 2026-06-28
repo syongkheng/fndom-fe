@@ -6,6 +6,7 @@ import { useLayoutStateStore } from '@/stores/layoutState';
 import { usePphsStore } from '@/stores/pphs';
 import { ElMessage } from 'element-plus';
 import { computed, reactive, watch } from 'vue';
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
   record: Object as () => PphsRecord | undefined,
@@ -13,6 +14,7 @@ const props = defineProps({
 
 const layoutStore = useLayoutStateStore()
 const pphsManager = usePphsStore();
+const { t } = useI18n()
 
 const pphsRecordForm = reactive<PphsRecord>({
   town: '',
@@ -45,9 +47,9 @@ const closeModal = () => layoutStore.hdbManagePphsDialog.setFalse()
 const submitForm = async () => {
   const result = await pphsManager.updatePphsCoordinates(pphsRecordForm)
   if (result) {
-    ElMessage.success('PPHS record updated successfully')
+    ElMessage.success(t('toast.pphsUpdateSuccess'))
   } else {
-    ElMessage.error('Failed to update PPHS record')
+    ElMessage.error(t('toast.pphsUpdateFailed'))
   }
   closeModal()
 }

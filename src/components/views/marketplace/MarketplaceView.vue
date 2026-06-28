@@ -2,18 +2,26 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
 import { useMarketplaceStore } from '@/stores/marketplace'
+import { useAuthenticationStore } from '@/stores/authentication'
+import { useLayoutStateStore } from '@/stores/layoutState'
 import ModelCard from './ModelCard.vue'
 import type { LLMModel } from '@/interfaces/Marketplace.model'
 
-const store  = useMarketplaceStore()
-const router = useRouter()
-const { t }  = useI18n()
+const store       = useMarketplaceStore()
+const authStore   = useAuthenticationStore()
+const layoutStore = useLayoutStateStore()
+const router      = useRouter()
+const { t }       = useI18n()
+const { isAuthenticated } = storeToRefs(authStore)
 
 onMounted(() => {
-  store.fetchWallet()
   store.fetchModels()
-  store.fetchTrialKey()
+  if (isAuthenticated.value) {
+    store.fetchWallet()
+    store.fetchTrialKey()
+  }
 })
 
 function formatBalance(cents: number, currency: string): string {
@@ -75,20 +83,28 @@ const filtered = computed<LLMModel[]>(() =>
       </div>
     </section>
 
-    <!-- Account bar -->
-    <div class="account-bar">
+    <!-- Account bar (authenticated only) -->
+    <div v-if="isAuthenticated" class="account-bar">
       <div class="account-bar-inner">
         <div class="account-balance">
-          <span class="account-label">Balance</span>
+          <span class="account-label">{{ t('marketplace.accountBar.balance') }}</span>
           <span class="account-value">
             {{ store.wallet ? formatBalance(store.wallet.balance, store.wallet.currency) : '—' }}
           </span>
         </div>
         <div class="account-actions">
-          <el-button size="small" @click="router.push('/llm/wallet')">Top Up</el-button>
-          <el-button size="small" @click="router.push('/llm/api-key')">API Key</el-button>
+          <el-button size="small" @click="router.push('/llm/wallet')">{{ t('marketplace.accountBar.topUp') }}</el-button>
+          <el-button size="small" @click="router.push('/llm/api-key')">{{ t('marketplace.accountBar.apiKey') }}</el-button>
         </div>
       </div>
+    </div>
+
+    <!-- Public sign-in banner (unauthenticated only) -->
+    <div v-else class="public-banner">
+      <span class="public-banner-notice">{{ t('marketplace.public.notice') }}</span>
+      <el-button size="small" type="primary" @click="layoutStore.loginDialog.toggle()">
+        {{ t('marketplace.public.signIn') }}
+      </el-button>
     </div>
 
     <!-- Models -->
@@ -121,6 +137,7 @@ const filtered = computed<LLMModel[]>(() =>
             v-for="model in filtered"
             :key="model.id"
             :model="model"
+            :isAuthenticated="isAuthenticated"
           />
         </div>
 
@@ -142,12 +159,31 @@ const filtered = computed<LLMModel[]>(() =>
 .hero {
   border-bottom: 1px solid var(--color-border);
   background: var(--color-background-soft);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -80px;
+  right: -60px;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--el-color-primary) 8%, transparent) 0%,
+    transparent 65%
+  );
+  pointer-events: none;
 }
 
 .hero-inner {
   max-width: 1200px;
   margin: 0 auto;
   padding: 56px 32px 52px;
+  position: relative;
+  z-index: 1;
 }
 
 .hero-eyebrow {
@@ -158,8 +194,7 @@ const filtered = computed<LLMModel[]>(() =>
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--color-text);
-  opacity: 0.4;
+  color: var(--el-color-primary);
   margin-bottom: 14px;
 }
 
@@ -232,6 +267,22 @@ const filtered = computed<LLMModel[]>(() =>
 .account-bar {
   border-bottom: 1px solid var(--color-border);
   background: var(--color-background);
+}
+
+.public-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 12px 32px;
+  border-bottom: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--el-color-primary) 5%, var(--color-background));
+}
+
+.public-banner-notice {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
 }
 
 .account-bar-inner {

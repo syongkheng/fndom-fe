@@ -113,14 +113,18 @@ const deleteTrip = async (sessionId: string) => {
 
     <!-- Auth gate -->
     <div v-if="!isAuthenticated" class="auth-gate">
-      <div class="auth-gate-icon">🔒</div>
+      <p class="auth-gate-eyebrow">✈ Travel Planner</p>
+      <h2 class="auth-gate-heading">Plan your next adventure.</h2>
       <p class="auth-gate-text">{{ t('travel.list.loginPrompt') }}</p>
-      <el-button type="primary" @click="layoutStore.loginDialog.setTrue()">{{ t('travel.list.login') }}</el-button>
-      <div class="guest-draft-card" @click="nav.redirectTo('/travel/draft')">
-        <span class="guest-draft-icon">✏️</span>
-        <div>
-          <div class="guest-draft-title">{{ t('travel.list.startDraft') }}</div>
-          <div class="guest-draft-sub">{{ t('travel.list.startDraftSub') }}</div>
+      <div class="auth-gate-actions">
+        <el-button type="primary" size="large" @click="layoutStore.loginDialog.setTrue()">{{ t('travel.list.login') }}</el-button>
+        <div class="guest-draft-card" @click="nav.redirectTo('/travel/draft')">
+          <div class="guest-draft-icon-wrap">✏️</div>
+          <div>
+            <div class="guest-draft-title">{{ t('travel.list.startDraft') }}</div>
+            <div class="guest-draft-sub">{{ t('travel.list.startDraftSub') }}</div>
+          </div>
+          <span class="guest-draft-arrow">→</span>
         </div>
       </div>
     </div>
@@ -128,6 +132,7 @@ const deleteTrip = async (sessionId: string) => {
     <template v-else>
     <header class="list-header">
       <div>
+        <p class="list-eyebrow">✈ Travel Planner</p>
         <h1 class="list-title">{{ t('travel.list.title') }}</h1>
         <p class="list-subtitle">{{ t('travel.list.subtitle') }}</p>
       </div>
@@ -236,6 +241,15 @@ const deleteTrip = async (sessionId: string) => {
   gap: 12px;
 }
 
+.list-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--el-color-primary);
+  margin-bottom: 6px;
+}
+
 .list-title {
   font-size: 1.6rem;
   font-weight: 800;
@@ -283,8 +297,9 @@ const deleteTrip = async (sessionId: string) => {
 }
 
 .trip-card:hover {
-  border-color: var(--color-border-hover);
-  background: var(--color-background-mute);
+  border-color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 4%, var(--color-background-soft));
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
 }
 
 .trip-card--shared {
@@ -301,8 +316,8 @@ const deleteTrip = async (sessionId: string) => {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--color-text);
-  opacity: 0.5;
+  color: var(--el-color-primary);
+  opacity: 0.75;
   margin-bottom: 4px;
 }
 
@@ -330,18 +345,41 @@ const deleteTrip = async (sessionId: string) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  padding: 80px 0;
+  text-align: center;
+  gap: 12px;
+  padding: 72px 16px;
 }
 
-.auth-gate-icon {
-  font-size: 2.4rem;
+.auth-gate-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--el-color-primary);
+  margin-bottom: 2px;
+}
+
+.auth-gate-heading {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--color-heading);
+  margin-bottom: 4px;
 }
 
 .auth-gate-text {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   color: var(--color-text);
-  opacity: 0.6;
+  opacity: 0.55;
+  margin-bottom: 8px;
+}
+
+.auth-gate-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 360px;
 }
 
 .empty-state {
@@ -387,24 +425,31 @@ const deleteTrip = async (sessionId: string) => {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-top: 16px;
-  padding: 16px 20px;
+  padding: 16px 18px;
   border: 1px dashed var(--color-border);
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--color-background-soft);
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-  width: 280px;
-  max-width: 100%;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  width: 100%;
+  text-align: left;
 }
 
 .guest-draft-card:hover {
   border-color: var(--el-color-primary);
-  background: var(--color-background-mute);
+  background: color-mix(in srgb, var(--el-color-primary) 4%, var(--color-background-soft));
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
 }
 
-.guest-draft-icon {
-  font-size: 1.5rem;
+.guest-draft-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  font-size: 1.2rem;
   flex-shrink: 0;
 }
 
@@ -420,4 +465,14 @@ const deleteTrip = async (sessionId: string) => {
   opacity: 0.55;
   margin-top: 2px;
 }
+
+.guest-draft-arrow {
+  margin-left: auto;
+  color: var(--el-color-primary);
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.guest-draft-card:hover .guest-draft-arrow { opacity: 0.8; }
 </style>

@@ -7,21 +7,23 @@ import { useAuthenticationStore } from '@/stores/authentication';
 import { storeToRefs } from 'pinia';
 import { useBreakpointManager } from '@/hooks/useBreakpointManager';
 import { Breakpoint } from '@/constants/Breakpoint';
+import { useI18n } from 'vue-i18n'
 
 const layoutStore = useLayoutStateStore()
 const navigate = useNav();
 const authStore = useAuthenticationStore()
 const { isAuthenticated } = storeToRefs(authStore) // Preserves reactivity
 const { isScreensizeBelow } = useBreakpointManager();
+const { t } = useI18n()
 
 const handleLogout = () => {
   authStore.handleLogout()
   navigate.redirectToLanding()
-  ElMessage.success('Logout Successfully')
+  ElMessage.success(t('toast.logoutSuccess'))
 }
 
 const handleSetting = () => {
-  ElMessage.info("Page Coming Soon")
+  ElMessage.info(t('common.comingSoon'))
 }
 
 </script>

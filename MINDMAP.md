@@ -133,6 +133,8 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │       └── FeatureFlagView.vue
 │
 ├── COMPONENTS (src/components/)
+│   ├── illustrations/
+│   │   └── HeroIllustration.vue   — travel-themed globe SVG (globe wireframe + flight arcs + city pins)
 │   ├── common/
 │   │   ├── AppBreadcrumb.vue
 │   │   ├── EmptyState.vue
@@ -160,12 +162,17 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   ├── icons/IconWithText.vue
 │   └── wrappers/RoleGuard.vue
 │
+├── ANALYTICS (src/analytics/)
+│   ├── index.ts               — track() core; fetch POST to VITE_SERVER_BASE_URL/api/analytics; system='fndom'
+│   └── events.ts              — Analytics.{pageView, authLogin, authRegister, authVerified, authLogout, featureAccess, buttonClick}
+│
 ├── COMPOSABLES (src/composables/)
 │   ├── usePermission.ts       — role-based access (module + system level)
 │   ├── useCityLabel.ts        — city label management
 │   ├── useTravelDayGroups.ts  — group agenda items by date
 │   ├── useGeocode.ts          — geocoding utilities
-│   └── useTravelExport.ts     — export itineraries (JSON/CSV)
+│   ├── useTravelExport.ts     — export itineraries (JSON/CSV)
+│   └── usePageTracking.ts     — router.afterEach → Analytics.pageView; called in App.vue
 │
 ├── HOOKS (src/hooks/)
 │   ├── useRouteGuards.ts      — featureGuard, authGuard, systemR5Guard
@@ -193,11 +200,11 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │       └── /api/telegram/*    — link status, media management
 │
 ├── UTILITIES (src/utilities/)
-│   ├── StorageUtils.ts        — localStorage wrapper (keys: JWT, EXISTING_SESSION, ITINERARY_IDEMPOTENCY_KEY, DOUYIN_RECENT)
+│   ├── StorageUtils.ts        — localStorage wrapper; getVisitorSessionId() used by analytics
 │   ├── DateUtils.ts           — formatting, duration
 │   ├── FileUtils.ts           — file ops
 │   ├── GeneratorUtils.ts      — UUID generation
-│   ├── HeartbeatUtils.ts      — periodic heartbeat pings
+│   ├── HeartbeatUtils.ts      — fetch-based heartbeat; sends system='fndom'; active via AppInitializer
 │   ├── ListUtils.ts           — array helpers
 │   └── lunarCalendar.ts       — Chinese lunar calendar conversion
 │

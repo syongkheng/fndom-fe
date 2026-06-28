@@ -376,7 +376,7 @@ onMounted(async () => {
   }
   if (loadResult.forbidden) {
     ElMessage.error(t('travel.planner.notYours'))
-    nav.redirectTo('/travel')
+    nav.redirectTo('/travel/trips')
     return
   }
   if (!sessionStorage.getItem(privacySeenKey) && !itinerary.value.challenge) {
@@ -489,7 +489,7 @@ const onPrivacyClose = () => {
 
     <!-- Top bar -->
     <div class="planner-topbar">
-      <el-button link @click="nav.redirectTo('/travel')" class="back-btn">{{ t('travel.planner.back') }}</el-button>
+      <el-button link @click="nav.redirectTo('/travel/trips')" class="back-btn">{{ t('travel.planner.back') }}</el-button>
       <div class="planner-actions">
         <span v-if="autoSaveStatus !== 'idle'" class="autosave-status" :class="`autosave-status--${autoSaveStatus}`">
           {{ autoSaveStatus === 'saving' ? t('travel.planner.autoSaving') : autoSaveStatus === 'saved' ? t('travel.planner.autoSaved') : t('travel.planner.autoSaveFail') }}

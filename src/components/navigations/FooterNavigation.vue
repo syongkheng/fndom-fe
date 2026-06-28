@@ -20,7 +20,7 @@ const year = new Date().getFullYear()
       <div class="footer-brand">
         <img src="/awense-logo.png" alt="Awense" width="36" class="footer-logo" />
         <div>
-          <div class="brand-name">Awense <span class="beta-badge">Beta</span></div>
+          <div class="brand-name">Awense <span class="beta-badge">{{ t('footer.betaBadge') }}</span></div>
           <div class="brand-tagline">{{ t('footer.tagline') }}</div>
         </div>
       </div>
@@ -28,10 +28,11 @@ const year = new Date().getFullYear()
       <!-- Sitemap -->
       <div class="footer-sitemap">
 
-        <div class="footer-col" v-if="!isInternal">
+        <div class="footer-col">
           <div class="col-heading">{{ t('footer.sections.plan') }}</div>
           <ul class="col-links">
             <li><button class="footer-link" @click="redirectTo('/travel')">{{ t('nav.travel') }}</button></li>
+            <li><button class="footer-link" @click="redirectTo('/llm')">{{ t('footer.links.aiMarketplace') }}</button></li>
           </ul>
         </div>
 
@@ -40,9 +41,6 @@ const year = new Date().getFullYear()
           <ul class="col-links">
             <li><button class="footer-link" @click="redirectTo('/')">{{ t('footer.links.home') }}</button></li>
             <li><button class="footer-link" @click="redirectTo('/profile')">{{ t('footer.links.profile') }}</button></li>
-            <li><button class="footer-link" @click="redirectTo('/baby')">{{ t('footer.links.babyTracker') }}</button></li>
-            <li v-if="isInternal"><button class="footer-link" @click="redirectTo('/workbench')">{{ t('footer.links.workbench') }}</button></li>
-            <li v-if="isInternal"><button class="footer-link" @click="redirectTo('/llm')">Marketplace</button></li>
           </ul>
         </div>
 

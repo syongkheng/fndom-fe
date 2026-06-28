@@ -192,6 +192,7 @@ onMounted(async () => {
 
     <!-- Header -->
     <div class="profile-heading">
+      <p class="profile-eyebrow">Account</p>
       <h1 class="profile-title">{{ t('profile.title') }}</h1>
       <p class="profile-subtitle">{{ t('profile.subtitle') }}</p>
     </div>
@@ -347,7 +348,16 @@ onMounted(async () => {
 
 /* Heading */
 .profile-heading {
-  padding: 24px 0 20px;
+  padding: 28px 0 22px;
+}
+
+.profile-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--el-color-primary);
+  margin-bottom: 8px;
 }
 
 .profile-title {

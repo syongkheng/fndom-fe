@@ -92,7 +92,7 @@ export function useNav() {
   }
 
   const redirectToTravel = () => {
-    redirectTo('/travel')
+    redirectTo('/travel/trips')
   }
 
   return {

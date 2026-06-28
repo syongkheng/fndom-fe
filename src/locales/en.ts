@@ -1,4 +1,20 @@
 export default {
+  home: {
+    eyebrow: 'Awense',
+    heading: 'Where would you like to start?',
+    subtitle: 'Two services. One platform.',
+    greeting: 'Welcome back, ',
+    travel: {
+      label: 'Travel Planning',
+      desc: 'Plan day-by-day itineraries, share with companions, and explore destinations.',
+      cta: 'Explore →',
+    },
+    ai: {
+      label: 'AI Marketplace',
+      desc: 'Access Claude, GPT-4o, Gemini and more on a single pay-per-use wallet.',
+      cta: 'Explore →',
+    },
+  },
   nav: {
     login: 'Login',
     profile: 'Profile',
@@ -8,31 +24,64 @@ export default {
     babyTracker: 'Baby Tracker',
   },
   landing: {
-    eyebrow: 'Travel & Hiking Planner',
-    title: 'Plan your\nnext adventure.',
+    eyebrow: 'Plan. Explore. Connect.',
+    title: 'Your all-in-one\nadventure workbench.',
     subtitle:
-      'Build itineraries, share with friends, and explore the world — no account required to get started.',
+      'Build travel itineraries, access AI models, and track everyday goals — all in one place. No account needed to start.',
     startPlanning: 'Start Planning →',
-    footerNote: 'Save and sync your itineraries by {link}.',
-    signingIn: 'signing in',
+    signIn: 'Sign In',
+    badge1: 'Free to start',
+    badge2: 'No account needed',
+    highlights: {
+      h1: 'Travel planner — free, no account required',
+      h2: 'AI marketplace — Claude, GPT-4o, Gemini and more',
+    },
+    trust: {
+      travel: '✈ Travel Planner',
+      ai: '🤖 AI Marketplace',
+    },
     features: {
+      eyebrow: 'Your toolkit',
+      sectionTitle: 'Travel planning meets frontier AI.',
       planning: {
         title: 'Travel Planning',
-        desc: 'Build day-by-day itineraries, add activities, accommodation and transport — all in one place.',
+        desc: 'Build day-by-day itineraries, add activities and accommodation, and share with travel companions.',
       },
-      itineraries: {
-        title: 'Shared Itineraries',
-        desc: 'Share a link with travel companions. Collaborate on the same plan in real time.',
+      ai: {
+        title: 'AI Marketplace',
+        desc: 'One account. Multiple frontier models. Access Claude, GPT-4o, and Gemini on a single pay-per-use wallet.',
       },
-      destinations: {
-        title: 'Discover Destinations',
-        desc: 'Browse and explore locations. Get inspired for your next adventure.',
+      tools: {
+        title: 'Lifestyle Tools',
+        desc: 'HDB housing lookup, IPPT fitness tracker, Douyin live checker — practical tools built for Singapore.',
+      },
+    },
+    cta: {
+      heading: 'Start building your workbench.',
+      sub: 'Free travel planner. No account needed to begin.',
+      action: 'Start Planning',
+      secondary: 'Create Account',
+    },
+    footerNote: 'Save and sync your itineraries by {link}.',
+    signingIn: 'signing in',
+    auth: {
+      greeting: 'Hi, ',
+      walletBalance: 'Wallet balance',
+      topUp: 'Top Up →',
+      actions: {
+        marketplace: 'AI Marketplace',
+        marketplaceDesc: 'Chat with leading LLMs',
+        wallet: 'Top Up Wallet',
+        walletDesc: 'Add credits to your account',
+        apiKey: 'API Key',
+        apiKeyDesc: 'Your personal API key',
       },
     },
   },
   footer: {
     tagline: 'Your all-in-one workbench',
     allRights: 'All rights reserved',
+    betaBadge: 'Beta',
     sections: {
       modules: 'Modules',
       personal: 'Personal',
@@ -44,9 +93,44 @@ export default {
       profile: 'Profile',
       workbench: 'Workbench',
       babyTracker: 'Baby Tracker',
+      aiMarketplace: 'AI Marketplace',
+    },
+  },
+  workbench: {
+    eyebrow: 'Awense',
+    title: 'Your Workbench',
+    subtitle: 'Select a module to get started',
+    tiles: {
+      pphs:        { label: 'PPHS',             desc: 'Public housing info, bus stops and MRT proximity' },
+      flat:        { label: 'Flat Analysis',     desc: 'Search by postal code · MRT and bus stop proximity' },
+      scenic:      { label: 'Scenic Spots',      desc: 'China 5A scenic spots · Track your visits by province' },
+      travel:      { label: 'Travel',            desc: 'Itinerary planning and collaboration' },
+      douyin:      { label: 'Douyin Live',       desc: 'Check if a Douyin user is livestreaming' },
+      telegram:    { label: 'Telegram Storage',  desc: 'Upload media via Telegram bot and retrieve by ID' },
+      imghost:     { label: 'Image CDN',         desc: 'Upload an image · Get a shareable CDN link' },
+      ippt:        { label: 'IPPT · Strider',    desc: 'Track push-ups, sit-ups and 2.4km run · Project your score' },
+      marketplace: { label: 'Marketplace',       desc: 'Browse and chat with AI-powered services' },
+      admin:       { label: 'Admin',             desc: 'Manage users, roles, and system settings' },
     },
   },
   travel: {
+    landing: {
+      eyebrow: 'Travel',
+      title: 'Plan your next adventure.',
+      subtitle: 'Build day-by-day itineraries, collaborate with travel companions, and share your trips.',
+      startPlanning: 'Start Planning →',
+      myTrips: 'My Trips →',
+      newDraft: 'New Draft →',
+      signIn: 'Sign In',
+      cta: {
+        heading: 'Ready to start planning?',
+        sub: 'Free to use. No account needed to create a draft.',
+        action: 'Start Planning',
+        secondary: 'Create Account',
+      },
+      footerNote: 'Save and sync your itineraries by {link}.',
+      signingIn: 'signing in',
+    },
     list: {
       title: 'My Trips',
       subtitle: 'Plan, organise, and share your travel itineraries',
@@ -341,6 +425,17 @@ export default {
       verify: 'Verify your email',
     },
 
+    eyebrow: {
+      email: 'Sign in or create account',
+      register: 'New account',
+      login: 'Welcome back',
+      verify: 'Verify your email',
+    },
+
+    emailChipChange: 'Change',
+    forgotPassword: 'Forgot password?',
+    forgotPasswordMessage: 'Password reset is not yet available. Please contact support.',
+
     email: {
       placeholder: 'Email address',
     },
@@ -428,6 +523,10 @@ export default {
   },
 
   marketplace: {
+    public: {
+      notice: 'Sign in to chat with models and manage your wallet.',
+      signIn: 'Sign In',
+    },
     hero: {
       eyebrow: 'Awense Marketplace',
       beta: 'Beta',
@@ -484,5 +583,119 @@ export default {
       'gemini-1-5-pro':    { description: "Google's long-context specialist. Handles up to 2 million tokens — ideal for entire codebases, books and large datasets." },
       'llama-3-3-70b':     { description: "Meta's open-source powerhouse. Competitive performance with full transparency — run via API or on your own infrastructure." },
     },
+    back: '← Marketplace',
+    accountBar: {
+      balance: 'Balance',
+      topUp: 'Top Up',
+      apiKey: 'API Key',
+    },
+    wallet: {
+      title: 'Wallet',
+      balance: 'Available Balance',
+      topUp: 'Top Up',
+      customPlaceholder: 'Custom amount (e.g. 30)',
+      payCard: 'Card',
+      payPaynow: 'PayNow',
+      mockNotice: 'Payment processing is mocked — no real charge will be made.',
+    },
+    apiKey: {
+      title: 'API Key',
+      cardTitle: 'Your API Key',
+      reveal: 'Reveal',
+      hide: 'Hide',
+      rotateTitle: 'Rotate Key',
+      rotateDesc: 'Generate a new API key. Your current key will be immediately invalidated.',
+      rotateBtn: 'Rotate API Key',
+      rotateConfirmTitle: 'Rotate API Key',
+      rotateConfirmBody: 'Rotating your API key will immediately invalidate the current one. Any integrations using the old key will stop working.',
+      rotateConfirmBtn: 'Rotate',
+      usageTitle: 'How to use',
+      usageDesc: 'Your API key authenticates requests to the Awense Marketplace. Keep it secret and rotate it immediately if compromised.',
+      usageNote: 'External API access is coming soon.',
+      copy: 'Copy',
+    },
+  },
+
+  common: {
+    comingSoon: 'Page coming soon.',
+    cancel: 'Cancel',
+  },
+
+  toast: {
+    logoutSuccess: 'Logged out successfully.',
+    sessionExpired: 'Your session has expired. Please log in again.',
+
+    notLoggedIn: 'You are not logged in. Please log in.',
+    itineraryAccessDenied: 'You are not allowed to edit this itinerary. Please contact the owner.',
+    loginRequired: 'You must be logged in.',
+    accessDenied: 'Access denied.',
+
+    scenicLoadFailed: 'Failed to load scenic spots.',
+    scenicSaveFailed: 'Failed to save. Please try again.',
+
+    pphsUpdateSuccess: 'PPHS record updated successfully.',
+    pphsUpdateFailed: 'Failed to update PPHS record.',
+
+    imghostImagesOnly: 'Only image files are supported.',
+    imghostUploadFailed: 'Upload failed. Please try again.',
+    imghostUrlCopied: 'URL copied!',
+    imghostEmbedCopied: 'Embed snippet copied!',
+
+    apiKeyCopied: 'API key copied to clipboard.',
+    apiKeyCopyFailed: 'Copy failed — please copy manually.',
+    apiKeyRotated: 'API key rotated. Save your new key.',
+    apiKeyRotateFailed: 'Failed to rotate API key.',
+
+    walletSelectAmount: 'Please select or enter an amount.',
+    walletTopupSuccess: 'Topped up {amount} successfully.',
+    walletTopupFailed: 'Top-up failed. Please try again.',
+
+    chatCopied: 'Copied.',
+    chatCopyFailed: 'Copy failed.',
+    chatSessionDeleted: 'Session deleted.',
+    chatFulfilled: 'Request fulfilled in {ms}ms',
+
+    adminPricingLoadFailed: 'Failed to load pricing config.',
+    adminPricingSettingsSaved: 'Global settings saved.',
+    adminPricingSettingsFailed: 'Failed to save settings.',
+    adminPricingModelUpdated: '{name} updated.',
+    adminPricingModelFailed: 'Failed to save. Please try again.',
+    adminTgUserAdded: 'User {userId} added.',
+    adminTgAddFailed: 'Failed to add admin.',
+    adminTgRemoved: 'Admin removed.',
+    adminTgRemoveFailed: 'Failed to remove admin.',
+    adminUsersLoadFailed: 'Failed to load users.',
+    adminRolesUpdated: 'Roles updated.',
+    adminRolesFailed: 'Failed to update roles.',
+
+    tgCopied: 'Copied: {text}',
+    tgTokenFailed: 'Failed to generate token.',
+    tgUploadSuccess: 'Uploaded — file sent to your Telegram DM.',
+    tgBotNotStarted: 'Open a private chat with the bot and send /start first, then retry.',
+    tgLinkFirst: 'Link your Telegram account first.',
+    tgUploadFailed: 'Upload failed.',
+    tgLoadFailed: 'Failed to load media.',
+    tgNotFound: 'File not found or access denied.',
+    tgDownloadFailed: 'Failed to download.',
+    tgInvalidExpiry: 'Enter a valid number of days (0 = never).',
+    tgExpiryUpdated: 'Expiry updated.',
+    tgExpiryFailed: 'Failed to update expiry.',
+    tgDeleteSuccess: 'Deleted {id}.',
+    tgDeleteFailed: 'Failed to delete.',
+
+    babyKeyCopied: 'API key copied.',
+    babyKeyWarning: 'Save this key now — it will not be shown again.',
+    babyKeyFailed: 'Failed to generate API key.',
+    babyKeyRevoked: 'API key revoked.',
+    babyStoolRequired: 'Please select a stool load.',
+    babyUrineRequired: 'Please select a urine load.',
+    babyDiaperLogged: 'Diaper change logged.',
+    babyDiaperFailed: 'Failed to log diaper change.',
+    babyFeedingRequired: 'Please fill in both timing and quantity.',
+    babyFeedingLogged: 'Feeding logged.',
+    babyFeedingFailed: 'Failed to log feeding.',
+
+    travelInvalidCode: 'Access code must be exactly 6 digits.',
+    itineraryDaysDiff: 'There is a difference of {days} days. Any existing activities may need to be rescheduled.',
   },
 }

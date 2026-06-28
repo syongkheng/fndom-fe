@@ -109,7 +109,7 @@ async function handleDeleteSession(session: SessionDto, e: Event) {
       { confirmButtonText: 'Delete', cancelButtonText: 'Cancel', type: 'warning' },
     )
     await store.deleteSession(session.sessionId)
-    ElMessage.success('Session deleted.')
+    ElMessage.success(t('toast.chatSessionDeleted'))
   } catch { /* cancelled */ }
 }
 
@@ -141,9 +141,9 @@ function formatSessionDate(ts: number) {
 async function copyMessage(content: string) {
   try {
     await navigator.clipboard.writeText(content)
-    ElMessage.success('Copied.')
+    ElMessage.success(t('toast.chatCopied'))
   } catch {
-    ElMessage.error('Copy failed.')
+    ElMessage.error(t('toast.chatCopyFailed'))
   }
 }
 
@@ -151,7 +151,7 @@ async function copyMessage(content: string) {
 watch(() => store.lastFulfilledDuration, (ms) => {
   if (ms === null) return
   ElMessage({
-    message:  `Request fulfilled in ${ms}ms`,
+    message:  t('toast.chatFulfilled', { ms }),
     type:     'success',
     duration: 2500,
     offset:   60,

@@ -1,4 +1,20 @@
 export default {
+  home: {
+    eyebrow: 'Awense',
+    heading: '您想从哪里开始？',
+    subtitle: '两项服务，一个平台。',
+    greeting: '欢迎回来，',
+    travel: {
+      label: '旅行规划',
+      desc: '按天规划行程，与旅伴实时协作，探索目的地。',
+      cta: '开始 →',
+    },
+    ai: {
+      label: 'AI 市场',
+      desc: '通过单一钱包按需访问 Claude、GPT-4o、Gemini 等前沿模型。',
+      cta: '开始 →',
+    },
+  },
   nav: {
     login: '登录',
     profile: '个人资料',
@@ -8,30 +24,63 @@ export default {
     babyTracker: '育儿追踪',
   },
   landing: {
-    eyebrow: '旅行与登山规划',
-    title: '规划你的\n下一次冒险。',
-    subtitle: '规划行程、与朋友分享、探索世界 — 无需注册即可开始。',
+    eyebrow: '规划 · 探索 · 连接',
+    title: '您的一站式\n冒险工作台。',
+    subtitle: '规划旅行行程、访问 AI 模型、追踪日常目标 — 一站搞定。无需注册即可开始。',
     startPlanning: '开始规划 →',
-    footerNote: '通过{link}保存并同步行程。',
-    signingIn: '登录',
+    signIn: '登录',
+    badge1: '免费开始',
+    badge2: '无需注册',
+    highlights: {
+      h1: '旅行规划工具 — 免费，无需注册',
+      h2: 'AI 市场 — Claude、GPT-4o、Gemini 等',
+    },
+    trust: {
+      travel: '✈ 旅行规划',
+      ai: '🤖 AI 市场',
+    },
     features: {
+      eyebrow: '您的工具箱',
+      sectionTitle: '旅行规划，遇见前沿 AI。',
       planning: {
         title: '旅行规划',
-        desc: '按天构建行程，添加活动、住宿和交通 — 一站式搞定。',
+        desc: '按天构建行程，添加活动和住宿，并与旅伴分享链接实时协作。',
       },
-      itineraries: {
-        title: '共享行程',
-        desc: '向同伴分享链接，实时协作同一份计划。',
+      ai: {
+        title: 'AI 市场',
+        desc: '一个账户，多个前沿模型。通过单一钱包按需使用 Claude、GPT-4o 和 Gemini。',
       },
-      destinations: {
-        title: '探索目的地',
-        desc: '浏览并探索各地风光，为下一次冒险寻找灵感。',
+      tools: {
+        title: '生活工具',
+        desc: 'HDB 住房查询、IPPT 体能追踪、抖音直播检测 — 专为新加坡生活打造的实用工具。',
+      },
+    },
+    cta: {
+      heading: '开始构建您的工作台。',
+      sub: '旅行规划免费。无需账户即可开始。',
+      action: '开始规划',
+      secondary: '创建账户',
+    },
+    footerNote: '通过{link}保存并同步行程。',
+    signingIn: '登录',
+    auth: {
+      greeting: '你好，',
+      walletBalance: '钱包余额',
+      topUp: '充值 →',
+      actions: {
+        marketplace: 'AI 市场',
+        marketplaceDesc: '与顶尖大模型对话',
+        wallet: '充值钱包',
+        walletDesc: '为账户添加余额',
+        apiKey: 'API 密钥',
+        apiKeyDesc: '您的个人 API 密钥',
       },
     },
   },
   footer: {
     tagline: '您的一站式工作台',
     allRights: '保留所有权利',
+    betaBadge: 'Beta',
     sections: {
       modules: '模块',
       personal: '个人',
@@ -43,9 +92,44 @@ export default {
       profile: '个人资料',
       workbench: '工作台',
       babyTracker: '育儿追踪',
+      aiMarketplace: 'AI 市场',
+    },
+  },
+  workbench: {
+    eyebrow: 'Awense',
+    title: '您的工作台',
+    subtitle: '选择一个模块开始使用',
+    tiles: {
+      pphs:        { label: 'PPHS',            desc: '公共住房信息、公交站与地铁距离' },
+      flat:        { label: '房屋分析',         desc: '按邮编搜索 · 地铁与公交距离' },
+      scenic:      { label: '景区',             desc: '中国 5A 景区 · 记录您的到访' },
+      travel:      { label: '旅行',             desc: '行程规划与协作' },
+      douyin:      { label: '抖音直播',         desc: '查看抖音用户是否正在直播' },
+      telegram:    { label: 'Telegram 存储',    desc: '通过 Telegram 机器人上传媒体并按 ID 检索' },
+      imghost:     { label: '图片 CDN',         desc: '上传图片 · 获取可分享的 CDN 链接' },
+      ippt:        { label: 'IPPT · 训练',      desc: '追踪俯卧撑、仰卧起坐和 2.4 公里跑' },
+      marketplace: { label: '市场',             desc: '浏览并与 AI 服务对话' },
+      admin:       { label: '管理',             desc: '管理用户、角色和系统设置' },
     },
   },
   travel: {
+    landing: {
+      eyebrow: '旅行',
+      title: '规划您的下一次冒险。',
+      subtitle: '按天构建行程，与旅伴协作，分享您的旅行计划。',
+      startPlanning: '开始规划 →',
+      myTrips: '我的行程 →',
+      newDraft: '新建草稿 →',
+      signIn: '登录',
+      cta: {
+        heading: '准备好开始规划了吗？',
+        sub: '免费使用，无需账户即可创建草稿。',
+        action: '开始规划',
+        secondary: '创建账户',
+      },
+      footerNote: '通过{link}保存并同步行程。',
+      signingIn: '登录',
+    },
     list: {
       title: '我的行程',
       subtitle: '规划、整理并分享您的旅行行程',
@@ -340,6 +424,17 @@ export default {
       verify: '验证邮箱',
     },
 
+    eyebrow: {
+      email: '登录或创建账户',
+      register: '新账户',
+      login: '欢迎回来',
+      verify: '验证您的邮箱',
+    },
+
+    emailChipChange: '更改',
+    forgotPassword: '忘记密码？',
+    forgotPasswordMessage: '密码重置暂不可用，请联系支持团队。',
+
     email: {
       placeholder: '邮箱地址',
     },
@@ -427,6 +522,10 @@ export default {
   },
 
   marketplace: {
+    public: {
+      notice: '登录后即可与模型对话并管理钱包。',
+      signIn: '登录',
+    },
     hero: {
       eyebrow: 'Awense 市场',
       beta: 'Beta',
@@ -483,5 +582,119 @@ export default {
       'gemini-1-5-pro':    { description: 'Google 长上下文专家模型。支持高达 200 万 token — 适合完整代码库、书籍和大规模数据集。' },
       'llama-3-3-70b':     { description: 'Meta 开源旗舰模型。性能出众且完全透明 — 可通过 API 调用或在您自己的基础设施上部署。' },
     },
+    back: '← 市场',
+    accountBar: {
+      balance: '余额',
+      topUp: '充值',
+      apiKey: 'API 密钥',
+    },
+    wallet: {
+      title: '钱包',
+      balance: '可用余额',
+      topUp: '充值',
+      customPlaceholder: '自定义金额（如 30）',
+      payCard: '银行卡',
+      payPaynow: 'PayNow',
+      mockNotice: '支付流程为模拟 — 不会产生真实扣费。',
+    },
+    apiKey: {
+      title: 'API 密钥',
+      cardTitle: '您的 API 密钥',
+      reveal: '显示',
+      hide: '隐藏',
+      rotateTitle: '轮换密钥',
+      rotateDesc: '生成新密钥，当前密钥将立即失效。',
+      rotateBtn: '轮换 API 密钥',
+      rotateConfirmTitle: '轮换 API 密钥',
+      rotateConfirmBody: '轮换密钥后，当前密钥将立即失效，所有使用旧密钥的集成将停止工作。',
+      rotateConfirmBtn: '轮换',
+      usageTitle: '使用说明',
+      usageDesc: 'API 密钥用于验证 Awense 市场的请求，请妥善保管，如有泄露请立即轮换。',
+      usageNote: '外部 API 访问即将上线。',
+      copy: '复制',
+    },
+  },
+
+  common: {
+    comingSoon: '页面即将上线。',
+    cancel: '取消',
+  },
+
+  toast: {
+    logoutSuccess: '退出登录成功。',
+    sessionExpired: '您的会话已过期，请重新登录。',
+
+    notLoggedIn: '您未登录，请先登录。',
+    itineraryAccessDenied: '您无权编辑此行程，请联系所有者。',
+    loginRequired: '您必须先登录。',
+    accessDenied: '访问被拒绝。',
+
+    scenicLoadFailed: '加载景点失败。',
+    scenicSaveFailed: '保存失败，请重试。',
+
+    pphsUpdateSuccess: 'PPHS 记录更新成功。',
+    pphsUpdateFailed: '更新 PPHS 记录失败。',
+
+    imghostImagesOnly: '仅支持图片文件。',
+    imghostUploadFailed: '上传失败，请重试。',
+    imghostUrlCopied: '链接已复制！',
+    imghostEmbedCopied: '嵌入代码已复制！',
+
+    apiKeyCopied: 'API 密钥已复制到剪贴板。',
+    apiKeyCopyFailed: '复制失败，请手动复制。',
+    apiKeyRotated: 'API 密钥已轮换，请保存新密钥。',
+    apiKeyRotateFailed: '轮换 API 密钥失败。',
+
+    walletSelectAmount: '请选择或输入金额。',
+    walletTopupSuccess: '成功充值 {amount}。',
+    walletTopupFailed: '充值失败，请重试。',
+
+    chatCopied: '已复制。',
+    chatCopyFailed: '复制失败。',
+    chatSessionDeleted: '会话已删除。',
+    chatFulfilled: '请求在 {ms} 毫秒内完成',
+
+    adminPricingLoadFailed: '加载定价配置失败。',
+    adminPricingSettingsSaved: '全局设置已保存。',
+    adminPricingSettingsFailed: '保存设置失败。',
+    adminPricingModelUpdated: '{name} 已更新。',
+    adminPricingModelFailed: '保存失败，请重试。',
+    adminTgUserAdded: '用户 {userId} 已添加。',
+    adminTgAddFailed: '添加管理员失败。',
+    adminTgRemoved: '管理员已移除。',
+    adminTgRemoveFailed: '移除管理员失败。',
+    adminUsersLoadFailed: '加载用户失败。',
+    adminRolesUpdated: '角色已更新。',
+    adminRolesFailed: '更新角色失败。',
+
+    tgCopied: '已复制：{text}',
+    tgTokenFailed: '生成令牌失败。',
+    tgUploadSuccess: '上传成功 — 文件已发送至您的 Telegram 私信。',
+    tgBotNotStarted: '请先与机器人开启私信并发送 /start，然后重试。',
+    tgLinkFirst: '请先关联您的 Telegram 账号。',
+    tgUploadFailed: '上传失败。',
+    tgLoadFailed: '加载媒体失败。',
+    tgNotFound: '文件未找到或无访问权限。',
+    tgDownloadFailed: '下载失败。',
+    tgInvalidExpiry: '请输入有效天数（0 = 永不过期）。',
+    tgExpiryUpdated: '有效期已更新。',
+    tgExpiryFailed: '更新有效期失败。',
+    tgDeleteSuccess: '已删除 {id}。',
+    tgDeleteFailed: '删除失败。',
+
+    babyKeyCopied: 'API 密钥已复制。',
+    babyKeyWarning: '请立即保存此密钥 — 不会再次显示。',
+    babyKeyFailed: '生成 API 密钥失败。',
+    babyKeyRevoked: 'API 密钥已撤销。',
+    babyStoolRequired: '请选择大便量。',
+    babyUrineRequired: '请选择小便量。',
+    babyDiaperLogged: '换尿布记录已保存。',
+    babyDiaperFailed: '记录换尿布失败。',
+    babyFeedingRequired: '请填写喂食时间和数量。',
+    babyFeedingLogged: '喂食记录已保存。',
+    babyFeedingFailed: '记录喂食失败。',
+
+    travelInvalidCode: '访问码必须恰好为 6 位数字。',
+    itineraryDaysDiff: '天数相差 {days} 天，现有活动可能需要重新安排。',
   },
 }

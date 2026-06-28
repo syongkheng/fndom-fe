@@ -2,13 +2,22 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { useLayoutStateStore } from '@/stores/layoutState'
 import type { LLMModel } from '@/interfaces/Marketplace.model'
 
-const props = defineProps<{ model: LLMModel }>()
+const props = defineProps<{ model: LLMModel; isAuthenticated?: boolean }>()
 
-const router = useRouter()
+const router      = useRouter()
+const layoutStore = useLayoutStateStore()
+const { t }       = useI18n()
 
-const { t } = useI18n()
+function handleTryChat() {
+  if (props.isAuthenticated) {
+    router.push(`/llm/chat?model=${props.model.id}`)
+  } else {
+    layoutStore.loginDialog.toggle()
+  }
+}
 
 const BADGE_STYLE: Record<string, string> = {
   Popular:      'badge--popular',
@@ -73,7 +82,7 @@ const badgeLabel = computed(() => {
       <span v-for="tag in model.tags" :key="tag" class="tag">{{ tag }}</span>
     </div>
 
-    <button class="try-btn" @click="router.push(`/llm/chat?model=${model.id}`)">
+    <button class="try-btn" @click="handleTryChat()">
       {{ t('marketplace.card.tryChat') }} <span class="try-arrow">→</span>
     </button>
 

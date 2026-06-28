@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 import HttpClient from '@/interceptors/HttpClient'
 
 interface UploadedImage {
@@ -46,7 +48,7 @@ function onFileInput(e: Event) {
 
 function pickFile(file: File) {
   if (!file.type.startsWith('image/')) {
-    ElMessage.error('Only image files are supported')
+    ElMessage.error(t('toast.imghostImagesOnly'))
     return
   }
   selectedFile.value = file
@@ -100,7 +102,7 @@ async function upload() {
     localPreview.value = null
     if (fileInput.value) fileInput.value.value = ''
   } catch {
-    ElMessage.error('Upload failed. Please try again.')
+    ElMessage.error(t('toast.imghostUploadFailed'))
   } finally {
     uploading.value = false
   }
@@ -108,12 +110,12 @@ async function upload() {
 
 async function copyUrl(url: string) {
   await navigator.clipboard.writeText(url)
-  ElMessage.success('URL copied!')
+  ElMessage.success(t('toast.imghostUrlCopied'))
 }
 
 async function copyEmbed(url: string) {
   await navigator.clipboard.writeText(`<img src="${url}" alt="" />`)
-  ElMessage.success('Embed snippet copied!')
+  ElMessage.success(t('toast.imghostEmbedCopied'))
 }
 </script>
 

@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { useMarketplaceStore } from '@/stores/marketplace'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
@@ -9,6 +10,7 @@ import type { TopupDto } from '@/interfaces/Marketplace.model'
 
 const router  = useRouter()
 const store   = useMarketplaceStore()
+const { t } = useI18n()
 
 const loading        = ref(false)
 const topupLoading   = ref(false)
@@ -58,17 +60,17 @@ async function loadHistory() {
 async function handleTopup() {
   const cents = getEffectiveAmountCents()
   if (!cents) {
-    ElMessage.warning('Please select or enter an amount.')
+    ElMessage.warning(t('toast.walletSelectAmount'))
     return
   }
   try {
     topupLoading.value = true
     await store.topUp(cents, paymentMethod.value)
-    ElMessage.success(`Topped up ${formatBalance(cents, 'SGD')} successfully.`)
+    ElMessage.success(t('toast.walletTopupSuccess', { amount: formatBalance(cents, 'SGD') }))
     selectedAmount.value = null
     customAmount.value   = ''
   } catch {
-    ElMessage.error('Top-up failed. Please try again.')
+    ElMessage.error(t('toast.walletTopupFailed'))
   } finally {
     topupLoading.value = false
   }
@@ -82,17 +84,20 @@ onMounted(loadHistory)
 
     <!-- Header -->
     <header class="wallet-header">
-      <el-button text size="small" class="back-btn" @click="router.push('/marketplace')">
-        ← Marketplace
-      </el-button>
-      <h2 class="wallet-title">Wallet</h2>
+      <div class="wallet-header-inner">
+        <button class="back-btn" @click="router.push('/llm')">{{ t('marketplace.back') }}</button>
+        <div>
+          <p class="wallet-eyebrow">{{ t('marketplace.hero.eyebrow') }}</p>
+          <h1 class="wallet-title">{{ t('marketplace.wallet.title') }}</h1>
+        </div>
+      </div>
     </header>
 
     <div class="wallet-body">
 
       <!-- Balance card -->
       <div class="balance-card">
-        <div class="balance-label">Available Balance</div>
+        <div class="balance-label">{{ t('marketplace.wallet.balance') }}</div>
         <div class="balance-amount">
           {{ store.wallet ? formatBalance(store.wallet.balance, store.wallet.currency) : '—' }}
         </div>
@@ -101,7 +106,7 @@ onMounted(loadHistory)
 
       <!-- Top-up card -->
       <div class="topup-card">
-        <div class="card-title">Top Up</div>
+        <div class="card-title">{{ t('marketplace.wallet.topUp') }}</div>
 
         <!-- Preset amounts -->
         <div class="preset-grid">
@@ -119,7 +124,7 @@ onMounted(loadHistory)
         <!-- Custom amount -->
         <el-input
           v-model="customAmount"
-          placeholder="Custom amount (e.g. 30)"
+          :placeholder="t('marketplace.wallet.customPlaceholder')"
           class="custom-input"
           prefix="S$"
           @focus="selectedAmount = null"
@@ -127,12 +132,12 @@ onMounted(loadHistory)
 
         <!-- Payment method -->
         <el-radio-group v-model="paymentMethod" class="payment-group">
-          <el-radio value="card">Card</el-radio>
-          <el-radio value="paynow">PayNow</el-radio>
+          <el-radio value="card">{{ t('marketplace.wallet.payCard') }}</el-radio>
+          <el-radio value="paynow">{{ t('marketplace.wallet.payPaynow') }}</el-radio>
         </el-radio-group>
 
         <!-- Mock notice -->
-        <p class="mock-notice">Payment processing is mocked — no real charge will be made.</p>
+        <p class="mock-notice">{{ t('marketplace.wallet.mockNotice') }}</p>
 
         <el-button
           type="primary"
@@ -141,7 +146,7 @@ onMounted(loadHistory)
           class="topup-btn"
           @click="handleTopup"
         >
-          Top Up {{ getEffectiveAmountCents() ? formatBalance(getEffectiveAmountCents()!, 'SGD') : '' }}
+          {{ t('marketplace.wallet.topUp') }} {{ getEffectiveAmountCents() ? formatBalance(getEffectiveAmountCents()!, 'SGD') : '' }}
         </el-button>
       </div>
 
@@ -159,26 +164,45 @@ onMounted(loadHistory)
 
 /* ── Header ──────────────────────────────────────────────── */
 .wallet-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 32px;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-background-soft);
-  min-height: 52px;
+  padding: 20px 32px 22px;
+}
+
+.wallet-header-inner {
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .back-btn {
-  opacity: 0.55;
-  font-size: 0.82rem;
-  padding: 14px 0;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text);
+  opacity: 0.45;
   transition: opacity 0.15s;
+  text-align: left;
 }
-.back-btn:hover { opacity: 1; }
+.back-btn:hover { opacity: 0.85; }
+
+.wallet-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--el-color-primary);
+  margin-bottom: 4px;
+}
 
 .wallet-title {
-  font-size: 0.95rem;
-  font-weight: 700;
+  font-size: 1.5rem;
+  font-weight: 800;
   color: var(--color-heading);
   margin: 0;
 }

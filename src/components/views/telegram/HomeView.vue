@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
 
@@ -14,6 +15,8 @@ interface MediaItem {
   createdAt: number
   expiresAt: number | null
 }
+
+const { t } = useI18n()
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -104,7 +107,7 @@ function expiryStatus(item: MediaItem): { label: string; type: 'success' | 'warn
 
 function copyToClipboard(text: string) {
   navigator.clipboard.writeText(text)
-  ElMessage.success(`Copied: ${text}`)
+  ElMessage.success(t('toast.tgCopied', { text }))
 }
 
 function setUploadFile(file: File) {
@@ -176,7 +179,7 @@ async function generateToken() {
     linkToken.value = res.data.data.token
     tokenExpiry.value = Date.now() + res.data.data.expiresInSeconds * 1000
   } catch {
-    ElMessage.error('Failed to generate token')
+    ElMessage.error(t('toast.tgTokenFailed'))
   } finally {
     tokenLoading.value = false
   }
@@ -195,17 +198,17 @@ async function uploadMedia() {
         uploadProgress.value = e.total ? Math.round((e.loaded / e.total) * 100) : 0
       },
     })
-    ElMessage.success('Uploaded — file sent to your Telegram DM')
+    ElMessage.success(t('toast.tgUploadSuccess'))
     clearUpload()
     await loadMedia()
   } catch (err: any) {
     const status = err?.response?.data?.status
     if (status === 'InvalidRequestException') {
-      ElMessage.error('Open a private chat with the bot and send /start first, then retry.')
+      ElMessage.error(t('toast.tgBotNotStarted'))
     } else if (status === 'ForbiddenAccessException') {
-      ElMessage.error('Link your Telegram account first.')
+      ElMessage.error(t('toast.tgLinkFirst'))
     } else {
-      ElMessage.error('Upload failed')
+      ElMessage.error(t('toast.tgUploadFailed'))
     }
   } finally {
     uploadLoading.value = false
@@ -223,7 +226,7 @@ async function loadMedia() {
     currentPage.value = 1
     fetchPreviewsForPage()
   } catch {
-    ElMessage.error('Failed to load media')
+    ElMessage.error(t('toast.tgLoadFailed'))
   } finally {
     mediaLoading.value = false
   }
@@ -248,7 +251,7 @@ async function retrieve() {
       expiresAt: meta.expiresAt,
     }
   } catch {
-    ElMessage.error('File not found or access denied')
+    ElMessage.error(t('toast.tgNotFound'))
   } finally {
     retrieveLoading.value = false
   }
@@ -269,7 +272,7 @@ async function downloadMedia(id: string) {
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
   } catch {
-    ElMessage.error('Failed to download')
+    ElMessage.error(t('toast.tgDownloadFailed'))
   }
 }
 
@@ -277,7 +280,7 @@ async function saveExpiry(item: MediaItem) {
   const raw = expiryInputs.value[item.id]
   const days = parseInt(raw ?? '')
   if (isNaN(days) || days < 0) {
-    ElMessage.warning('Enter a valid number of days (0 = never)')
+    ElMessage.warning(t('toast.tgInvalidExpiry'))
     return
   }
   savingExpiry.value[item.id] = true
@@ -285,9 +288,9 @@ async function saveExpiry(item: MediaItem) {
     await HttpClient.post(ApiRoute.TELEGRAM.MEDIA_EXPIRE(item.id), { days })
     item.expiresAt = days === 0 ? null : Date.now() + days * 86400000
     expiryInputs.value[item.id] = ''
-    ElMessage.success('Expiry updated')
+    ElMessage.success(t('toast.tgExpiryUpdated'))
   } catch {
-    ElMessage.error('Failed to update expiry')
+    ElMessage.error(t('toast.tgExpiryFailed'))
   } finally {
     savingExpiry.value[item.id] = false
   }
@@ -307,9 +310,9 @@ async function deleteMedia(item: MediaItem) {
   try {
     await HttpClient.post(ApiRoute.TELEGRAM.MEDIA_DELETE(item.id), {})
     mediaList.value = mediaList.value.filter(m => m.id !== item.id)
-    ElMessage.success(`Deleted ${item.id}`)
+    ElMessage.success(t('toast.tgDeleteSuccess', { id: item.id }))
   } catch {
-    ElMessage.error('Failed to delete')
+    ElMessage.error(t('toast.tgDeleteFailed'))
   } finally {
     deletingId.value = null
   }

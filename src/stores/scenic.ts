@@ -1,6 +1,8 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { ElMessage } from 'element-plus'
+import { i18n } from '@/i18n'
+const t = (key: string) => i18n.global.t(key)
 import { useAuthenticationStore } from '@/stores/authentication'
 import { ApiRoute } from '@/constants/ApiRoute'
 import { StorageUtils, StorageKey } from '@/utilities/StorageUtils'
@@ -58,7 +60,7 @@ export const useScenicStore = defineStore('scenic', () => {
 
       initialized.value = true
     } catch {
-      ElMessage.error('Failed to load scenic spots')
+      ElMessage.error(t('toast.scenicLoadFailed'))
     } finally {
       loading.value = false
     }
@@ -80,7 +82,7 @@ export const useScenicStore = defineStore('scenic', () => {
         // Rollback on failure
         if (newState) checkedIds.value.delete(scenicId)
         else checkedIds.value.add(scenicId)
-        ElMessage.error('Failed to save. Please try again.')
+        ElMessage.error(t('toast.scenicSaveFailed'))
       }
     } else {
       StorageUtils.set(StorageKey.SCENIC_CHECKLIST, [...checkedIds.value])

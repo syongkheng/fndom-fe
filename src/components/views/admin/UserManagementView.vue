@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
 import { GRANTABLE_ROLES, MODULE_COLORS, type RoleDefinition } from '@/constants/Roles'
 
 const router = useRouter()
+const { t } = useI18n()
 
 interface UserRecord {
   id: number
@@ -62,7 +64,7 @@ const fetchUsers = async () => {
   if (res?.data?.data) {
     users.value = res.data.data
   } else {
-    ElMessage.error('Failed to load users.')
+    ElMessage.error(t('toast.adminUsersLoadFailed'))
   }
   loading.value = false
 }
@@ -94,10 +96,10 @@ const saveRoles = async () => {
     selectedUser.value.roles = [...draftRoles.value]
     const idx = users.value.findIndex(u => u.id === selectedUser.value!.id)
     if (idx !== -1) users.value[idx].roles = [...draftRoles.value]
-    ElMessage.success('Roles updated.')
+    ElMessage.success(t('toast.adminRolesUpdated'))
     drawerVisible.value = false
   } else {
-    ElMessage.error('Failed to update roles.')
+    ElMessage.error(t('toast.adminRolesFailed'))
   }
 }
 

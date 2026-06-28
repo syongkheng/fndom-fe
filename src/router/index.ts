@@ -42,6 +42,11 @@ const router = createRouter({
     {
       path: '/travel',
       name: 'travel',
+      component: () => import('../components/views/travel/TravelLandingView.vue'),
+    },
+    {
+      path: '/travel/trips',
+      name: 'travel-trips',
       component: () => import('../components/views/travel/TravelListView.vue'),
       beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
     },
@@ -88,7 +93,6 @@ const router = createRouter({
       path: '/llm',
       name: 'llm',
       component: () => import('../components/views/marketplace/MarketplaceView.vue'),
-      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
     },
     {
       path: '/llm/chat',

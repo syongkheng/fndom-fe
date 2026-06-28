@@ -11,11 +11,13 @@ import { useThemeStore } from './stores/theme'
 import AppInitializer from './AppInitializer.vue'
 import LoadingDialog from './components/dialogs/LoadingDialog.vue'
 import { useLocale } from './composables/useLocale'
+import { usePageTracking } from './composables/usePageTracking'
 
 const route = useRoute()
 const layoutStore = useLayoutStateStore()
 useThemeStore() // initialises on first call — applies dark/light class before render
 const { epLocale } = useLocale()
+usePageTracking()
 
 watch(() => route.query.showLogin, (newVal) => {
   if (newVal === 'true') {
@@ -57,7 +59,7 @@ watch(() => route.query.showLogin, (newVal) => {
   box-sizing: border-box;
   min-height: calc(100vh - 80px - 220px);
   justify-content: center;
-  width: 100vw;
+  width: 100%;
 }
 
 .wrapper--fullbleed {

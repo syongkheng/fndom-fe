@@ -25,21 +25,21 @@ const handleMenuClick = (action: () => void) => {
 const handleLogout = () => {
   authStore.handleLogout()
   navigate.redirectToLanding()
-  ElMessage.success('Logout Successfully')
+  ElMessage.success(t('toast.logoutSuccess'))
 }
 
-const publicModules = [
-  { label: 'PPHS', path: '/pphs' },
-  { label: 'Flat Analysis', path: '/flat' },
-  { label: 'Scenic Spots', path: '/scenic' },
-]
+const publicModules = computed(() => [
+  { label: t('workbench.tiles.pphs.label'),   path: '/pphs' },
+  { label: t('workbench.tiles.flat.label'),   path: '/flat' },
+  { label: t('workbench.tiles.scenic.label'), path: '/scenic' },
+])
 
-const personalModules = [
-  { label: 'Travel', path: '/travel' },
-  { label: 'Douyin', path: '/douyin' },
-  { label: 'Telegram Storage', path: '/telegram' },
-  { label: 'Marketplace', path: '/llm' },
-]
+const personalModules = computed(() => [
+  { label: t('workbench.tiles.travel.label'),      path: '/travel' },
+  { label: t('workbench.tiles.douyin.label'),      path: '/douyin' },
+  { label: t('workbench.tiles.telegram.label'),    path: '/telegram' },
+  { label: t('workbench.tiles.marketplace.label'), path: '/llm' },
+])
 </script>
 
 <template>

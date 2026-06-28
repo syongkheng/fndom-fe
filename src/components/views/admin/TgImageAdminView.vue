@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+const { t } = useI18n()
 
 interface AdminRecord {
   id: number
@@ -48,11 +50,11 @@ const submitAdd = async () => {
   const res = await HttpClient.post(ApiRoute.TG_IMG.ADMIN.ADD, { telegramUserId: userId }).catch(() => null)
   adding.value = false
   if (res?.data?.data?.added) {
-    ElMessage.success(`User ${userId} added.`)
+    ElMessage.success(t('toast.adminTgUserAdded', { userId }))
     addVisible.value = false
     await fetchAdmins()
   } else {
-    ElMessage.error('Failed to add admin.')
+    ElMessage.error(t('toast.adminTgAddFailed'))
   }
 }
 
@@ -62,9 +64,9 @@ const removeAdmin = async (record: AdminRecord) => {
   removing.value[record.id] = false
   if (res?.data?.data?.removed) {
     admins.value = admins.value.filter(a => a.id !== record.id)
-    ElMessage.success('Admin removed.')
+    ElMessage.success(t('toast.adminTgRemoved'))
   } else {
-    ElMessage.error('Failed to remove admin.')
+    ElMessage.error(t('toast.adminTgRemoveFailed'))
   }
 }
 </script>
