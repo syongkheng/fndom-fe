@@ -142,8 +142,8 @@ export default {
       usageStep1: 'Store the key in your device firmware (e.g. secrets.h)',
       usageStep2: 'Send it as the x-api-key header on every request',
       usageEndpointsTitle: 'Endpoints',
-      usagePostBody: 'Body: { "deviceId": "hike-hitcher-01", "deviceName": "optional label" }',
-      usageGetQuery: 'Query: ?deviceId=hike-hitcher-01',
+      usagePostBodyLabel: 'Body:',
+      usageGetQueryLabel: 'Query:',
     },
   },
   travel: {

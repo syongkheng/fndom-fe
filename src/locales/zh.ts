@@ -141,8 +141,8 @@ export default {
       usageStep1: '将密钥存储在设备固件中（例如 secrets.h）',
       usageStep2: '在每个请求中以 x-api-key 请求头发送该密钥',
       usageEndpointsTitle: '接口',
-      usagePostBody: '请求体：{ "deviceId": "hike-hitcher-01", "deviceName": "可选标签" }',
-      usageGetQuery: '查询参数：?deviceId=hike-hitcher-01',
+      usagePostBodyLabel: '请求体：',
+      usageGetQueryLabel: '查询参数：',
     },
   },
   travel: {

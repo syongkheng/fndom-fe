@@ -161,13 +161,19 @@ onMounted(refreshApiKeyStatus)
           <span class="endpoint-method">POST</span>
           <code class="endpoint-path">{{ serverBaseUrl }}/iot</code>
         </div>
-        <div class="endpoint-body">{{ t('iot.key.usagePostBody') }}</div>
+        <div class="endpoint-body">
+          {{ t('iot.key.usagePostBodyLabel') }}
+          <code>{{ '{ "deviceId": "hike-hitcher-01", "deviceName": "optional label" }' }}</code>
+        </div>
 
         <div class="endpoint-row" style="margin-top: 10px;">
           <span class="endpoint-method">GET</span>
           <code class="endpoint-path">{{ serverBaseUrl }}/iot</code>
         </div>
-        <div class="endpoint-body">{{ t('iot.key.usageGetQuery') }}</div>
+        <div class="endpoint-body">
+          {{ t('iot.key.usageGetQueryLabel') }}
+          <code>?deviceId=hike-hitcher-01</code>
+        </div>
       </div>
     </div>
   </div>
