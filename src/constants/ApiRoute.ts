@@ -91,10 +91,21 @@ export const ApiRoute = {
     ADMIN_MODEL:      (modelId: string) => `/api/llm/admin/models/${encodeURIComponent(modelId)}`,
     ADMIN_SETTINGS:   `/api/llm/admin/settings`,
   },
+  SUGGESTION: {
+    ACTIVITIES: (destination: string) => `/api/suggestion/activity?destination=${encodeURIComponent(destination)}`,
+    PACKING:    `/api/suggestion/packing`,
+    CREATE_ACTIVITY: `/api/suggestion/activity`,
+    DELETE_ACTIVITY: (id: number) => `/api/suggestion/activity/${id}`,
+    CREATE_PACKING:  `/api/suggestion/packing`,
+    DELETE_PACKING:  (id: number) => `/api/suggestion/packing/${id}`,
+  },
   SS_BABY: {
     FEEDING:  `/v1/ss/baby/feeding`,
     DIAPER:   `/v1/ss/baby/diaper`,
     API_KEY:  `/api/baby/api-key`,
+  },
+  IOT: {
+    API_KEY: `/api/iot-key/api-key`,
   },
   DATA_GOV_SG: {
     // HDB Resale Flat Prices (Jan 2017 onwards) — update resource ID here if dataset changes

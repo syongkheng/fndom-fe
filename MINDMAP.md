@@ -44,7 +44,8 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   └── /flat                  flat → flat/HomeView
 │   │
 │   ├── AUTH REQUIRED (authGuard)
-│   │   └── /profile               profile → ProfileView
+│   │   ├── /profile               profile → ProfileView
+│   │   └── /iot-key               iot-key → iot/IotDeviceKeyView
 │   │
 │   ├── ADMIN ONLY (systemR5Guard — SYSTEM_R5 role)
 │   │   ├── /admin                 admin → AdminView
@@ -68,7 +69,8 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   ├── pphs.ts             — PPHS/HDB records + coordinate updates
 │   ├── ippt.ts             — IPPT profile, activity log, badges, plan, events (localStorage persisted)
 │   ├── event.ts            — FND events (commented out)
-│   └── notice.ts           — FND notices (commented out)
+│   ├── notice.ts           — FND notices (commented out)
+│   └── iotDevice.ts        — IoT device API key: fetchApiKeyStatus, generateApiKey(deviceName), revokeApiKey
 │
 ├── MODULES (pages / views)
 │   │
@@ -127,10 +129,14 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   ├── IPPT / STRIDER  /ippt  — SYSTEM_R5 + feature:ippt
    │   └── HomeView.vue           — single-SFC with 5-tab internal nav (dashboard, log, calculator, schedule, plan) + pushed achievements/profile; onboarding modal on first open
    │
-   └── ADMIN  /admin  — SYSTEM_R5 only
-│       ├── AdminView.vue
-│       ├── UserManagementView.vue
-│       └── FeatureFlagView.vue
+   ├── ADMIN  /admin  — SYSTEM_R5 only
+│   │   ├── AdminView.vue
+│   │   ├── UserManagementView.vue
+│   │   └── FeatureFlagView.vue
+│   │
+│   └── IOT DEVICE KEY  /iot-key  — auth required
+│       └── IotDeviceKeyView.vue   — generate/regenerate/revoke API key for /iot device auth
+│             (mints keys via qindom's /api/iot-key/api-key; shown once on generation)
 │
 ├── COMPONENTS (src/components/)
 │   ├── illustrations/
@@ -197,7 +203,8 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │       ├── /api/douyin/*      — live, ranklist
 │       ├── /api/meal/*        — log, range, photo
 │       ├── /api/sleep/*       — log, bulk, parse-screenshot
-│       └── /api/telegram/*    — link status, media management
+│       ├── /api/telegram/*    — link status, media management
+│       └── /api/iot-key/*     — IoT device API key generate/status/revoke
 │
 ├── UTILITIES (src/utilities/)
 │   ├── StorageUtils.ts        — localStorage wrapper; getVisitorSessionId() used by analytics

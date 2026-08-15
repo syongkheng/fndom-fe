@@ -72,6 +72,12 @@ const router = createRouter({
       beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
     },
     {
+      path: '/iot-key',
+      name: 'iot-key',
+      component: () => import('../components/views/iot/IotDeviceKeyView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
+    },
+    {
       path: '/douyin',
       name: 'douyin',
       component: () => import('../components/views/douyin/HomeView.vue'),

@@ -16,8 +16,6 @@ import type { AgendaItem } from '@/interfaces/forms/itinerary/AgendaItem'
 import EmptyState from '@/components/common/EmptyState.vue'
 import PrivacyDialog from '@/components/views/travel/PrivacyDialog.vue'
 import AgendaDrawer from '@/components/views/travel/AgendaDrawer.vue'
-import BookingDrawer from '@/components/views/travel/BookingDrawer.vue'
-import type { ItineraryBooking } from '@/interfaces/forms/itinerary/ItineraryBooking'
 import { useTravelDayGroups, type AgendaRow } from '@/composables/useTravelDayGroups'
 import { useTravelExport } from '@/composables/useTravelExport'
 import { useCityLabel } from '@/composables/useCityLabel'
@@ -27,6 +25,7 @@ import PackingDrawer from '@/components/views/travel/PackingDrawer.vue'
 import { getPackingCategoryEmoji, PACKING_CATEGORIES } from '@/constants/TravelCategories'
 import type { PackingItem } from '@/interfaces/forms/itinerary/PackingItem'
 import { useI18n } from 'vue-i18n'
+import PackingSuggestionPanel, { type PackingSuggestion } from '@/components/views/travel/PackingSuggestionPanel.vue'
 
 const route = useRoute()
 const nav = useNav()
@@ -34,7 +33,7 @@ const itineraryStore = useItineraryStore()
 const layoutStore = useLayoutStateStore()
 const authStore = useAuthenticationStore()
 const { itinerary, loadingStage } = storeToRefs(itineraryStore)
-const { addBooking, removeBooking, updateBooking, addPackingItem, removePackingItem, updatePackingItem, togglePackingItem, saveDraft, loadDraft, migrateDraft } = itineraryStore
+const { addPackingItem, removePackingItem, updatePackingItem, togglePackingItem, saveDraft, loadDraft, migrateDraft } = itineraryStore
 const { isAuthenticated } = storeToRefs(authStore)
 
 const sessionId = route.params.sessionId as string
@@ -74,42 +73,6 @@ function scrollToTop() {
 }
 
 
-// ── Booking drawer state ───────────────────────────────────────────────────────
-const bookingDrawerVisible = ref(false)
-const bookingDrawerIsNew = ref(false)
-const bookingDrawerItem = ref<ItineraryBooking | null>(null)
-
-const effectivePaxNames = computed(() => {
-  if (itinerary.value.paxNames?.length) return itinerary.value.paxNames
-  const n = itinerary.value.numberOfPax ?? 1
-  if (n === 1) return ['Me']
-  return Array.from({ length: n }, (_, i) => `Person ${i + 1}`)
-})
-
-const openAddBookingDrawer = () => {
-  bookingDrawerIsNew.value = true
-  bookingDrawerItem.value = null
-  bookingDrawerVisible.value = true
-}
-
-const openEditBookingDrawer = (booking: ItineraryBooking) => {
-  bookingDrawerIsNew.value = false
-  bookingDrawerItem.value = { ...booking }
-  bookingDrawerVisible.value = true
-}
-
-const onBookingDrawerSave = (booking: ItineraryBooking) => {
-  if (bookingDrawerIsNew.value) {
-    addBooking(booking)
-  } else {
-    updateBooking(booking)
-  }
-}
-
-const onBookingDelete = (booking: ItineraryBooking) => {
-  removeBooking(booking)
-}
-
 // ── Packing drawer state ──────────────────────────────────────────────────────
 const packingDrawerVisible = ref(false)
 const packingDrawerIsNew = ref(false)
@@ -147,33 +110,37 @@ const packingPackedCount = computed(() =>
   (itinerary.value.packingItems ?? []).filter((i) => i.packed).length,
 )
 
-// Pax name editing
-const editingPaxNames = ref(false)
-const paxNamesInput = ref<string>('')
-
-const startEditPaxNames = () => {
-  paxNamesInput.value = effectivePaxNames.value.join(', ')
-  editingPaxNames.value = true
-}
-
-const savePaxNames = () => {
-  const names = paxNamesInput.value
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-  itinerary.value.paxNames = names.length ? names : undefined
-  editingPaxNames.value = false
-}
-
-// Booking summary computed
-const bookingTotal = computed(() =>
-  (itinerary.value.bookings ?? []).reduce((sum, b) => sum + (b.price ?? 0), 0),
-)
-const bookingBookedCount = computed(() =>
-  (itinerary.value.bookings ?? []).filter((b) => b.booked).length,
-)
-const bookingsCollapsed = ref(false)
 const packingCollapsed = ref(false)
+
+// ── Suggestion drag state ──────────────────────────────────────────────────
+const draggingPacking = ref(false)
+
+const onDropPacking = (e: DragEvent) => {
+  draggingPacking.value = false
+  const raw = e.dataTransfer?.getData('suggestion/packing')
+  if (!raw) return
+  try {
+    const s: PackingSuggestion = JSON.parse(raw)
+    _pushPackingSuggestion(s)
+  } catch { /* ignore */ }
+}
+
+const onPackingAdd = (s: PackingSuggestion) => {
+  _pushPackingSuggestion(s)
+}
+
+const _pushPackingSuggestion = (s: PackingSuggestion) => {
+  const already = (itinerary.value.packingItems ?? []).some(
+    (p) => p.label?.toLowerCase() === s.label.toLowerCase(),
+  )
+  if (already) return
+  addPackingItem({
+    _localIndex: `packing-${Date.now()}`,
+    label: s.label,
+    category: s.category ?? '',
+    packed: false,
+  })
+}
 
 const fileBlobs = ref<Map<string, string>>(new Map())
 
@@ -196,25 +163,6 @@ const fetchFileBlobs = async (items: AgendaItem[]) => {
     }),
   )
 }
-
-function parsePayment(payment: string | undefined): { label: string; date?: string; type: 'success' | 'warning' | 'info' } | null {
-  if (!payment) return null
-  const match = payment.match(/^([^(]+?)\s*(?:\(([^)]+)\))?$/)
-  if (!match) return { label: payment, type: 'info' }
-  const label = match[1].trim()
-  const date = match[2]?.trim()
-  const lc = label.toLowerCase()
-  const type = lc === 'instant' ? 'success' : lc === 'delayed' ? 'warning' : 'info'
-  return { label, date, type }
-}
-
-const BOOKING_EMOJI: Record<string, string> = {
-  flight: '✈️',
-  accommodation: '🏨',
-  transport: '🚌',
-  other: '📦',
-}
-const getBookingEmoji = (category?: string) => BOOKING_EMOJI[category ?? ''] ?? '📦'
 
 // ── Drawer state ──────────────────────────────────────────────────────────────
 const drawerVisible = ref(false)
@@ -564,7 +512,12 @@ const onPrivacyClose = () => {
             {{ allCollapsed ? '↕ ' + t('travel.viewer.expandAll') : '↕ ' + t('travel.viewer.collapseAll') }}
           </el-button>
         </div>
-        <div v-for="group in groupedByDate" :key="group.date" class="day-group">
+
+        <div
+          v-for="group in groupedByDate"
+          :key="group.date"
+          class="day-group"
+        >
           <div class="day-group-header" @click="toggleDay(group.date)">
             <div v-if="group.dayNumber !== null" class="day-badge">{{ group.dayNumber }}</div>
             <div class="day-label">{{ formatGroupDate(group.date) }}</div>
@@ -637,167 +590,6 @@ const onPrivacyClose = () => {
       </div>
     </div>
 
-      <!-- ── Bookings Section ──────────────────────────────────────────────── -->
-      <div class="bookings-section">
-        <div class="bookings-header" @click="bookingsCollapsed = !bookingsCollapsed">
-          <div class="bookings-header-left">
-            <span class="bookings-title">{{ t('travel.planner.bookings') }}</span>
-            <div class="bookings-pills">
-              <span class="booking-pill">SGD {{ bookingTotal.toFixed(2) }}</span>
-              <span class="booking-pill">{{ bookingBookedCount }} / {{ (itinerary.bookings ?? []).length }} {{ t('travel.viewer.booked') }}</span>
-            </div>
-          </div>
-          <div class="bookings-header-right">
-            <div class="pax-names-editor" @click.stop>
-              <template v-if="editingPaxNames">
-                <el-input
-                  v-model="paxNamesInput"
-                  size="small"
-                  :placeholder="t('travel.planner.paxPlaceholder')"
-                  style="width: 180px"
-                  @keyup.enter="savePaxNames"
-                  @blur="savePaxNames"
-                />
-              </template>
-              <template v-else>
-                <span class="pax-names-display" @click="startEditPaxNames" title="Click to edit traveller names">
-                  {{ effectivePaxNames.join(' · ') }}
-                </span>
-              </template>
-            </div>
-            <el-icon class="collapse-icon" :class="{ 'is-collapsed': bookingsCollapsed }">
-              <arrow-down />
-            </el-icon>
-          </div>
-        </div>
-
-        <div v-show="!bookingsCollapsed">
-          <div v-if="!(itinerary.bookings ?? []).length" class="bookings-empty">
-            {{ t('travel.planner.noBookings') }}
-          </div>
-          <template v-else>
-            <!-- Mobile: card list -->
-            <div v-if="isMobile" class="booking-cards">
-              <div
-                v-for="booking in itinerary.bookings"
-                :key="booking._localIndex ?? booking.id"
-                class="booking-card"
-              >
-                <div class="booking-card-header">
-                  <span class="booking-cat-emoji">{{ getBookingEmoji(booking.category) }}</span>
-                  <span class="booking-card-item">{{ booking.item }}</span>
-                  <el-tag v-if="booking.booked" type="success" size="small" effect="light">{{ t('travel.viewer.booked') }}</el-tag>
-                  <el-tag v-else type="info" size="small" effect="light">{{ t('travel.viewer.pending') }}</el-tag>
-                </div>
-                <div class="booking-card-meta">
-                  <span v-if="booking.remarks">📍 {{ booking.remarks }}</span>
-                  <span v-if="booking.price != null">SGD {{ booking.price.toFixed(2) }}</span>
-                  <span v-if="booking.nights">{{ booking.nights }}{{ t('travel.viewer.nights') }}</span>
-                </div>
-                <div class="booking-card-actions">
-                  <el-button size="small" @click="openEditBookingDrawer(booking)">{{ t('travel.planner.editTooltip') }}</el-button>
-                  <el-button size="small" type="danger" plain @click="onBookingDelete(booking)">{{ t('travel.planner.deleteTooltip') }}</el-button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Desktop: table -->
-            <el-table v-else :data="itinerary.bookings ?? []" class="booking-table" size="small">
-              <el-table-column width="40">
-                <template #default="{ row }">
-                  <span>{{ getBookingEmoji(row.category) }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column :label="t('travel.viewer.tableItem')" min-width="160">
-                <template #default="{ row }">
-                  <a v-if="row.link" :href="row.link" target="_blank" class="booking-link">{{ row.item }}</a>
-                  <span v-else>{{ row.item }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column :label="t('travel.viewer.tableRemarks')" min-width="80">
-                <template #default="{ row }">
-                  <span v-if="row.remarks">{{ row.remarks }}</span>
-                  <span v-else class="dim">—</span>
-                </template>
-              </el-table-column>
-              <el-table-column :label="t('travel.viewer.tablePayment')" width="100">
-                <template #default="{ row }">
-                  <template v-if="parsePayment(row.payment) as any">
-                    <el-tooltip
-                      v-if="parsePayment(row.payment)!.date"
-                      :content="parsePayment(row.payment)!.date"
-                      placement="top"
-                    >
-                      <el-tag :type="parsePayment(row.payment)!.type" size="small" effect="light" style="cursor:default">
-                        {{ parsePayment(row.payment)!.label }}
-                      </el-tag>
-                    </el-tooltip>
-                    <el-tag v-else :type="parsePayment(row.payment)!.type" size="small" effect="light">
-                      {{ parsePayment(row.payment)!.label }}
-                    </el-tag>
-                  </template>
-                  <span v-else class="dim">—</span>
-                </template>
-              </el-table-column>
-              <el-table-column
-                v-for="name in effectivePaxNames"
-                :key="name"
-                :label="name"
-                width="80"
-              >
-                <template #default="{ row }">
-                  <span v-if="row.paxBreakdown?.[name] != null">{{ row.paxBreakdown[name].toFixed(0) }}</span>
-                  <span v-else class="dim">—</span>
-                </template>
-              </el-table-column>
-              <el-table-column :label="t('travel.viewer.tableTotal')" width="80">
-                <template #default="{ row }">
-                  <span v-if="row.price != null">{{ row.price.toFixed(2) }}</span>
-                  <span v-else class="dim">—</span>
-                </template>
-              </el-table-column>
-              <el-table-column :label="t('travel.viewer.tableDates')" width="150">
-                <template #default="{ row }">
-                  <span v-if="row.startDate || row.endDate">
-                    {{ row.startDate ?? '' }}<template v-if="row.startDate && row.endDate"> → </template>{{ row.endDate ?? '' }}
-                    <template v-if="row.nights"> ({{ row.nights }}{{ t('travel.viewer.nights') }})</template>
-                  </span>
-                  <span v-else class="dim">—</span>
-                </template>
-              </el-table-column>
-              <el-table-column label="Booked" width="70" align="center">
-                <template #default="{ row }">
-                  <el-tag :type="row.booked ? 'success' : 'info'" size="small" effect="light">
-                    {{ row.booked ? '✓' : '✗' }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column label="Cancellation" min-width="130">
-                <template #default="{ row }">
-                  <span v-if="row.freeCancellation">{{ row.freeCancellation }}</span>
-                  <span v-else class="dim">—</span>
-                </template>
-              </el-table-column>
-              <el-table-column label="" width="80" fixed="right">
-                <template #default="{ row }">
-                  <div class="booking-actions">
-                    <el-button size="small" circle @click="openEditBookingDrawer(row)">
-                      <el-icon><edit /></el-icon>
-                    </el-button>
-                    <el-button size="small" circle type="danger" plain @click="onBookingDelete(row)">
-                      <el-icon><delete /></el-icon>
-                    </el-button>
-                  </div>
-                </template>
-              </el-table-column>
-            </el-table>
-          </template>
-
-          <div class="bookings-add-row">
-            <el-button size="small" @click="openAddBookingDrawer">+ Add Booking</el-button>
-          </div>
-        </div>
-      </div>
 
       <!-- ── Packing Section ───────────────────────────────────────────────── -->
       <div class="bookings-section" style="margin-top: 16px;">
@@ -817,7 +609,18 @@ const onPrivacyClose = () => {
           </div>
         </div>
 
-        <div v-show="!packingCollapsed">
+        <div
+          v-show="!packingCollapsed"
+          @dragover.prevent
+          @drop="onDropPacking($event)"
+          :class="{ 'drop-active': draggingPacking }"
+        >
+          <PackingSuggestionPanel
+            @add="onPackingAdd"
+            @drag-start="draggingPacking = true"
+            @drag-end="draggingPacking = false"
+          />
+
           <!-- Progress bar -->
           <div class="packing-progress" style="padding: 10px 16px 0;" v-if="(itinerary.packingItems ?? []).length > 0">
             <div class="packing-progress-bar">
@@ -922,17 +725,6 @@ const onPrivacyClose = () => {
     @save="onDrawerSave"
     @sync="onDrawerSync"
     @uploading="(v: boolean) => (drawerUploading = v)"
-  />
-
-  <BookingDrawer
-    v-model="bookingDrawerVisible"
-    :item="bookingDrawerItem"
-    :is-new="bookingDrawerIsNew"
-    :pax-names="effectivePaxNames"
-    :drawer-direction="drawerDirection"
-    :drawer-size="drawerSize"
-    @save="onBookingDrawerSave"
-    @cancel="bookingDrawerVisible = false"
   />
 
   <PackingDrawer

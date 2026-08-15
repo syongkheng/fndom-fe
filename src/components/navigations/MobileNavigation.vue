@@ -70,6 +70,14 @@ const personalModules = computed(() => [
         </span>
       </template>
 
+      <!-- IoT Device Key — any logged-in user -->
+      <template v-if="isAuthenticated">
+        <el-divider class="menu-divider" />
+        <span class="menu-item" @click="handleMenuClick(() => navigate.redirectTo('/iot-key'))">
+          <span class="menu-label">{{ t('nav.iotDevice') }}</span>
+        </span>
+      </template>
+
       <!-- Internal modules — SYSTEM_R5 only -->
       <template v-if="isInternal">
         <el-divider class="menu-divider" />
