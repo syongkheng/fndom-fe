@@ -2,9 +2,9 @@ import { useAuthenticationStore } from '@/stores/authentication'
 
 /**
  * Scoped role format: `{MODULE}_{LEVEL}`
- * Examples: PPHS_R5, KS_R3, TRAVEL_R4, SYSTEM_R5
+ * Examples: PPHS_R5, TRAVEL_R4, SYSTEM_R5
  *
- * Modules:  PPHS | KS | TRAVEL | SYSTEM
+ * Modules:  PPHS | TRAVEL | SYSTEM
  * Levels:   R3 (officer) | R4 (admin) | R5 (super admin)
  *
  * SYSTEM_R5 grants access to every module at every level.
@@ -13,7 +13,6 @@ import { useAuthenticationStore } from '@/stores/authentication'
  * ┌──────────────────────┬──────────────────────────────────────┐
  * │ Feature              │ Required role                        │
  * ├──────────────────────┼──────────────────────────────────────┤
- * │ KS manage / edit     │ KS_R3+                               │
  * │ PPHS edit coords     │ PPHS_R5 (or SYSTEM_R5)               │
  * │ Travel admin         │ TRAVEL_R4+                           │
  * │ Full platform access │ SYSTEM_R5                            │
@@ -38,8 +37,8 @@ export const usePermission = () => {
    * Check if the user has access to a module at a minimum level.
    * SYSTEM_R5 always passes.
    *
-   * @example hasModuleAccess('PPHS', 5) // only PPHS_R5 or SYSTEM_R5
-   * @example hasModuleAccess('KS', 3)   // KS_R3, KS_R4, KS_R5, or SYSTEM_R5
+   * @example hasModuleAccess('PPHS', 5)   // only PPHS_R5 or SYSTEM_R5
+   * @example hasModuleAccess('TRAVEL', 4) // TRAVEL_R4, TRAVEL_R5, or SYSTEM_R5
    */
   const hasModuleAccess = (module: string, minLevel: number): boolean => {
     const roles = getRoles()
@@ -52,7 +51,7 @@ export const usePermission = () => {
 
   /**
    * Check if the user has an exact role string.
-   * @example hasRole('KS_R3')
+   * @example hasRole('PPHS_R5')
    */
   const hasRole = (role: string): boolean => {
     return getRoles().includes(role)

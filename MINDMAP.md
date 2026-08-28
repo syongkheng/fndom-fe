@@ -37,10 +37,6 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │
 │   │
 │   ├── FEATURE-GATED (featureGuard)
-│   │   ├── /ks                    kingshot → HomeView
-│   │   ├── /ks/agreement          ks-agreement
-│   │   ├── /ks/kop                kop-form
-│   │   ├── /ks/kop/res            kop-form-res → AppointmentView
 │   │   ├── /pphs                  pphs → hdb/HomeView
 │   │   └── /flat                  flat → flat/HomeView
 │   │
@@ -81,12 +77,6 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   ├── AUTH
 │   │   ├── LoginView.vue
 │   │   └── ProfileView.vue  (/profile, auth required)
-│   │
-│   ├── KINGSHOT (KS)  /ks  — Kingdom 236 scheduling
-│   │   ├── HomeView.vue
-│   │   ├── AgreementView.vue
-│   │   ├── KopFormView.vue        — KOP form submission
-│   │   └── AppointmentView.vue    — appointment result
 │   │
 │   ├── HDB / PPHS  /pphs
 │   │   ├── HomeView.vue           — public housing info
@@ -198,8 +188,7 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   ├── useTokenVerification.ts — JWT validation on app init
 │   ├── useBreakpointManager.ts — responsive breakpoint detection
 │   ├── useProfileManager.ts   — user profile management
-│   ├── usePphsManager.ts      — PPHS record management
-│   └── useKopRegistration.ts  — KOP registration flow
+│   └── usePphsManager.ts      — PPHS record management
 │
 ├── HTTP / API (src/interceptors/ + src/constants/ApiRoute.ts)
 │   ├── HttpClient.ts          — Axios + auto JWT Bearer header injection
@@ -248,7 +237,7 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │
 ├── ROLES & PERMISSIONS
 │   ├── Format: {MODULE}_{LEVEL}
-│   ├── Modules: PPHS, KS, TRAVEL, SLP, SYSTEM
+│   ├── Modules: PPHS, TRAVEL, SLP, SYSTEM
 │   ├── Levels: R3 (officer), R4 (admin), R5 (super admin)
 │   ├── SYSTEM_R5 = full platform access
 │   └── Checked via usePermission composable + RoleGuard.vue wrapper

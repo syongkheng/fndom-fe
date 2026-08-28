@@ -8,10 +8,6 @@ export interface RoleDefinition {
 }
 
 export const GRANTABLE_ROLES: RoleDefinition[] = [
-  // KS
-  { value: 'KS_R3', label: 'KS Officer',     module: 'KS',     level: 3, description: 'Can manage KS event data and registrations' },
-  { value: 'KS_R4', label: 'KS Admin',        module: 'KS',     level: 4, description: 'Full KS admin privileges' },
-  { value: 'KS_R5', label: 'KS Super Admin',  module: 'KS',     level: 5, description: 'Full KS control', danger: true },
   // PPHS
   { value: 'PPHS_R4', label: 'PPHS Admin',    module: 'PPHS',   level: 4, description: 'Can edit PPHS coordinates and records' },
   { value: 'PPHS_R5', label: 'PPHS Super',    module: 'PPHS',   level: 5, description: 'Full PPHS control', danger: true },
@@ -24,7 +20,6 @@ export const GRANTABLE_ROLES: RoleDefinition[] = [
 ]
 
 export const MODULE_COLORS: Record<string, string> = {
-  KS:     'primary',
   PPHS:   'warning',
   TRAVEL: 'success',
   SYSTEM: 'danger',
