@@ -6,6 +6,7 @@ export const ApiRoute = {
     VERIFY_EMAIL: `/api/auth/verify-email`,
     RESEND_VERIFY: `/api/auth/resend-verify`,
     TOKEN_VERIFICATION: `/api/auth/verification`,
+    LOGOUT: `/api/auth/logout`,
   },
   PROFILE: {
     GET_COUNTRY: `/api/pfp/user/country`,
@@ -27,6 +28,7 @@ export const ApiRoute = {
   },
   LTA: {
     GET_BUS_SVC_BY_BUSSTOP_CODE: `/api/lta/bus/services`,
+    GET_BUS_ARRIVAL_TIMING: `/api/lta/timing`,
   },
   ITINERARY: {
     GET_ALL: `/api/itinerary`,

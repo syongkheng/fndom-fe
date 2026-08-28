@@ -15,14 +15,20 @@ export function setActiveApiKey(key: string | null): void {
 
 const HttpClient = axios.create({
   baseURL: import.meta.env.VITE_SERVER_BASE_URL,
+  withCredentials: true,
 })
+
+function getCsrfCookie(): string | null {
+  const match = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/)
+  return match ? decodeURIComponent(match[1]) : null
+}
 
 // Request interceptor
 HttpClient.interceptors.request.use(
   (config) => {
-    const token = StorageUtils.get(StorageKey.JWT, 'local')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+    if (config.method && config.method.toUpperCase() !== 'GET') {
+      const csrfToken = getCsrfCookie()
+      if (csrfToken) config.headers['X-CSRF-Token'] = csrfToken
     }
 
     // Inject X-API-Key only on chat endpoints — not on wallet, sessions, models, etc.

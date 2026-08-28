@@ -4,7 +4,6 @@ import { ElMessage, type FormInstance } from 'element-plus'
 import { ApiRoute } from '@/constants/ApiRoute'
 import HttpClient from '@/interceptors/HttpClient'
 import type { LoginForm } from '@/interfaces/forms/LoginForm.model'
-import { StorageUtils, StorageKey } from '@/utilities/StorageUtils'
 import { getLoginFormRules } from '@/validations/LoginFormRules'
 import { getRegisterFormRules } from '@/validations/RegisterFormRules'
 import type { AxiosError } from 'axios'
@@ -104,8 +103,6 @@ export const useAuthenticationStore = defineStore('authentication', () => {
       })
       if (!res) return false
 
-      const token = res.data.data.token.replace(/^"|"$/g, '')
-      StorageUtils.set(StorageKey.JWT, token, 'local')
       ElMessage.success(t('auth.success.login'))
       isAuthenticated.value = true
       Analytics.authLogin()
@@ -210,8 +207,6 @@ export const useAuthenticationStore = defineStore('authentication', () => {
       })
       if (!res) return false
 
-      const token = res.data.data.token.replace(/^"|"$/g, '')
-      StorageUtils.set(StorageKey.JWT, token, 'local')
       ElMessage.success(t('auth.success.verified'))
       isAuthenticated.value = true
       Analytics.authVerified()
@@ -238,17 +233,17 @@ export const useAuthenticationStore = defineStore('authentication', () => {
     }
   }
 
-  const updateUsernameInStore = (newUsername: string, newToken: string) => {
+  const updateUsernameInStore = (newUsername: string) => {
     userProfile.value = { ...userProfile.value, username: newUsername }
-    StorageUtils.set(StorageKey.JWT, newToken, 'local')
   }
 
   const handleLogout = () => {
     Analytics.authLogout()
-    StorageUtils.remove(StorageKey.JWT, 'local')
     isAuthenticated.value = false
     userProfile.value = { username: '', roles: [] }
     ElMessage.success(t('auth.success.logged_out'))
+    // Best-effort — clears the httpOnly cookies server-side; local state above already reflects logout
+    HttpClient.post(ApiRoute.AUTHENTICATE.LOGOUT).catch(() => {})
   }
 
   return {

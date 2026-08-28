@@ -72,7 +72,7 @@ const handleSaveUsername = async () => {
   }
 
   const authStore = useAuthenticationStore()
-  authStore.updateUsernameInStore(result.username, result.token)
+  authStore.updateUsernameInStore(result.username)
 
   usernameForm.value.editing = false
   ElMessage.success(t('profile.username.updated'))

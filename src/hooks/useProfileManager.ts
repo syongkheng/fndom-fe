@@ -61,7 +61,7 @@ export default function useProfileManager() {
       const code = (res as any)?.data?.data?.code as string | undefined
       return { isSuccess: false as const, code }
     }
-    return { isSuccess: true as const, ...((res.data as any).data as { token: string; username: string }) }
+    return { isSuccess: true as const, ...((res.data as any).data as { username: string }) }
   }
 
   return {
