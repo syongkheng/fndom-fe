@@ -149,6 +149,11 @@ const router = createRouter({
       beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
     },
     {
+      path: '/bus',
+      name: 'bus',
+      component: () => import('../components/views/bus/HomeView.vue'),
+    },
+    {
       path: '/404',
       name: '404',
       component: () => import('../components/views/UnauthorizedView.vue'),

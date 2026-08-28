@@ -33,6 +33,7 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   ├── /                      home → WorkbenchView
 │   │   ├── /404                   404 → UnauthorizedView
 │   │   ├── /travel/v/:shortCode   travel-viewer (featureGuard)
+│   │   ├── /bus                   bus → bus/HomeView — geolocation-based nearest busstop + live LTA arrivals
 │   │
 │   │
 │   ├── FEATURE-GATED (featureGuard)
@@ -94,6 +95,17 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   ├── BusstopInformationComponent.vue
 │   │   ├── ManagePphsDialog.vue
 │   │   └── PphsCompareDialog.vue
+│   │
+│   ├── BUS TIMINGS  /bus  — public, no guard
+│   │   └── HomeView.vue           — browser geolocation → nearest busstop(s) via PPHS.GET_NEAREST_BUSSTOPS
+│   │                                (radius auto-expands 300/500/1000/2000m); stops rendered as an
+│   │                                el-collapse accordion (single-open) — arrivals fetched lazily per
+│   │                                stop on expand via LTA.GET_BUS_ARRIVAL_TIMING, cached in
+│   │                                arrivalsByStop keyed by busstop_code; load status (SEA/SDA/LSD)
+│   │                                shown as a colored dot + legend instead of full-text tags; DD/BD
+│   │                                deck-type badge from NextBus.Type; manual refresh (current
+│   │                                accordion stop only) via a floating action button (Teleport to
+│   │                                body) for one-thumb mobile use
 │   │
 │   ├── FLAT ANALYSIS  /flat
 │   │   ├── HomeView.vue           — HDB resale price lookup
@@ -195,7 +207,7 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │       ├── /api/auth/*        — preflight, login, register, verify, password
 │       ├── /api/pfp/*         — profile photo, country
 │       ├── /api/hdb/*         — pphs, coordinates, busstops, mrt
-│       ├── /api/lta/*         — bus services
+│       ├── /api/lta/*         — bus services, live bus arrival timing (/timing)
 │       ├── /api/itinerary/*   — CRUD, share, collaborator, challenge
 │       ├── /api/file          — upload, delete
 │       ├── /api/feature/*     — flags, toggle, admin
@@ -215,10 +227,10 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   ├── ListUtils.ts           — array helpers
 │   └── lunarCalendar.ts       — Chinese lunar calendar conversion
 │
-├── INTERFACES (src/interfaces/)  — 14 TypeScript interface files
+├── INTERFACES (src/interfaces/)  — 15 TypeScript interface files
 │   ├── Itinerary.ts / AgendaItem.ts / ItineraryBooking.ts / FileWithPreview.ts
 │   ├── PphsRecord.model.ts / ResaleTransaction.model.ts
-│   ├── BusstopInformation.model.ts / BusRouteInformation.model.ts / MrtStationInformation.model.ts
+│   ├── BusstopInformation.model.ts / BusRouteInformation.model.ts / MrtStationInformation.model.ts / BusArrivalTiming.model.ts
 │   ├── OneMapResult.model.ts
 │   ├── LoginForm.model.tsx / RegisterForm.model.ts
 │   └── FndManageEvent.model.tsx / FndManageNotice.model.tsx
