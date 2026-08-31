@@ -32,7 +32,6 @@ const year = new Date().getFullYear()
           <div class="col-heading">{{ t('footer.sections.plan') }}</div>
           <ul class="col-links">
             <li><button class="footer-link" @click="redirectTo('/travel')">{{ t('nav.travel') }}</button></li>
-            <li><button class="footer-link" @click="redirectTo('/llm')">{{ t('footer.links.aiMarketplace') }}</button></li>
           </ul>
         </div>
 

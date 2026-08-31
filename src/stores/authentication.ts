@@ -243,7 +243,7 @@ export const useAuthenticationStore = defineStore('authentication', () => {
     userProfile.value = { username: '', roles: [] }
     ElMessage.success(t('auth.success.logged_out'))
     // Best-effort — clears the httpOnly cookies server-side; local state above already reflects logout
-    HttpClient.post(ApiRoute.AUTHENTICATE.LOGOUT).catch(() => {})
+    HttpClient.post(ApiRoute.AUTHENTICATE.LOGOUT, {}).catch(() => {})
   }
 
   return {

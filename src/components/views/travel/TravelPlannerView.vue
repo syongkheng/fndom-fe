@@ -470,7 +470,9 @@ const onPrivacyClose = () => {
 
     <!-- Trip header -->
     <div class="planner-header">
-      <el-input v-model="itinerary.sessionTitle" class="title-input" :placeholder="t('travel.planner.tripTitle')" :border="false" />
+      <div class="title-row">
+        <el-input v-model="itinerary.sessionTitle" class="title-input" :placeholder="t('travel.planner.tripTitle')" :border="false" />
+      </div>
       <div class="header-meta">
         <el-input v-model="itinerary.destination" :placeholder="t('travel.planner.destination')" size="small" style="width: 200px" />
         <el-date-picker :model-value="itinerary.itineraryDateRaw" type="daterange" :range-separator="t('travel.list.dialog.to')"
@@ -749,6 +751,12 @@ const onPrivacyClose = () => {
   box-sizing: border-box;
 }
 
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 /* ── Topbar ── */
 .planner-topbar {
   display: flex;
@@ -785,11 +793,15 @@ const onPrivacyClose = () => {
 }
 
 .title-input :deep(.el-input__inner) {
-  font-size: 1.4rem;
-  font-weight: 800;
+  font-size: 2rem;
+  font-weight: 700;
   color: var(--color-heading);
   height: auto;
   padding: 0;
+}
+
+.title-input {
+  flex: 1;
 }
 
 .header-meta {
@@ -874,10 +886,17 @@ const onPrivacyClose = () => {
   align-items: center;
   gap: 10px;
   margin-bottom: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 10px;
   cursor: pointer;
   user-select: none;
+  background-repeat: no-repeat;
+  background-position: bottom left;
+  background-size: 100% 10px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 14'%3E%3Cpath d='M2 8 C 40 2, 80 13, 130 6 C 180 -1, 230 12, 298 7' stroke='%23C84B31' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+html.dark .day-group-header {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 14'%3E%3Cpath d='M2 8 C 40 2, 80 13, 130 6 C 180 -1, 230 12, 298 7' stroke='%23E8795A' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 
 .day-group-header:hover .day-label {
@@ -900,9 +919,9 @@ const onPrivacyClose = () => {
 }
 
 .day-badge {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  border-radius: 60% 40% 55% 45% / 45% 55% 40% 60%;
   background: var(--el-color-primary);
   color: #fff;
   font-size: 0.72rem;
@@ -911,10 +930,11 @@ const onPrivacyClose = () => {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 14%, transparent);
 }
 
 .day-label {
-  font-size: 0.88rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: var(--color-heading);
 }
@@ -1186,8 +1206,8 @@ const onPrivacyClose = () => {
 }
 
 .bookings-title {
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 700;
+  font-size: 1.1rem;
 }
 
 .bookings-pills {

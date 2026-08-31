@@ -4,7 +4,6 @@ import { useLayoutStateStore } from '@/stores/layoutState'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import HeroIllustration from '@/components/illustrations/HeroIllustration.vue'
 
 const authStore   = useAuthenticationStore()
 const layoutStore = useLayoutStateStore()
@@ -26,7 +25,10 @@ const features = [
 
     <!-- Hero -->
     <section class="hero">
-      <div class="hero-copy">
+      <img src="/hero-explore.png" :alt="t('travel.landing.heroImageAlt')" class="hero-photo" />
+      <div class="hero-scrim" aria-hidden="true" />
+
+      <div class="hero-glass">
         <p class="hero-eyebrow">{{ t('travel.landing.eyebrow') }}</p>
         <h1 class="hero-title" style="white-space: pre-line">{{ t('travel.landing.title') }}</h1>
         <p class="hero-subtitle">{{ t('travel.landing.subtitle') }}</p>
@@ -55,17 +57,12 @@ const features = [
           </li>
         </ul>
       </div>
-
-      <div class="hero-visual">
-        <div class="hero-illustration-wrap">
-          <HeroIllustration />
-        </div>
-        <div class="hero-badge-row">
-          <div class="hero-badge">{{ t('landing.badge1') }}</div>
-          <div class="hero-badge">{{ t('landing.badge2') }}</div>
-        </div>
-      </div>
     </section>
+
+    <div class="hero-badge-row">
+      <div class="hero-badge">{{ t('landing.badge1') }}</div>
+      <div class="hero-badge">{{ t('landing.badge2') }}</div>
+    </div>
 
     <!-- Feature cards -->
     <section class="features">
@@ -135,64 +132,89 @@ const features = [
 
 /* ── Hero ───────────────────────────────────────────── */
 .hero {
-  display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 56px;
-  align-items: center;
-  padding: 64px 0 32px;
   position: relative;
+  margin: 28px 0 8px;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px color-mix(in srgb, var(--el-color-primary) 16%, rgba(0, 0, 0, 0.28));
 }
 
-.hero::before {
-  content: '';
+.hero-photo {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  object-position: 50% 52%;
+}
+
+.hero-scrim {
   position: absolute;
-  top: -80px;
-  right: -60px;
-  width: 460px;
-  height: 460px;
-  background: radial-gradient(
-    circle,
-    color-mix(in srgb, var(--el-color-primary) 8%, transparent) 0%,
-    transparent 68%
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    rgba(10, 10, 8, 0.55) 0%,
+    rgba(10, 10, 8, 0.24) 38%,
+    rgba(10, 10, 8, 0) 62%
   );
   pointer-events: none;
-  z-index: 0;
 }
 
-.hero-copy { position: relative; z-index: 1; }
-.hero-visual { position: relative; z-index: 1; }
-.hero-illustration-wrap { width: 100%; }
+.hero-glass {
+  position: absolute;
+  left: 28px;
+  bottom: 28px;
+  max-width: 400px;
+  padding: 26px 28px 24px;
+  border-radius: 18px;
+  background: rgba(20, 18, 15, 0.36);
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+  color: #fff;
+}
 
 .hero-eyebrow {
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--el-color-primary);
-  margin-bottom: 14px;
+  letter-spacing: 0.12em;
+  color: color-mix(in srgb, var(--el-color-primary) 55%, white);
+  margin-bottom: 12px;
 }
 
 .hero-title {
-  font-size: 2.9rem;
+  font-size: 2.1rem;
   font-weight: 800;
-  line-height: 1.1;
-  color: var(--color-heading);
-  margin-bottom: 18px;
+  line-height: 1.16;
+  color: #fff;
+  margin-bottom: 12px;
 }
 
 .hero-subtitle {
-  font-size: 1rem;
-  color: var(--color-text-secondary);
-  line-height: 1.65;
-  max-width: 460px;
-  margin-bottom: 28px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.55;
+  margin-bottom: 20px;
 }
 
 .hero-cta {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 28px;
+  margin-bottom: 16px;
+}
+
+.hero-glass :deep(.el-button.is-plain) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.55);
+  color: #fff;
+}
+
+.hero-glass :deep(.el-button.is-plain:hover) {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: #fff;
+  color: #fff;
 }
 
 .hero-highlights {
@@ -208,14 +230,14 @@ const features = [
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 13.5px;
-  color: var(--color-text-secondary);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .check-icon {
   width: 18px;
   height: 18px;
-  color: var(--el-color-primary);
+  color: rgba(255, 255, 255, 0.85);
   flex-shrink: 0;
 }
 
@@ -223,7 +245,7 @@ const features = [
   display: flex;
   gap: 10px;
   justify-content: center;
-  margin-top: 20px;
+  margin-top: 24px;
 }
 
 .hero-badge {
@@ -371,17 +393,19 @@ const features = [
 
 /* ── Responsive ──────────────────────────────────────── */
 @media (max-width: 720px) {
-  .hero {
-    grid-template-columns: 1fr;
-    padding: 40px 0 24px;
-    text-align: center;
+  .hero { margin-top: 16px; border-radius: 18px; }
+  .hero-photo { aspect-ratio: 3 / 4; object-position: 50% 58%; }
+  .hero-glass {
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+    max-width: none;
+    padding: 20px 20px 18px;
   }
-  .hero::before { display: none; }
-  .hero-subtitle { max-width: 100%; }
-  .hero-cta { justify-content: center; }
-  .hero-highlights { align-items: center; }
-  .hero-visual { display: none; }
-  .hero-title { font-size: 2.2rem; }
+  .hero-title { font-size: 1.65rem; }
+  .hero-subtitle { font-size: 0.86rem; }
+  .hero-cta { flex-direction: column; }
+  .hero-cta :deep(.el-button) { width: 100%; margin-left: 0 !important; }
 }
 
 @media (min-width: 640px) {

@@ -7,7 +7,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: () => import('../components/views/LandingView.vue'),
+      component: () => import('../components/views/travel/TravelLandingView.vue'),
     },
     {
       path: '/workbench',

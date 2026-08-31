@@ -30,7 +30,7 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 ├── ROUTER (src/router/index.ts)  — 20 active routes
 │   │
 │   ├── PUBLIC (no auth)
-│   │   ├── /                      home → WorkbenchView
+│   │   ├── /                      home → travel/TravelLandingView (public entry now travel-only; LLM marketplace hidden from public UI, still reachable at /llm for internal/admin users)
 │   │   ├── /404                   404 → UnauthorizedView
 │   │   ├── /travel/v/:shortCode   travel-viewer (featureGuard)
 │   │   ├── /bus                   bus → bus/HomeView — geolocation-based nearest busstop + live LTA arrivals

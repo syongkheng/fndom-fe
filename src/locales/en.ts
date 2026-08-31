@@ -184,12 +184,13 @@ export default {
   travel: {
     landing: {
       eyebrow: 'Travel',
-      title: 'Plan your next adventure.',
+      title: 'Every journey begins with a single step.',
       subtitle: 'Build day-by-day itineraries, collaborate with travel companions, and share your trips.',
       startPlanning: 'Start Planning →',
       myTrips: 'My Trips →',
       newDraft: 'New Draft →',
       signIn: 'Sign In',
+      heroImageAlt: 'A traveler in flowing robes walking a misty mountain ridge, ink-wash painting',
       cta: {
         heading: 'Ready to start planning?',
         sub: 'Free to use. No account needed to create a draft.',

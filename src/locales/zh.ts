@@ -183,12 +183,13 @@ export default {
   travel: {
     landing: {
       eyebrow: '旅行',
-      title: '规划您的下一次冒险。',
+      title: '千里之行，始于足下。',
       subtitle: '按天构建行程，与旅伴协作，分享您的旅行计划。',
       startPlanning: '开始规划 →',
       myTrips: '我的行程 →',
       newDraft: '新建草稿 →',
       signIn: '登录',
+      heroImageAlt: '水墨画风格：一位身着长袍的旅人行走在云雾缭绕的山脊上',
       cta: {
         heading: '准备好开始规划了吗？',
         sub: '免费使用，无需账户即可创建草稿。',

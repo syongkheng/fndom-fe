@@ -13,8 +13,9 @@ export const useTokenVerification = () => {
     verificationError.value = null
 
     try {
-      // No body needed — the session cookie is sent automatically and verified server-side
-      const response = await HttpClient.post(ApiRoute.AUTHENTICATE.TOKEN_VERIFICATION)
+      // The session cookie is sent automatically and verified server-side; body is just
+      // {} so RequestHeaderFilter sees a Content-Type: application/json header from axios
+      const response = await HttpClient.post(ApiRoute.AUTHENTICATE.TOKEN_VERIFICATION, {})
 
       if (response.data.data.exist) {
         authStore.isAuthenticated = true
