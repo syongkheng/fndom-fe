@@ -4,6 +4,8 @@ import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 import OtpInput from '@/components/common/OtpInput.vue'
+import { GLOBE_ICON_SVG } from '@/constants/TravelIconSvg'
+import TravelIcon from '@/components/icons/TravelIcon.vue'
 
 const props = defineProps<{
   modelValue: boolean
@@ -60,7 +62,7 @@ defineExpose({ setDigits })
   >
     <div class="privacy-dialog-body">
       <div class="privacy-warning">
-        <span class="privacy-icon">🌐</span>
+        <span class="privacy-icon"><TravelIcon :svg="GLOBE_ICON_SVG" /></span>
         <p>This trip is <strong>public by default</strong> — anyone with the share link can view it.</p>
       </div>
       <p class="privacy-hint">

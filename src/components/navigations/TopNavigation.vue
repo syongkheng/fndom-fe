@@ -8,9 +8,10 @@ import { storeToRefs } from 'pinia'
 import { useBreakpointManager } from '@/hooks/useBreakpointManager'
 import { Breakpoint } from '@/constants/Breakpoint'
 import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { useThemeStore } from '@/stores/theme'
 import { useLocale } from '@/composables/useLocale'
-import { useI18n } from 'vue-i18n'
+import StableWidth from '@/components/common/StableWidth.vue'
 
 const { redirectTo, redirectToProfile } = useNav()
 const themeStore = useThemeStore()
@@ -22,7 +23,21 @@ const { isScreensizeBelow } = useBreakpointManager()
 const mobileDropdownMenu = computed(() => isScreensizeBelow(Breakpoint.M))
 
 const { locale, setLocale } = useLocale()
-const { t } = useI18n()
+
+defineProps<{ hidden?: boolean }>()
+
+// position:sticky is silently inert here: #app/body set overflow-x:hidden
+// without overflow-y, and per spec that forces overflow-y to compute as auto
+// on both — so .header's nearest "scroll container" ancestor for sticky
+// purposes becomes #app (which never itself scrolls, being content-sized),
+// not the real scrolling element (<html>). Sticky then just behaves like
+// static positioning once content exceeds one screen. Only the home hero
+// currently has taller-than-viewport content, so only there do we need a
+// real viewport-fixed header — everywhere else this bug is latent/harmless
+// (content has always fit in one screen) and left alone rather than fixing
+// site-wide positioning as a side effect of this feature.
+const route = useRoute()
+const isHomeRoute = computed(() => route.name === 'home')
 
 const isAdminViewEnabled = computed({
   get() {
@@ -46,7 +61,7 @@ const handleMenuExpansion = () => {
 </script>
 
 <template>
-  <header class="header">
+  <header class="header" :class="{ 'header--hidden': hidden, 'header--overlay': isHomeRoute }">
     <nav class="nav-container">
       <div class="engagement-container">
         <div class="clickable toggle-menu-expansion" @click="handleMenuExpansion">
@@ -80,12 +95,12 @@ const handleMenuExpansion = () => {
         </el-button>
         <span v-if="!isAuthenticated">
           <el-button @click="layoutStore.loginDialog.toggle()" type="primary" :icon="Star" size="small">
-            {{ t('nav.login') }}
+            <StableWidth path="nav.login" />
           </el-button>
         </span>
         <span v-else>
           <el-button @click="redirectToProfile()" type="primary" :icon="User" size="small">
-            {{ t('nav.profile') }}
+            <StableWidth path="nav.profile" />
           </el-button>
         </span>
       </div>
@@ -108,6 +123,20 @@ const handleMenuExpansion = () => {
   align-items: center;
   justify-content: space-between;
   width: 100vw;
+  transition: transform 0.28s ease;
+}
+
+.header--hidden {
+  transform: translateY(-100%);
+}
+
+.header--overlay {
+  /* position:sticky is inert once content is taller than one viewport (see
+     the comment in the script block) — use a real viewport-fixed overlay
+     here so hide/show-on-scroll actually tracks the browser window. */
+  position: fixed;
+  top: 0;
+  left: 0;
 }
 
 .clock-wrapper {

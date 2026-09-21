@@ -79,3 +79,13 @@ html.dark {
   --el-color-primary-light-9: #fdeee9;
   --el-color-primary-dark-2:  #ba6148;
 }
+
+/* ─── Toast position ───
+   App.vue's <el-config-provider :message="{ placement: 'bottom' }"> anchors
+   every ElMessage from the bottom of the viewport (inline `bottom: 16px`),
+   which already clears TopNavigation's sticky header with no extra CSS
+   needed — do NOT also force a `top` here: a fixed-position element with
+   both `top` and `bottom` set (and no explicit height) stretches to fill
+   the space between them, which is exactly what caused messages to render
+   as a near full-height box instead of a small pill.
+*/

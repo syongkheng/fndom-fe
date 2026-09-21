@@ -9,6 +9,10 @@ import { ApiRoute } from '@/constants/ApiRoute'
 import { GeneratorUtils } from '@/utilities/GeneratorUtils'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
+import { EditPen, ArrowRight, View, Link, Delete } from '@element-plus/icons-vue'
+import { CATEGORY_ICON_SVG } from '@/constants/TravelIconSvg'
+import TravelIcon from '@/components/icons/TravelIcon.vue'
+import CreateTripDialog, { type CreateTripPayload } from '@/components/views/travel/CreateTripDialog.vue'
 
 const nav = useNav()
 const layoutStore = useLayoutStateStore()
@@ -62,16 +66,27 @@ const formatDateRange = (startDate?: number, endDate?: number) => {
   return endDate ? `${fmt(startDate)} – ${fmt(endDate)}` : fmt(startDate)
 }
 
-const handleCreate = async () => {
+const showCreateTripDialog = ref(false)
+
+const handleCreate = () => {
   if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
+  showCreateTripDialog.value = true
+}
+
+const onTripCreated = async (payload: CreateTripPayload) => {
   creating.value = true
   const res = await HttpClient.post(ApiRoute.ITINERARY.CREATE, {
     idempotencyKey: GeneratorUtils.generateUUID(),
-    sessionTitle: t('travel.list.untitledTrip'),
-    destinationRaw: [],
+    sessionTitle: payload.sessionTitle || t('travel.list.untitledTrip'),
+    destination: payload.destination,
+    destinationRaw: payload.destinationRaw,
+    country: payload.country,
     numberOfPax: 1,
-    durationInDays: 1,
-    unknownDate: true,
+    durationInDays: payload.durationInDays,
+    unknownDate: payload.unknownDate,
+    itineraryDateRaw: payload.itineraryDateRaw,
+    startDate: payload.startDate,
+    endDate: payload.endDate,
     agendaItems: [],
     _agendaIdsToDelete: [],
     _agendaIdsToUpdate: [],
@@ -113,18 +128,18 @@ const deleteTrip = async (sessionId: string) => {
 
     <!-- Auth gate -->
     <div v-if="!isAuthenticated" class="auth-gate">
-      <p class="auth-gate-eyebrow">✈ Travel Planner</p>
+      <p class="auth-gate-eyebrow"><TravelIcon :svg="CATEGORY_ICON_SVG.flight" /> Travel Planner</p>
       <h2 class="auth-gate-heading">Plan your next adventure.</h2>
       <p class="auth-gate-text">{{ t('travel.list.loginPrompt') }}</p>
       <div class="auth-gate-actions">
         <el-button type="primary" size="large" @click="layoutStore.loginDialog.setTrue()">{{ t('travel.list.login') }}</el-button>
         <div class="guest-draft-card" @click="nav.redirectTo('/travel/draft')">
-          <div class="guest-draft-icon-wrap">✏️</div>
+          <div class="guest-draft-icon-wrap"><el-icon><EditPen /></el-icon></div>
           <div>
             <div class="guest-draft-title">{{ t('travel.list.startDraft') }}</div>
             <div class="guest-draft-sub">{{ t('travel.list.startDraftSub') }}</div>
           </div>
-          <span class="guest-draft-arrow">→</span>
+          <el-icon class="guest-draft-arrow"><ArrowRight /></el-icon>
         </div>
       </div>
     </div>
@@ -132,7 +147,7 @@ const deleteTrip = async (sessionId: string) => {
     <template v-else>
     <header class="list-header">
       <div>
-        <p class="list-eyebrow">✈ Travel Planner</p>
+        <p class="list-eyebrow"><TravelIcon :svg="CATEGORY_ICON_SVG.flight" /> Travel Planner</p>
         <h1 class="list-title">{{ t('travel.list.title') }}</h1>
         <p class="list-subtitle">{{ t('travel.list.subtitle') }}</p>
       </div>
@@ -174,7 +189,7 @@ const deleteTrip = async (sessionId: string) => {
                 size="small"
                 @click="nav.redirectTo(`/travel/v/${trip.shortCode}`)"
               >
-                <span style="font-size: 0.75rem">👁️</span>
+                <el-icon style="font-size: 0.75rem"><View /></el-icon>
               </el-button>
             </el-tooltip>
             <el-tooltip :content="t('travel.list.copyLink')" placement="top">
@@ -184,7 +199,7 @@ const deleteTrip = async (sessionId: string) => {
                 size="small"
                 @click="copyShareLink(trip.shortCode!)"
               >
-                <span style="font-size: 0.75rem">🔗</span>
+                <el-icon style="font-size: 0.75rem"><Link /></el-icon>
               </el-button>
             </el-tooltip>
             <el-tooltip :content="t('travel.list.deleteTrip')" placement="top">
@@ -193,7 +208,7 @@ const deleteTrip = async (sessionId: string) => {
                 size="small"
                 @click="confirmDelete(trip)"
               >
-                <span style="font-size: 0.75rem">🗑️</span>
+                <el-icon style="font-size: 0.75rem"><Delete /></el-icon>
               </el-button>
             </el-tooltip>
           </div>
@@ -229,6 +244,8 @@ const deleteTrip = async (sessionId: string) => {
     </section>
 
     </template>
+
+    <CreateTripDialog v-model="showCreateTripDialog" @create="onTripCreated" />
   </div>
 </template>
 

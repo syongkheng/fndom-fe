@@ -1,4 +1,3 @@
-import { StorageKey, StorageUtils } from '@/utilities/StorageUtils'
 import axios, { type AxiosError } from 'axios'
 import { ElMessage } from 'element-plus'
 import { i18n } from '@/i18n'
@@ -36,14 +35,6 @@ HttpClient.interceptors.request.use(
     const CHAT_ENDPOINTS = ['/api/llm/chat', '/api/llm/trial/chat']
     if (CHAT_ENDPOINTS.some(p => url.startsWith(p))) {
       if (_activeApiKey) config.headers['X-API-Key'] = _activeApiKey
-    }
-
-    // Inject X-API-Key for Siri Shortcut baby-tracking endpoints, from the user-pasted
-    // key stored in localStorage (no backend-issued/rotated key for this one, unlike the
-    // marketplace key above).
-    if (url.startsWith('/v1/ss/baby')) {
-      const ssApiKey = StorageUtils.get<string>(StorageKey.SS_API_KEY, 'local')
-      if (ssApiKey) config.headers['X-API-Key'] = ssApiKey
     }
 
     return config

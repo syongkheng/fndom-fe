@@ -43,6 +43,24 @@ export const ApiRoute = {
   ADMIN: {
     LIST_USERS: `/api/auth/admin/users`,
     UPDATE_USER_ROLES: (id: number) => `/api/auth/admin/users/${id}/roles`,
+    SEARCH_REQUEST_LOG: (requestId: string) => `/api/auth/admin/request-logs/${requestId}`,
+  },
+  BUDGET: {
+    GET_ALL: `/api/budget`,
+    CREATE: `/api/budget`,
+    RETRIEVE_BY_ID: (sessionId: string) => `/api/budget/${sessionId}`,
+    RENAME: (sessionId: string) => `/api/budget/edit/${sessionId}`,
+    DELETE: (sessionId: string) => `/api/budget/delete/${sessionId}`,
+    CREATE_ITEM: (sessionId: string) => `/api/budget/${sessionId}/item`,
+    UPDATE_ITEM: (sessionId: string, itemId: string) => `/api/budget/${sessionId}/item/${itemId}`,
+    DELETE_ITEM: (sessionId: string, itemId: string) => `/api/budget/${sessionId}/item/${itemId}/delete`,
+    RESTORE_ITEM: (sessionId: string, itemId: string) => `/api/budget/${sessionId}/item/${itemId}/restore`,
+    ADD_COLLABORATOR: (sessionId: string) => `/api/budget/${sessionId}/collaborator`,
+    REMOVE_COLLABORATOR: (sessionId: string, userId: number) => `/api/budget/${sessionId}/collaborator/${userId}/delete`,
+  },
+  APPLEPAY: {
+    GET_ALL: `/api/applepay`,
+    UPDATE_CATEGORY: (transactionId: string) => `/api/applepay/${transactionId}/category`,
   },
   FILE: {
     CREATE_TG: `/api/file/tg`,
@@ -96,18 +114,33 @@ export const ApiRoute = {
   SUGGESTION: {
     ACTIVITIES: (destination: string) => `/api/suggestion/activity?destination=${encodeURIComponent(destination)}`,
     PACKING:    `/api/suggestion/packing`,
+    NOTES:      (country: string) => `/api/suggestion/note?country=${encodeURIComponent(country)}`,
     CREATE_ACTIVITY: `/api/suggestion/activity`,
+    UPDATE_ACTIVITY: (id: number) => `/api/suggestion/activity/${id}`,
     DELETE_ACTIVITY: (id: number) => `/api/suggestion/activity/${id}`,
+    ADMIN_ACTIVITIES: `/api/suggestion/activity/admin/list`,
     CREATE_PACKING:  `/api/suggestion/packing`,
     DELETE_PACKING:  (id: number) => `/api/suggestion/packing/${id}`,
+    CREATE_NOTE:     `/api/suggestion/note`,
+    DELETE_NOTE:     (id: number) => `/api/suggestion/note/${id}`,
+    PLACES:          (destination: string) => `/api/suggestion/place?destination=${encodeURIComponent(destination)}`,
+    CREATE_PLACE:    `/api/suggestion/place`,
+    UPDATE_PLACE:    (id: number) => `/api/suggestion/place/${id}`,
+    DELETE_PLACE:    (id: number) => `/api/suggestion/place/${id}`,
+    ADMIN_PLACES:    `/api/suggestion/place/admin/list`,
   },
-  SS_BABY: {
-    FEEDING:  `/v1/ss/baby/feeding`,
-    DIAPER:   `/v1/ss/baby/diaper`,
-    API_KEY:  `/api/baby/api-key`,
+  PLACES: {
+    NEARBY: (destination: string) => `/api/places?destination=${encodeURIComponent(destination)}`,
+  },
+  SS_KEY: {
+    API_KEY:  `/api/ss-key/api-key`,
   },
   IOT: {
     API_KEY: `/api/iot-key/api-key`,
+  },
+  GARMIN: {
+    TODAY: `/api/garmin/today`,
+    SUMMARY: (days: number) => `/api/garmin/summary?days=${days}`,
   },
   DATA_GOV_SG: {
     // HDB Resale Flat Prices (Jan 2017 onwards) — update resource ID here if dataset changes

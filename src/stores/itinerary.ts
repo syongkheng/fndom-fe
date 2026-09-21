@@ -11,6 +11,7 @@ import { ListUtils } from '@/utilities/ListUtils'
 import type { AgendaItem } from '@/interfaces/forms/itinerary/AgendaItem'
 import type { ItineraryBooking } from '@/interfaces/forms/itinerary/ItineraryBooking'
 import type { PackingItem } from '@/interfaces/forms/itinerary/PackingItem'
+import type { NoteItem } from '@/interfaces/forms/itinerary/NoteItem'
 import { GeneratorUtils } from '@/utilities/GeneratorUtils'
 
 export const useItineraryStore = defineStore('itinerary', () => {
@@ -29,9 +30,11 @@ export const useItineraryStore = defineStore('itinerary', () => {
     _agendaIdsToUpdate: [],
     bookings: [],
     packingItems: [],
+    noteItems: [],
     paxNames: [],
     _bookingIdsToDelete: [],
     _packingIdsToDelete: [],
+    _noteIdsToDelete: [],
   })
 
   const resetItinerary = () => {
@@ -48,9 +51,11 @@ export const useItineraryStore = defineStore('itinerary', () => {
     itinerary._agendaIdsToUpdate = []
     itinerary.bookings = []
     itinerary.packingItems = []
+    itinerary.noteItems = []
     itinerary.paxNames = []
     itinerary._bookingIdsToDelete = []
     itinerary._packingIdsToDelete = []
+    itinerary._noteIdsToDelete = []
   }
 
   const createItinerary = async (): Promise<{
@@ -311,6 +316,70 @@ export const useItineraryStore = defineStore('itinerary', () => {
     updatePackingItem({ ...item, packed: !item.packed })
   }
 
+  const addNoteItem = (item: NoteItem) => {
+    itinerary.noteItems.push({ ...item, _localIndex: `note-${Date.now()}` })
+  }
+
+  const removeNoteItem = (item: NoteItem) => {
+    const index = itinerary.noteItems.findIndex(
+      (n) => n._localIndex === item._localIndex || (n.id && n.id === item.id),
+    )
+    if (index !== -1) {
+      if (itinerary.noteItems[index].id !== undefined) {
+        itinerary._noteIdsToDelete?.push(itinerary.noteItems[index].id!)
+      }
+      itinerary.noteItems.splice(index, 1)
+    }
+  }
+
+  const updateNoteItem = (updated: NoteItem) => {
+    const index = itinerary.noteItems.findIndex(
+      (n) => n._localIndex === updated._localIndex || (n.id && n.id === updated.id),
+    )
+    if (index !== -1) itinerary.noteItems.splice(index, 1, updated)
+  }
+
+  const toggleNoteItem = (item: NoteItem) => {
+    updateNoteItem({ ...item, done: !item.done })
+  }
+
+  // Lightweight "add this recommendation" action for Things to do / Places to
+  // visit — builds a minimal, unscheduled AgendaItem (no date/day/files) so
+  // it doesn't need the full AgendaDrawer form round-trip. `listType` is the
+  // discriminator TravelPlannerView.vue's section filters key off — both
+  // kinds may carry coordinates now (Things-to-do gets geocoded client-side
+  // purely so it can be plotted), so coordinate-presence alone can't tell
+  // them apart.
+  const addTodoItem = (input: { title: string; listType: 'todo' | 'place'; category?: string; coordinates?: { lat: number; lng: number }; desc?: string }) => {
+    itinerary.agendaItems?.push({
+      _localIndex: `todo-${Date.now()}`,
+      title: input.title,
+      category: input.category,
+      listType: input.listType,
+      desc: input.desc,
+      coordinates: input.coordinates,
+      unknownTime: true,
+      files: [],
+      _fileIdsToDelete: [],
+      _filesToInsert: [],
+      _agendaToFileMapping: [],
+    })
+  }
+
+  // Sets/clears the day for a picked item — the lightweight "assign to a
+  // day" action, as an alternative to the full AgendaDrawer form. Setting a
+  // date moves the item out of the Things-to-do/Places-to-visit sections and
+  // into the scheduled day-group timeline (see TravelPlannerView.vue).
+  const assignItemDay = (item: AgendaItem, date: string | undefined, day: number | undefined) => {
+    const index = itinerary.agendaItems.findIndex((i) => i._localIndex === item._localIndex || (i.id && i.id === item.id))
+    if (index === -1) return
+    itinerary.agendaItems[index] = { ...itinerary.agendaItems[index], date, day }
+    if (itinerary.agendaItems[index].id) {
+      itinerary._agendaIdsToUpdate?.push(itinerary.agendaItems[index].id!)
+      itinerary.agendaItems[index]._isDirty = true
+    }
+  }
+
   const DRAFT_KEY = 'fndom-draft-itinerary'
 
   const saveDraft = () => {
@@ -329,6 +398,7 @@ export const useItineraryStore = defineStore('itinerary', () => {
         agendaItems: itinerary.agendaItems,
         bookings: itinerary.bookings,
         packingItems: itinerary.packingItems,
+        noteItems: itinerary.noteItems,
       }),
     )
   }
@@ -342,6 +412,7 @@ export const useItineraryStore = defineStore('itinerary', () => {
       itinerary._agendaIdsToDelete = []
       itinerary._bookingIdsToDelete = []
       itinerary._packingIdsToDelete = []
+      itinerary._noteIdsToDelete = []
       return true
     } catch {
       return false
@@ -417,6 +488,7 @@ export const useItineraryStore = defineStore('itinerary', () => {
       itinerary.id = clonedRetrievedItinerary.id
       itinerary.sessionId = clonedRetrievedItinerary.sessionId
       itinerary.sessionTitle = clonedRetrievedItinerary.sessionTitle
+      itinerary.destination = clonedRetrievedItinerary.destination
       itinerary.unknownDate = clonedRetrievedItinerary.unknownDate
       itinerary.durationInDays = clonedRetrievedItinerary.durationInDays
       itinerary.numberOfPax = clonedRetrievedItinerary.numberOfPax
@@ -443,9 +515,11 @@ export const useItineraryStore = defineStore('itinerary', () => {
       itinerary.challenge = clonedRetrievedItinerary.challenge
       itinerary.bookings = clonedRetrievedItinerary.bookings ?? []
       itinerary.packingItems = clonedRetrievedItinerary.packingItems ?? []
+      itinerary.noteItems = clonedRetrievedItinerary.noteItems ?? []
       itinerary.paxNames = clonedRetrievedItinerary.paxNames ?? []
       itinerary._bookingIdsToDelete = []
       itinerary._packingIdsToDelete = []
+      itinerary._noteIdsToDelete = []
       return { success: true, forbidden: false }
     } catch (err: any) {
       if (err.response?.status === 403) return { success: false, forbidden: true }
@@ -475,6 +549,12 @@ export const useItineraryStore = defineStore('itinerary', () => {
     removePackingItem,
     updatePackingItem,
     togglePackingItem,
+    addNoteItem,
+    removeNoteItem,
+    updateNoteItem,
+    toggleNoteItem,
+    addTodoItem,
+    assignItemDay,
     saveDraft,
     loadDraft,
     clearDraft,

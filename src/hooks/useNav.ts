@@ -72,7 +72,7 @@ export function useNav() {
   }
 
   const redirectToDashboard = () => {
-    redirectTo('/')
+    redirectTo('/dashboard')
   }
 
   const redirectToUnauthorized = () => {

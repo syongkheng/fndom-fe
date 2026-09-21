@@ -4,8 +4,10 @@ import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import type { UploadFile, UploadUserFile } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Close } from '@element-plus/icons-vue'
 import { TRAVEL_CATEGORIES } from '@/constants/TravelCategories'
+import { PIN_ICON_SVG } from '@/constants/TravelIconSvg'
+import TravelIcon from '@/components/icons/TravelIcon.vue'
 import { searchPlaces, type Place } from '@/composables/useGeocode'
 import type { AgendaItem } from '@/interfaces/forms/itinerary/AgendaItem'
 import { FileWithPreview } from '@/interfaces/forms/itinerary/FileWithPreview'
@@ -258,7 +260,7 @@ const cancel = () => {
         <div class="category-grid">
           <button v-for="cat in TRAVEL_CATEGORIES" :key="cat.value" class="cat-btn"
             :class="{ active: drawerForm.category === cat.value }" @click="drawerForm.category = cat.value">
-            <span class="cat-emoji">{{ cat.emoji }}</span>
+            <span class="cat-emoji"><TravelIcon :svg="cat.icon" /></span>
             <span class="cat-label">{{ t(cat.labelKey) }}</span>
           </button>
         </div>
@@ -282,8 +284,10 @@ const cancel = () => {
       <div class="form-section">
         <div class="form-label">{{ t('travel.agenda.place') }}</div>
         <div v-if="drawerForm.placeDisplay" class="place-selected">
-          <span class="place-selected-text">📍 {{ drawerForm.placeDisplay }}</span>
-          <el-button link size="small" @click="clearPlace" class="place-clear">✕</el-button>
+          <span class="place-selected-text"><TravelIcon :svg="PIN_ICON_SVG" /> {{ drawerForm.placeDisplay }}</span>
+          <el-button link size="small" @click="clearPlace" class="place-clear">
+            <el-icon><Close /></el-icon>
+          </el-button>
         </div>
         <el-select v-else style="width: 100%" size="large" filterable remote :remote-method="onPlaceSearch"
           :loading="placeLoading" :placeholder="t('travel.agenda.searchPlace')" value-key="placeId"

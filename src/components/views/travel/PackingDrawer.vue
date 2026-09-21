@@ -1,7 +1,9 @@
 <script lang="ts" setup>
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Check } from '@element-plus/icons-vue'
 import { PACKING_CATEGORIES } from '@/constants/TravelCategories'
+import TravelIcon from '@/components/icons/TravelIcon.vue'
 import type { PackingItem } from '@/interfaces/forms/itinerary/PackingItem'
 
 const props = defineProps<{
@@ -72,7 +74,7 @@ const handleCancel = () => {
             :class="{ active: form.category === cat.key }"
             @click="form.category = cat.key"
           >
-            {{ cat.emoji }} {{ t(cat.labelKey) }}
+            <TravelIcon :svg="cat.icon" /> {{ t(cat.labelKey) }}
           </button>
         </div>
       </div>
@@ -108,7 +110,7 @@ const handleCancel = () => {
           @click="form.packed = !form.packed"
         >
           <span class="packed-check" :class="{ 'packed-check--active': form.packed }">
-            <span v-if="form.packed">✓</span>
+            <el-icon v-if="form.packed"><Check /></el-icon>
           </span>
           <span class="packed-label">{{ t('travel.packing.packed') }}</span>
         </div>

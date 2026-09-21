@@ -4,7 +4,9 @@ import { useRoute } from 'vue-router'
 import { useNav } from '@/hooks/useNav'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
-import { getCategoryEmoji } from '@/constants/TravelCategories'
+import { getCategoryIcon } from '@/constants/TravelCategories'
+import { CATEGORY_ICON_SVG, PIN_ICON_SVG, getCategoryIconSvg } from '@/constants/TravelIconSvg'
+import TravelIcon from '@/components/icons/TravelIcon.vue'
 import OtpInput from '@/components/common/OtpInput.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import TravelMapView from '@/components/views/travel/TravelMapView.vue'
@@ -12,7 +14,7 @@ import { useTravelDayGroups, type AgendaRow } from '@/composables/useTravelDayGr
 import { useTravelExport } from '@/composables/useTravelExport'
 import { useCityLabel } from '@/composables/useCityLabel'
 import type { ItineraryBooking } from '@/interfaces/forms/itinerary/ItineraryBooking'
-import { ArrowDown } from '@element-plus/icons-vue'
+import { ArrowDown, ArrowRight, Lock, MapLocation, Calendar, User, View, Money, Refresh, Check, Close } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
@@ -144,13 +146,13 @@ const getTime = (item: AgendaRow): string | null => {
 }
 
 // ── Bookings ──────────────────────────────────────────────────────────────────
-const BOOKING_EMOJI: Record<string, string> = {
-  flight: '✈️',
-  accommodation: '🏨',
-  transport: '🚌',
-  other: '📦',
+const BOOKING_ICON: Record<string, string> = {
+  flight: CATEGORY_ICON_SVG.flight,
+  accommodation: CATEGORY_ICON_SVG.hotel,
+  transport: CATEGORY_ICON_SVG.transport,
+  other: CATEGORY_ICON_SVG.other,
 }
-const getBookingEmoji = (category?: string) => BOOKING_EMOJI[category ?? ''] ?? '📦'
+const getBookingIcon = (category?: string) => BOOKING_ICON[category ?? ''] ?? CATEGORY_ICON_SVG.other
 
 function parsePayment(payment: string | undefined): { label: string; date?: string; type: 'success' | 'warning' | 'info' } | null {
   if (!payment) return null
@@ -216,7 +218,7 @@ const { t } = useI18n()
   <el-dialog v-model="challengeRequired" :title="t('travel.viewer.protected')" width="340px" :close-on-click-modal="false"
     :close-on-press-escape="false" :show-close="false" align-center>
     <div class="gate-body">
-      <div class="gate-icon">🔒</div>
+      <div class="gate-icon"><el-icon><Lock /></el-icon></div>
       <p class="gate-desc">{{ t('travel.viewer.protectedDesc') }}</p>
       <OtpInput ref="otpRef" v-model="challengeDigits" :error="challengeError" @update:model-value="onOtpUpdate"
         @complete="verifyChallenge" />
@@ -239,7 +241,7 @@ const { t } = useI18n()
 
     <!-- Error -->
     <div v-else-if="error" class="viewer-error">
-      <div class="error-icon">🗺️</div>
+      <div class="error-icon"><el-icon><MapLocation /></el-icon></div>
       <h2 class="error-title">{{ t('travel.viewer.notFound') }}</h2>
       <p class="error-desc">{{ t('travel.viewer.notFoundDesc') }}</p>
       <el-button type="primary" @click="nav.redirectTo('/travel')">{{ t('travel.viewer.goToTrips') }}</el-button>
@@ -253,13 +255,13 @@ const { t } = useI18n()
         <h1 class="hero-title">{{ itinerary.sessionTitle }}</h1>
         <div class="hero-pills">
           <span v-if="formatHeaderRange(itinerary.startDate, itinerary.endDate)" class="hero-pill">
-            📅 {{ formatHeaderRange(itinerary.startDate, itinerary.endDate) }}
+            <el-icon><Calendar /></el-icon> {{ formatHeaderRange(itinerary.startDate, itinerary.endDate) }}
           </span>
           <span v-if="itinerary.numberOfPax" class="hero-pill">
-            👥 {{ itinerary.numberOfPax }} {{ itinerary.numberOfPax === 1 ? t('travel.viewer.traveller') : t('travel.viewer.travellers') }}
+            <el-icon><User /></el-icon> {{ itinerary.numberOfPax }} {{ itinerary.numberOfPax === 1 ? t('travel.viewer.traveller') : t('travel.viewer.travellers') }}
           </span>
           <span v-if="itinerary.viewCount !== undefined" class="hero-pill">
-            👁 {{ itinerary.viewCount }} {{ itinerary.viewCount === 1 ? t('travel.viewer.view') : t('travel.viewer.views') }}
+            <el-icon><View /></el-icon> {{ itinerary.viewCount }} {{ itinerary.viewCount === 1 ? t('travel.viewer.view') : t('travel.viewer.views') }}
           </span>
         </div>
       </div>
@@ -283,7 +285,7 @@ const { t } = useI18n()
       </div>
 
       <!-- Empty agenda -->
-      <EmptyState v-if="groupedByDate.length === 0" icon="🗺️" :title="t('travel.viewer.noItems')" />
+      <EmptyState v-if="groupedByDate.length === 0" :icon="MapLocation" :title="t('travel.viewer.noItems')" />
 
       <!-- Timeline controls -->
       <div v-if="groupedByDate.length > 0" class="timeline-controls">
@@ -309,7 +311,7 @@ const { t } = useI18n()
             <div v-for="(item, ii) in group.items" :key="item.id ?? ii" class="timeline-item">
               <!-- Spine: category emoji + connecting line -->
               <div class="item-spine">
-                <div class="item-emoji">{{ getCategoryEmoji(item.category) }}</div>
+                <div class="item-emoji"><TravelIcon :svg="getCategoryIcon(item.category)" /></div>
                 <div v-if="ii < group.items.length - 1 || gi < groupedByDate.length - 1" class="item-line" />
               </div>
 
@@ -323,7 +325,7 @@ const { t } = useI18n()
                 <div class="item-title">{{ item.title || t('travel.viewer.untitled') }}</div>
                 <div v-if="item.desc" class="item-desc">{{ item.desc }}</div>
                 <div v-if="item.budget" class="item-budget">
-                  <span class="budget-pill">💰 {{ item.budget.toLocaleString() }}</span>
+                  <span class="budget-pill"><el-icon><Money /></el-icon> {{ item.budget.toLocaleString() }}</span>
                 </div>
                 <div v-if="item.files?.length" class="item-images">
                   <el-image v-for="(file, fi) in item.files" :key="fi" :src="fileBlobs.get(file.uuid)"
@@ -360,16 +362,16 @@ const { t } = useI18n()
           <div v-if="isMobile" class="booking-cards">
             <div v-for="booking in viewerBookings" :key="booking.id" class="booking-card">
               <div class="booking-card-header">
-                <span class="booking-cat-emoji">{{ getBookingEmoji(booking.category) }}</span>
+                <span class="booking-cat-emoji"><TravelIcon :svg="getBookingIcon(booking.category)" /></span>
                 <span class="booking-card-item">{{ booking.item }}</span>
                 <el-tag v-if="booking.booked" type="success" size="small" effect="light">{{ t('travel.viewer.booked') }}</el-tag>
                 <el-tag v-else type="info" size="small" effect="light">{{ t('travel.viewer.pending') }}</el-tag>
               </div>
               <div class="booking-card-meta">
-                <span v-if="booking.remarks">📍 {{ booking.remarks }}</span>
+                <span v-if="booking.remarks"><TravelIcon :svg="PIN_ICON_SVG" /> {{ booking.remarks }}</span>
                 <span v-if="booking.price != null">SGD {{ booking.price.toFixed(2) }}</span>
                 <span v-if="booking.nights">{{ booking.nights }}{{ t('travel.viewer.nights') }}</span>
-                <span v-if="booking.freeCancellation">🔄 {{ booking.freeCancellation }}</span>
+                <span v-if="booking.freeCancellation"><el-icon><Refresh /></el-icon> {{ booking.freeCancellation }}</span>
               </div>
             </div>
           </div>
@@ -378,7 +380,7 @@ const { t } = useI18n()
           <el-table v-else :data="viewerBookings" class="booking-table" size="small">
             <el-table-column width="40">
               <template #default="{ row }">
-                <span>{{ getBookingEmoji(row.category) }}</span>
+                <TravelIcon :svg="getBookingIcon(row.category)" />
               </template>
             </el-table-column>
             <el-table-column :label="t('travel.viewer.tableItem')" min-width="160">
@@ -434,7 +436,7 @@ const { t } = useI18n()
             <el-table-column :label="t('travel.viewer.tableBooked')" width="70" align="center">
               <template #default="{ row }">
                 <el-tag :type="row.booked ? 'success' : 'info'" size="small" effect="light">
-                  {{ row.booked ? '✓' : '✗' }}
+                  <el-icon><component :is="row.booked ? Check : Close" /></el-icon>
                 </el-tag>
               </template>
             </el-table-column>
@@ -446,7 +448,7 @@ const { t } = useI18n()
             </el-table-column>
             <el-table-column v-if="hasAccommodation" :label="t('travel.viewer.tableBfast')" width="60" align="center">
               <template #default="{ row }">
-                <span v-if="row.category === 'accommodation'">{{ row.breakfast ? '✓' : '✗' }}</span>
+                <el-icon v-if="row.category === 'accommodation'"><component :is="row.breakfast ? Check : Close" /></el-icon>
                 <span v-else class="dim">—</span>
               </template>
             </el-table-column>
@@ -460,8 +462,10 @@ const { t } = useI18n()
   <!-- CTA bar for non-users -->
   <Teleport to="body">
     <div v-if="!ctaDismissed && itinerary && (!challengeRequired || challengeVerified)" class="cta-bar">
-      <span class="cta-text">✈️ Plan your own trip for free</span>
-      <el-button type="primary" size="small" @click="nav.redirectTo('/travel')">Start planning →</el-button>
+      <span class="cta-text"><TravelIcon :svg="CATEGORY_ICON_SVG.flight" /> Plan your own trip for free</span>
+      <el-button type="primary" size="small" @click="nav.redirectTo('/travel')">
+        Start planning <el-icon><ArrowRight /></el-icon>
+      </el-button>
       <button class="cta-dismiss" @click="dismissCta">×</button>
     </div>
   </Teleport>
@@ -532,6 +536,9 @@ const { t } = useI18n()
 }
 
 .hero-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 0.75rem;
   color: #fff;
   background: rgba(255,255,255,0.18);

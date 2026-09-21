@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
 
 const router = useRouter()
+const { t } = useI18n()
 
 const userCount = ref<number | null>(null)
 const userWithRolesCount = ref<number | null>(null)
@@ -69,6 +71,24 @@ onMounted(async () => {
         <div class="admin-card-body">
           <div class="admin-card-title">Marketplace Pricing</div>
           <div class="admin-card-desc">Configure model availability, billing rates, and display prices for the AI marketplace.</div>
+        </div>
+        <div class="admin-card-arrow">→</div>
+      </div>
+
+      <div class="admin-card" @click="router.push('/admin/suggestions')">
+        <div class="admin-card-icon">📍</div>
+        <div class="admin-card-body">
+          <div class="admin-card-title">Trip Recommendations</div>
+          <div class="admin-card-desc">Curate the "Things to do" and "Places to visit" suggestions shown on the trip planner map, including descriptions and images.</div>
+        </div>
+        <div class="admin-card-arrow">→</div>
+      </div>
+
+      <div class="admin-card" @click="router.push('/admin/log-searcher')">
+        <div class="admin-card-icon">🔍</div>
+        <div class="admin-card-body">
+          <div class="admin-card-title">{{ t('admin.logSearcher.cardTile') }}</div>
+          <div class="admin-card-desc">{{ t('admin.logSearcher.cardDesc') }}</div>
         </div>
         <div class="admin-card-arrow">→</div>
       </div>

@@ -22,6 +22,12 @@ const router = createRouter({
       beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
     },
     {
+      path: '/dashboard',
+      name: 'dashboard',
+      component: () => import('../components/views/dashboard/DashboardView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
+    },
+    {
       path: '/pphs',
       name: 'pphs',
       component: () => import('../components/views/hdb/HomeView.vue'),
@@ -66,15 +72,39 @@ const router = createRouter({
       component: () => import('../components/views/travel/TravelPlannerView.vue'),
     },
     {
-      path: '/baby',
-      name: 'baby-tracker',
-      component: () => import('../components/views/baby/BabyTrackerView.vue'),
+      path: '/ss-key',
+      name: 'ss-key',
+      component: () => import('../components/views/ss-key/SsApiKeyView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
+    },
+    {
+      path: '/budget',
+      name: 'budget',
+      component: () => import('../components/views/budget/BudgetListView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
+    },
+    {
+      path: '/budget/:sessionId',
+      name: 'budget-table',
+      component: () => import('../components/views/budget/BudgetTableView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
+    },
+    {
+      path: '/apple-pay',
+      name: 'apple-pay',
+      component: () => import('../components/views/applepay/ApplePayDashboardView.vue'),
       beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
     },
     {
       path: '/iot-key',
       name: 'iot-key',
       component: () => import('../components/views/iot/IotDeviceKeyView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
+    },
+    {
+      path: '/health',
+      name: 'health',
+      component: () => import('../components/views/health/GarminHealthView.vue'),
       beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
     },
     {
@@ -140,6 +170,18 @@ const router = createRouter({
       path: '/admin/llm-pricing',
       name: 'admin-llm-pricing',
       component: () => import('../components/views/admin/MarketplacePricingView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
+    },
+    {
+      path: '/admin/suggestions',
+      name: 'admin-suggestions',
+      component: () => import('../components/views/admin/SuggestionAdminView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
+    },
+    {
+      path: '/admin/log-searcher',
+      name: 'admin-log-searcher',
+      component: () => import('../components/views/admin/LogSearcherView.vue'),
       beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
     },
     {

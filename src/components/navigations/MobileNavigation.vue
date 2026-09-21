@@ -62,11 +62,11 @@ const personalModules = computed(() => [
         </span>
       </template>
 
-      <!-- Baby Tracker — any logged-in user -->
+      <!-- Siri Shortcuts API Key — any logged-in user -->
       <template v-if="isAuthenticated">
         <el-divider class="menu-divider" />
-        <span class="menu-item" @click="handleMenuClick(() => navigate.redirectTo('/baby'))">
-          <span class="menu-label">{{ t('nav.babyTracker') }}</span>
+        <span class="menu-item" @click="handleMenuClick(() => navigate.redirectTo('/ss-key'))">
+          <span class="menu-label">{{ t('nav.ssKey') }}</span>
         </span>
       </template>
 
@@ -75,6 +75,30 @@ const personalModules = computed(() => [
         <el-divider class="menu-divider" />
         <span class="menu-item" @click="handleMenuClick(() => navigate.redirectTo('/iot-key'))">
           <span class="menu-label">{{ t('nav.iotDevice') }}</span>
+        </span>
+      </template>
+
+      <!-- Health Dashboard — any logged-in user -->
+      <template v-if="isAuthenticated">
+        <el-divider class="menu-divider" />
+        <span class="menu-item" @click="handleMenuClick(() => navigate.redirectTo('/health'))">
+          <span class="menu-label">{{ t('nav.health') }}</span>
+        </span>
+      </template>
+
+      <!-- Budget Tracker — any logged-in user -->
+      <template v-if="isAuthenticated">
+        <el-divider class="menu-divider" />
+        <span class="menu-item" @click="handleMenuClick(() => navigate.redirectTo('/budget'))">
+          <span class="menu-label">{{ t('nav.budget') }}</span>
+        </span>
+      </template>
+
+      <!-- Apple Pay Dashboard — any logged-in user -->
+      <template v-if="isAuthenticated">
+        <el-divider class="menu-divider" />
+        <span class="menu-item" @click="handleMenuClick(() => navigate.redirectTo('/apple-pay'))">
+          <span class="menu-label">{{ t('nav.applePay') }}</span>
         </span>
       </template>
 

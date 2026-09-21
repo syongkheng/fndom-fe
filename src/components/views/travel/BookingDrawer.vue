@@ -2,6 +2,8 @@
 import { ref, computed, watch } from 'vue'
 import type { ItineraryBooking } from '@/interfaces/forms/itinerary/ItineraryBooking'
 import { useI18n } from 'vue-i18n'
+import { CATEGORY_ICON_SVG } from '@/constants/TravelIconSvg'
+import TravelIcon from '@/components/icons/TravelIcon.vue'
 
 const props = defineProps<{
   modelValue: boolean
@@ -21,10 +23,10 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const CATEGORIES = [
-  { value: 'flight', labelKey: 'travel.booking.flight', emoji: '✈️' },
-  { value: 'accommodation', labelKey: 'travel.booking.hotel', emoji: '🏨' },
-  { value: 'transport', labelKey: 'travel.booking.transport', emoji: '🚌' },
-  { value: 'other', labelKey: 'travel.booking.other', emoji: '📦' },
+  { value: 'flight', labelKey: 'travel.booking.flight', icon: CATEGORY_ICON_SVG.flight },
+  { value: 'accommodation', labelKey: 'travel.booking.hotel', icon: CATEGORY_ICON_SVG.hotel },
+  { value: 'transport', labelKey: 'travel.booking.transport', icon: CATEGORY_ICON_SVG.transport },
+  { value: 'other', labelKey: 'travel.booking.other', icon: CATEGORY_ICON_SVG.other },
 ] as const
 
 const makeBlank = (): ItineraryBooking => ({
@@ -157,7 +159,7 @@ function onCategorySelect(val: string) {
             @click="onCategorySelect(cat.value)"
             type="button"
           >
-            <span class="cat-emoji">{{ cat.emoji }}</span>
+            <span class="cat-emoji"><TravelIcon :svg="cat.icon" /></span>
             <span class="cat-label">{{ t(cat.labelKey) }}</span>
           </button>
         </div>

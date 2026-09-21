@@ -3,7 +3,9 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
-import { getPackingCategoryEmoji } from '@/constants/TravelCategories'
+import { getPackingCategoryIcon } from '@/constants/TravelCategories'
+import { MagicStick } from '@element-plus/icons-vue'
+import TravelIcon from '@/components/icons/TravelIcon.vue'
 
 export interface PackingSuggestion {
   id: number
@@ -40,7 +42,7 @@ const onDragStart = (s: PackingSuggestion, e: DragEvent) => {
 
 <template>
   <div v-if="suggestions.length > 0" class="packing-suggestion-panel">
-    <div class="suggestion-label">💡 {{ t('travel.suggestion.packingLabel') }}</div>
+    <div class="suggestion-label"><el-icon><MagicStick /></el-icon> {{ t('travel.suggestion.packingLabel') }}</div>
     <div class="suggestion-chips">
       <div
         v-for="s in suggestions"
@@ -52,7 +54,7 @@ const onDragStart = (s: PackingSuggestion, e: DragEvent) => {
         @click="emit('add', s)"
         :title="s.trip_type"
       >
-        {{ getPackingCategoryEmoji(s.category ?? undefined) }} {{ s.label_key ? t(s.label_key) : s.label }}
+        <TravelIcon :svg="getPackingCategoryIcon(s.category ?? undefined)" /> {{ s.label_key ? t(s.label_key) : s.label }}
       </div>
     </div>
   </div>

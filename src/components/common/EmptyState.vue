@@ -1,6 +1,8 @@
 <script lang="ts" setup>
+import type { Component } from 'vue'
+
 defineProps<{
-  icon: string
+  icon: string | Component
   title: string
   message?: string
 }>()
@@ -8,7 +10,10 @@ defineProps<{
 
 <template>
   <div class="empty-state">
-    <div class="empty-icon">{{ icon }}</div>
+    <div class="empty-icon">
+      <el-icon v-if="typeof icon !== 'string'"><component :is="icon" /></el-icon>
+      <template v-else>{{ icon }}</template>
+    </div>
     <div class="empty-title">{{ title }}</div>
     <p v-if="message" class="empty-desc">{{ message }}</p>
     <slot />

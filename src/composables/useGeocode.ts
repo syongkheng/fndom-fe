@@ -7,12 +7,12 @@ export interface Place {
   lng: number
   placeId: string
   type?: string
+  country?: string
 }
-
-export type POICategory = 'Attractions' | 'Restaurants' | 'Hotels' | 'Transport'
 
 function parseResult(r: Record<string, unknown>): Place {
   const parts = (r.display_name as string).split(', ')
+  const address = r.address as Record<string, unknown> | undefined
   return {
     displayName: r.display_name as string,
     shortName: parts[0],
@@ -20,6 +20,7 @@ function parseResult(r: Record<string, unknown>): Place {
     lng: parseFloat(r.lon as string),
     placeId: String(r.osm_id ?? r.place_id),
     type: r.type as string | undefined,
+    country: address?.country as string | undefined,
   }
 }
 
@@ -29,42 +30,4 @@ export async function searchPlaces(query: string): Promise<Place[]> {
     params: { q: query },
   })
   return (res.data.data ?? []).map(parseResult)
-}
-
-const POI_CATEGORY_MAP: Record<POICategory, string[]> = {
-  Attractions: ['attraction', 'museum', 'gallery', 'viewpoint', 'theme_park'],
-  Restaurants: ['restaurant', 'cafe', 'fast_food', 'food_court'],
-  Hotels: ['hotel', 'hostel', 'guest_house', 'motel'],
-  Transport: ['bus_station', 'train_station', 'ferry_terminal', 'airport'],
-}
-
-export async function nearbyPOIs(
-  lat: number,
-  lng: number,
-  category: POICategory = 'Attractions',
-  radiusKm = 5,
-): Promise<Place[]> {
-  const amenities = POI_CATEGORY_MAP[category]
-  const results: Place[] = []
-
-  for (let i = 0; i < amenities.length; i++) {
-    const amenity = amenities[i]
-    if (i > 0) await new Promise((r) => setTimeout(r, 300))
-    const url =
-      `https://nominatim.openstreetmap.org/search?format=json&limit=5` +
-      `&amenity=${amenity}` +
-      `&lat=${lat}&lon=${lng}` +
-      `&bounded=1` +
-      `&viewbox=${lng - radiusKm / 100},${lat + radiusKm / 100},${lng + radiusKm / 100},${lat - radiusKm / 100}`
-    try {
-      const res = await fetch(url, { headers: { 'User-Agent': 'Awense/1.0 (com.awense.mobile)', 'Accept-Language': 'en' } })
-      if (!res.ok) continue
-      const data = (await res.json()) as Record<string, unknown>[]
-      results.push(...data.map(parseResult))
-    } catch {
-      // ignore individual failures
-    }
-  }
-
-  return results
 }

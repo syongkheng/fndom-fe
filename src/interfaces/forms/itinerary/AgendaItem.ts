@@ -12,6 +12,11 @@ interface AgendaItem {
   id?: string
   _localIndex?: string
   category?: string
+  // Discriminates Things-to-do vs Places-to-visit now that both can carry
+  // coordinates — items loaded from the backend may come back as
+  // `list_type` (snake_case, see Itinerary.service.ts); read both.
+  listType?: 'todo' | 'place'
+  list_type?: 'todo' | 'place'
   title: string
   desc?: string
   cityRaw?: string[]

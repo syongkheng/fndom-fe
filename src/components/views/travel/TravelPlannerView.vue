@@ -11,7 +11,9 @@ import { useAuthenticationStore } from '@/stores/authentication'
 import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
 import { createTravelPlannerVTableColumns } from './TravelPlannerVTableColumns'
-import { getCategoryEmoji } from '@/constants/TravelCategories'
+import { getCategoryIcon } from '@/constants/TravelCategories'
+import { PIN_ICON_SVG, CATEGORY_ICON_SVG, PACKING_ICON_SVG, CALENDAR_ICON_SVG } from '@/constants/TravelIconSvg'
+import TravelIcon from '@/components/icons/TravelIcon.vue'
 import type { AgendaItem } from '@/interfaces/forms/itinerary/AgendaItem'
 import EmptyState from '@/components/common/EmptyState.vue'
 import PrivacyDialog from '@/components/views/travel/PrivacyDialog.vue'
@@ -19,13 +21,19 @@ import AgendaDrawer from '@/components/views/travel/AgendaDrawer.vue'
 import { useTravelDayGroups, type AgendaRow } from '@/composables/useTravelDayGroups'
 import { useTravelExport } from '@/composables/useTravelExport'
 import { useCityLabel } from '@/composables/useCityLabel'
-import { Edit, Delete, ArrowDown } from '@element-plus/icons-vue'
-import TravelMapView from '@/components/views/travel/TravelMapView.vue'
+import { Edit, Delete, ArrowDown, Lock, Unlock, MapLocation, Sort, Top, Money, Camera, Check, Calendar, Link } from '@element-plus/icons-vue'
+import TravelMapView, { type RecommendationPin } from '@/components/views/travel/TravelMapView.vue'
 import PackingDrawer from '@/components/views/travel/PackingDrawer.vue'
-import { getPackingCategoryEmoji, PACKING_CATEGORIES } from '@/constants/TravelCategories'
+import { getPackingCategoryIcon, PACKING_CATEGORIES } from '@/constants/TravelCategories'
 import type { PackingItem } from '@/interfaces/forms/itinerary/PackingItem'
+import type { NoteItem } from '@/interfaces/forms/itinerary/NoteItem'
 import { useI18n } from 'vue-i18n'
 import PackingSuggestionPanel, { type PackingSuggestion } from '@/components/views/travel/PackingSuggestionPanel.vue'
+import NoteSuggestionPanel, { type NoteSuggestion } from '@/components/views/travel/NoteSuggestionPanel.vue'
+import PlannerSideNav, { type PlannerNavSection } from '@/components/views/travel/PlannerSideNav.vue'
+import { useActivitySuggestions, parseImages } from '@/composables/useActivitySuggestions'
+import { usePlaceSuggestions } from '@/composables/usePlaceSuggestions'
+import { searchPlaces } from '@/composables/useGeocode'
 
 const route = useRoute()
 const nav = useNav()
@@ -33,7 +41,12 @@ const itineraryStore = useItineraryStore()
 const layoutStore = useLayoutStateStore()
 const authStore = useAuthenticationStore()
 const { itinerary, loadingStage } = storeToRefs(itineraryStore)
-const { addPackingItem, removePackingItem, updatePackingItem, togglePackingItem, saveDraft, loadDraft, migrateDraft } = itineraryStore
+const {
+  addPackingItem, removePackingItem, updatePackingItem, togglePackingItem,
+  addNoteItem, removeNoteItem, toggleNoteItem,
+  addTodoItem, assignItemDay,
+  saveDraft, loadDraft, migrateDraft,
+} = itineraryStore
 const { isAuthenticated } = storeToRefs(authStore)
 
 const sessionId = route.params.sessionId as string
@@ -47,8 +60,20 @@ const editMode = ref<'form' | 'table' | 'map'>('form')
 const { getCardCity } = useCityLabel()
 
 // ── Collapsible days + grouping ───────────────────────────────────────────────
-const agendaItemsRef = computed(() => itinerary.value.agendaItems ?? [])
-const { collapsedDays, toggleDay, groupedByDate, formatDate: formatGroupDate, toLocalDateKey, collapseAll, expandAll, allCollapsed } = useTravelDayGroups(agendaItemsRef)
+// Unscheduled items (no date yet) surface in the Things-to-do/Places-to-visit
+// sections instead of the day timeline below — the split is driven by the
+// explicit `listType` field (both kinds may carry coordinates now that
+// Things-to-do is also geocoded for map display, so coordinate-presence
+// alone can't discriminate them — see itineraryStore.addTodoItem). Items
+// loaded from the backend may come back as `list_type` (snake_case); a
+// missing/legacy value defaults to 'todo'. Assigning a day (assignItemDay)
+// moves an item out of these lists and into the scheduled day-group
+// timeline for free.
+const listTypeOf = (i: AgendaItem): 'todo' | 'place' => (i.listType ?? (i as any).list_type ?? 'todo')
+const todoItems = computed(() => (itinerary.value.agendaItems ?? []).filter((i) => !i.date && listTypeOf(i) === 'todo'))
+const placeItems = computed(() => (itinerary.value.agendaItems ?? []).filter((i) => !i.date && listTypeOf(i) === 'place'))
+const scheduledAgendaItemsRef = computed(() => (itinerary.value.agendaItems ?? []).filter((i) => !!i.date))
+const { collapsedDays, toggleDay, groupedByDate, formatDate: formatGroupDate, toLocalDateKey, collapseAll, expandAll, allCollapsed } = useTravelDayGroups(scheduledAgendaItemsRef)
 
 // ── Export ────────────────────────────────────────────────────────────────────
 const itineraryAsNullable = computed(() => itinerary.value as any)
@@ -110,8 +135,6 @@ const packingPackedCount = computed(() =>
   (itinerary.value.packingItems ?? []).filter((i) => i.packed).length,
 )
 
-const packingCollapsed = ref(false)
-
 // ── Suggestion drag state ──────────────────────────────────────────────────
 const draggingPacking = ref(false)
 
@@ -140,6 +163,158 @@ const _pushPackingSuggestion = (s: PackingSuggestion) => {
     category: s.category ?? '',
     packed: false,
   })
+}
+
+// ── Side nav ─────────────────────────────────────────────────────────────────
+type PlannerSection = 'todo' | 'places' | 'bring' | 'note' | 'schedule'
+const NAV_COLLAPSE_KEY = 'fndom-planner-nav-collapsed'
+const activeSection = ref<PlannerSection>('todo')
+const navCollapsed = ref(localStorage.getItem(NAV_COLLAPSE_KEY) === 'true')
+watch(navCollapsed, (v) => localStorage.setItem(NAV_COLLAPSE_KEY, String(v)))
+
+const navSections = computed<PlannerNavSection[]>(() => [
+  { key: 'todo', labelKey: 'travel.todo.title', icon: CATEGORY_ICON_SVG.attraction, count: todoItems.value.length },
+  { key: 'places', labelKey: 'travel.places.title', icon: PIN_ICON_SVG, count: placeItems.value.length },
+  { key: 'bring', labelKey: 'travel.packing.title', icon: PACKING_ICON_SVG.misc, count: (itinerary.value.packingItems ?? []).length },
+  { key: 'note', labelKey: 'travel.note.title', icon: PACKING_ICON_SVG.documents, count: noteItemsList.value.length },
+  { key: 'schedule', labelKey: 'travel.planner.schedule', icon: CALENDAR_ICON_SVG, count: groupedByDate.value.length || undefined },
+])
+
+// ── Things to do / Places to visit — explored via map pins, not chips ────────
+// Destination-driven suggestion sources (extracted composables, shared with
+// nowhere else currently, but keeps HTTP-fetch logic out of this component).
+// `itinerary.destination` updates on every keystroke (it's the autocomplete's
+// v-model), but suggestions should only fetch once the user has actually
+// settled on a value — firing on every partial keystroke ("S", "Si", "Sin"…)
+// would hammer the suggestion APIs with queries that get thrown away a
+// moment later. `committedDestination` only updates on @select (picked a
+// suggestion) or @blur (typed a full name and moved on), so suggestions
+// only (re)load once the field is done being edited.
+const committedDestination = ref(itinerary.value.destination?.trim() || '')
+function commitDestination() {
+  committedDestination.value = itinerary.value.destination?.trim() || ''
+}
+
+// Falls back to the trip title when Destination hasn't been filled in yet,
+// so suggestion pins show up as soon as a trip has a name (most titles are
+// already the destination, e.g. "新加坡") instead of staying empty until the
+// user separately fills the small Destination field next to the date picker.
+const destinationRef = computed(() => committedDestination.value || itinerary.value.sessionTitle?.trim() || '')
+const { suggestions: activitySuggestions } = useActivitySuggestions(destinationRef)
+const { suggestions: placeSuggestions, failed: placesFailed } = usePlaceSuggestions(destinationRef)
+
+// Same fetch-suggestions pattern as CreateTripDialog's Destination field —
+// this one just needs the resolved place name (not the full Place object),
+// since itinerary.destination is a plain string here.
+const fetchDestinationSuggestions = async (query: string, cb: (results: { value: string }[]) => void) => {
+  if (!query.trim()) { cb([]); return }
+  try {
+    const places = await searchPlaces(query)
+    cb(places.map((p) => ({ value: p.shortName })))
+  } catch {
+    cb([])
+  }
+}
+
+// Activity suggestions have no coordinates in the DB — geocode each title
+// (combined with the destination for precision) purely so it can be plotted
+// as an exploratory pin, reusing the same throttled searchPlaces() pattern
+// TravelMapView already uses to resolve agenda items lacking coordinates.
+// Cached by title so switching tabs back and forth doesn't re-geocode.
+const activityCoordsCache = ref<Map<string, { lat: number; lng: number }>>(new Map())
+const geocodingActivities = ref(false)
+
+async function ensureActivityCoords() {
+  const dest = destinationRef.value?.trim()
+  if (!dest) return
+  const toResolve = activitySuggestions.value.filter((s) => !activityCoordsCache.value.has(s.title))
+  if (!toResolve.length) return
+  geocodingActivities.value = true
+  let first = true
+  for (const s of toResolve) {
+    if (!first) await new Promise((r) => setTimeout(r, 400))
+    first = false
+    try {
+      const results = await searchPlaces(`${s.title}, ${dest}`)
+      if (results[0]) activityCoordsCache.value.set(s.title, { lat: results[0].lat, lng: results[0].lng })
+    } catch { /* unresolved — just won't get a pin */ }
+  }
+  geocodingActivities.value = false
+}
+
+watch([activitySuggestions, activeSection], () => {
+  if (activeSection.value === 'todo') ensureActivityCoords()
+}, { immediate: true })
+
+const activityRecommendations = computed<RecommendationPin[]>(() =>
+  activitySuggestions.value
+    .filter((s) => !todoItems.value.some((i) => i.title?.toLowerCase() === s.title.toLowerCase()))
+    .map((s): RecommendationPin | null => {
+      const coords = activityCoordsCache.value.get(s.title)
+      if (!coords) return null
+      return {
+        key: `activity-${s.id}`,
+        title: s.title,
+        category: s.category ?? undefined,
+        lat: coords.lat,
+        lng: coords.lng,
+        kind: 'activity',
+        id: s.id,
+        description: s.description ?? undefined,
+        images: parseImages(s.images_json),
+        source: 'curated', // every activity suggestion is admin-curated by definition
+      }
+    })
+    .filter((p): p is RecommendationPin => !!p),
+)
+
+const placeRecommendations = computed<RecommendationPin[]>(() =>
+  placeSuggestions.value
+    .filter((s) => !placeItems.value.some((i) => i.title?.toLowerCase() === s.name.toLowerCase()))
+    .map((s) => ({
+      key: `place-${s.name}-${s.lat}-${s.lng}`,
+      title: s.name,
+      category: s.category,
+      lat: s.lat,
+      lng: s.lng,
+      kind: 'place',
+      id: s.id,
+      description: s.description,
+      images: s.images,
+      source: s.source,
+    })),
+)
+
+// Only the active tab's recommendations are shown on the map, so exploring
+// one category never visually competes with another.
+const mapRecommendations = computed<RecommendationPin[]>(() => {
+  if (activeSection.value === 'todo') return activityRecommendations.value
+  if (activeSection.value === 'places') return placeRecommendations.value
+  return []
+})
+
+function onAddRecommendation(pin: RecommendationPin) {
+  const listType = pin.kind === 'place' ? 'place' : 'todo'
+  addTodoItem({ title: pin.title, category: pin.category, listType, coordinates: { lat: pin.lat, lng: pin.lng } })
+}
+
+// ── Things to note ──────────────────────────────────────────────────────────
+const noteItemsList = computed(() => itinerary.value.noteItems ?? [])
+
+const onNoteAdd = (s: NoteSuggestion) => {
+  const already = noteItemsList.value.some((n) => n.label?.toLowerCase() === s.title.toLowerCase())
+  if (already) return
+  addNoteItem({ label: s.title, category: s.category ?? undefined, url: s.url, done: false })
+}
+
+const openAddNoteDialog = () => {
+  const label = window.prompt(t('travel.note.addPromptLabel'))
+  if (!label?.trim()) return
+  addNoteItem({ label: label.trim(), done: false })
+}
+
+const assignDate = (item: AgendaItem, date: string | undefined) => {
+  assignItemDay(item, date, undefined)
 }
 
 const fileBlobs = ref<Map<string, string>>(new Map())
@@ -174,6 +349,7 @@ const drawerUploading = ref(false)
 const makeBlankDraft = (presetDate = ''): AgendaItem => ({
   _localIndex: `agenda-${Date.now()}`,
   category: undefined,
+  listType: 'todo',
   title: '',
   desc: '',
   date: presetDate,
@@ -309,6 +485,7 @@ onMounted(async () => {
   if (isDraft.value) {
     itineraryStore.resetItinerary()
     loadDraft()
+    commitDestination() // see the retrieveItineraryForUpdate branch below for why
     loading.value = false
     return
   }
@@ -321,6 +498,11 @@ onMounted(async () => {
   loading.value = false
   if (!loadResult.forbidden) {
     fetchFileBlobs(itinerary.value.agendaItems ?? [])
+    // committedDestination was captured at setup time, before this async
+    // load resolved — a saved destination would otherwise show correctly in
+    // the field (v-model reads itinerary.destination directly) but silently
+    // never trigger a suggestions fetch, since nothing else re-syncs it.
+    commitDestination()
   }
   if (loadResult.forbidden) {
     ElMessage.error(t('travel.planner.notYours'))
@@ -428,7 +610,7 @@ const onPrivacyClose = () => {
 
     <!-- Auth gate -->
     <div v-if="!isAuthenticated && !isDraft" class="planner-auth-gate">
-      <div class="auth-gate-icon">🔒</div>
+      <div class="auth-gate-icon"><el-icon><Lock /></el-icon></div>
       <p class="auth-gate-text">{{ t('travel.planner.loginPrompt') }}</p>
       <el-button type="primary" @click="layoutStore.loginDialog.setTrue()">{{ t('travel.planner.login') }}</el-button>
     </div>
@@ -461,7 +643,7 @@ const onPrivacyClose = () => {
         <el-button v-if="itinerary.shortCode" size="small" @click="nav.redirectTo(`/travel/v/${itinerary.shortCode}`)">{{ t('travel.planner.preview') }}</el-button>
         <el-tooltip :content="itinerary.challenge ? t('travel.planner.accessCodeSet') : t('travel.planner.noAccessCode')" placement="bottom">
           <el-button size="small" @click="openPrivacyDialog">
-            {{ itinerary.challenge ? '🔒' : '🔓' }}
+            <el-icon><component :is="itinerary.challenge ? Lock : Unlock" /></el-icon>
           </el-button>
         </el-tooltip>
         <el-button v-if="!isMobile" type="primary" size="small" :loading="saving" @click="handleSave">{{ t('travel.planner.save') }}</el-button>
@@ -474,7 +656,18 @@ const onPrivacyClose = () => {
         <el-input v-model="itinerary.sessionTitle" class="title-input" :placeholder="t('travel.planner.tripTitle')" :border="false" />
       </div>
       <div class="header-meta">
-        <el-input v-model="itinerary.destination" :placeholder="t('travel.planner.destination')" size="small" style="width: 200px" />
+        <div class="destination-field">
+          <el-autocomplete
+            v-model="itinerary.destination"
+            :fetch-suggestions="fetchDestinationSuggestions"
+            :placeholder="t('travel.planner.destination')"
+            size="small"
+            style="width: 200px"
+            @select="commitDestination"
+            @blur="commitDestination"
+          />
+          <p v-if="!itinerary.destination?.trim()" class="destination-hint">{{ t('travel.recommendation.fillDestinationHint') }}</p>
+        </div>
         <el-date-picker :model-value="itinerary.itineraryDateRaw" type="daterange" :range-separator="t('travel.list.dialog.to')"
           :start-placeholder="t('travel.planner.start')" :end-placeholder="t('travel.planner.end')" size="small" value-format="YYYY-MM-DD"
           @update:model-value="(v: string[]) => itineraryStore.onItineraryDateSelection(v)" />
@@ -484,7 +677,7 @@ const onPrivacyClose = () => {
 
     <!-- Draft banner -->
     <div v-if="isDraft" class="draft-banner">
-      🔒 {{ t('travel.planner.draftBanner') }}
+      <el-icon><Lock /></el-icon> {{ t('travel.planner.draftBanner') }}
       <el-button size="small" type="primary" @click="layoutStore.loginDialog.setTrue()">{{ t('nav.login') }}</el-button>
     </div>
 
@@ -501,180 +694,269 @@ const onPrivacyClose = () => {
 
     <!-- ── FORM MODE ─────────────────────────────────────────────────────── -->
     <div v-else-if="editMode === 'form'" class="form-mode">
+      <div class="planner-form-layout">
+        <PlannerSideNav
+          :sections="navSections"
+          :active="activeSection"
+          v-model:collapsed="navCollapsed"
+          @update:active="(k: string) => activeSection = (k as PlannerSection)"
+        />
 
-      <!-- Empty state -->
-      <EmptyState v-if="groupedByDate.length === 0" icon="🗺️" :title="t('travel.planner.noItems')">
-        <el-button type="primary" @click="openAddDrawer()">{{ t('travel.planner.addFirstItem') }}</el-button>
-      </EmptyState>
+        <div class="planner-section-body">
 
-      <!-- Day groups -->
-      <div v-else>
-        <div class="day-group-controls">
-          <el-button link size="small" @click="allCollapsed ? expandAll() : collapseAll()">
-            {{ allCollapsed ? '↕ ' + t('travel.viewer.expandAll') : '↕ ' + t('travel.viewer.collapseAll') }}
-          </el-button>
-        </div>
+          <!-- ── Things to do ────────────────────────────────────────────── -->
+          <template v-if="activeSection === 'todo'">
+            <p class="section-hint">{{ t('travel.recommendation.exploreHint') }}</p>
+            <p v-if="geocodingActivities" class="section-hint section-hint--muted">{{ t('travel.recommendation.locating') }}</p>
 
-        <div
-          v-for="group in groupedByDate"
-          :key="group.date"
-          class="day-group"
-        >
-          <div class="day-group-header" @click="toggleDay(group.date)">
-            <div v-if="group.dayNumber !== null" class="day-badge">{{ group.dayNumber }}</div>
-            <div class="day-label">{{ formatGroupDate(group.date) }}</div>
-            <span class="day-item-count" v-if="collapsedDays.has(group.date)">{{ group.items.length }} {{ group.items.length === 1 ? t('travel.viewer.item') : t('travel.viewer.items') }}</span>
-            <span class="day-chevron">{{ collapsedDays.has(group.date) ? '›' : '⌄' }}</span>
-          </div>
+            <div v-if="todoItems.length === 0" class="bookings-empty">{{ t('travel.todo.noItems') }}</div>
 
-          <div v-show="!collapsedDays.has(group.date)" class="agenda-cards">
-            <div v-for="item in group.items" :key="item.id ?? item._localIndex" class="agenda-card"
-              :class="(item.id && !item._isDirty) ? 'card--saved' : 'card--new'">
-              <div class="card-icon">{{ getCategoryEmoji(item.category) }}</div>
-              <div class="card-body">
-                <div class="card-title">{{ item.title || t('travel.viewer.untitled') }}</div>
-                <div v-if="getCardTime(item) || getCardCity(item) || item.budget" class="card-meta">
-                  <span v-if="getCardTime(item)" class="card-time">{{ getCardTime(item) }}</span>
-                  <span v-if="getCardCity(item)" class="card-city">
-                    <template v-if="getCardTime(item)"> · </template>{{ getCardCity(item) }}
-                  </span>
-                  <template v-if="item.budget">
-                    <span class="card-sep" v-if="getCardTime(item) || getCardCity(item)"> · </span>
-                    <span class="card-budget">💰 {{ item.budget.toLocaleString() }}</span>
-                  </template>
+            <div v-else class="packing-categories">
+              <div class="packing-item" v-for="item in todoItems" :key="item._localIndex ?? item.id">
+                <TravelIcon :svg="getCategoryIcon(item.category)" />
+                <span class="packing-item-label">{{ item.title }}</span>
+                <div class="packing-item-actions">
+                  <el-popover placement="bottom" trigger="click" :width="240">
+                    <template #reference>
+                      <el-button circle size="small" :title="t('travel.dayAssign.tooltip')">
+                        <el-icon style="font-size:0.72rem"><Calendar /></el-icon>
+                      </el-button>
+                    </template>
+                    <el-date-picker
+                      type="date"
+                      value-format="YYYY-MM-DD"
+                      :model-value="item.date"
+                      :placeholder="t('travel.dayAssign.assignToDay')"
+                      style="width: 100%"
+                      @update:model-value="(v: string) => assignDate(item, v)"
+                    />
+                  </el-popover>
+                  <el-button circle size="small" @click="removeAgendaItem(String(item.id ?? item._localIndex))">
+                    <el-icon style="font-size:0.72rem"><Delete /></el-icon>
+                  </el-button>
                 </div>
-                <div v-if="item.desc" class="card-notes">{{ item.desc }}</div>
-                <div v-if="(item.files ?? []).some((f: any) => fileBlobs.get(f.uuid))" class="card-images">
-                  <el-image
-                    v-for="(file, fi) in (item.files ?? []).filter((f: any) => fileBlobs.get(f.uuid))"
-                    :key="file.uuid ?? fi"
-                    :src="fileBlobs.get(file.uuid)"
-                    :preview-src-list="(item.files ?? []).map((f: any) => fileBlobs.get(f.uuid)).filter(Boolean)"
-                    :initial-index="fi"
-                    fit="cover"
-                    class="card-image-thumb"
-                    preview-teleported
+              </div>
+            </div>
+
+            <div class="bookings-add-row">
+              <el-button size="small" @click="openAddDrawer()">{{ t('travel.todo.addItem') }}</el-button>
+            </div>
+          </template>
+
+          <!-- ── Places to visit ─────────────────────────────────────────── -->
+          <template v-else-if="activeSection === 'places'">
+            <p class="section-hint">{{ t('travel.recommendation.exploreHint') }}</p>
+            <p v-if="placesFailed" class="section-hint section-hint--muted">{{ t('travel.places.lookupFailed') }}</p>
+
+            <div v-if="placeItems.length === 0" class="bookings-empty">{{ t('travel.places.noItems') }}</div>
+
+            <div v-else class="packing-categories">
+              <div class="packing-item" v-for="item in placeItems" :key="item._localIndex ?? item.id">
+                <TravelIcon :svg="getCategoryIcon(item.category)" />
+                <span class="packing-item-label">{{ item.title }}</span>
+                <div class="packing-item-actions">
+                  <el-popover placement="bottom" trigger="click" :width="240">
+                    <template #reference>
+                      <el-button circle size="small" :title="t('travel.dayAssign.tooltip')">
+                        <el-icon style="font-size:0.72rem"><Calendar /></el-icon>
+                      </el-button>
+                    </template>
+                    <el-date-picker
+                      type="date"
+                      value-format="YYYY-MM-DD"
+                      :model-value="item.date"
+                      :placeholder="t('travel.dayAssign.assignToDay')"
+                      style="width: 100%"
+                      @update:model-value="(v: string) => assignDate(item, v)"
+                    />
+                  </el-popover>
+                  <el-button circle size="small" @click="removeAgendaItem(String(item.id ?? item._localIndex))">
+                    <el-icon style="font-size:0.72rem"><Delete /></el-icon>
+                  </el-button>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <!-- ── Things to bring ─────────────────────────────────────────── -->
+          <template v-else-if="activeSection === 'bring'">
+            <div @dragover.prevent @drop="onDropPacking($event)" :class="{ 'drop-active': draggingPacking }">
+              <PackingSuggestionPanel
+                @add="onPackingAdd"
+                @drag-start="draggingPacking = true"
+                @drag-end="draggingPacking = false"
+              />
+
+              <div class="packing-progress" v-if="(itinerary.packingItems ?? []).length > 0">
+                <div class="packing-progress-bar">
+                  <div
+                    class="packing-progress-fill"
+                    :style="{ width: ((itinerary.packingItems ?? []).length ? packingPackedCount / (itinerary.packingItems ?? []).length * 100 : 0) + '%' }"
                   />
                 </div>
-                <div v-else-if="(item.files ?? []).length" class="card-photo-chip">
-                  📷 {{ item.files!.length }} photo{{ item.files!.length > 1 ? 's' : '' }}
+              </div>
+
+              <div v-if="(itinerary.packingItems ?? []).length === 0" class="bookings-empty">
+                {{ t('travel.packing.noItems') }}
+              </div>
+
+              <div v-else class="packing-categories">
+                <div v-for="group in packingItemsByCategory" :key="group.cat.key" class="packing-category-group">
+                  <div class="packing-cat-heading"><TravelIcon :svg="group.cat.icon" /> {{ t(group.cat.labelKey) }}</div>
+                  <div class="packing-item"
+                    v-for="item in group.items"
+                    :key="item._localIndex ?? item.id"
+                  >
+                    <button
+                      class="packing-check"
+                      :class="{ 'packing-check--packed': item.packed }"
+                      @click="togglePackingItem(item)"
+                      type="button"
+                    >
+                      <el-icon v-if="item.packed"><Check /></el-icon>
+                    </button>
+                    <span class="packing-item-label" :class="{ 'packing-item-label--packed': item.packed }">
+                      {{ item.label }}
+                    </span>
+                    <span v-if="item.quantity" class="packing-qty">×{{ item.quantity }}</span>
+                    <div class="packing-item-actions">
+                      <el-button circle size="small" @click="openEditPackingDrawer(item)">
+                        <el-icon style="font-size:0.72rem"><Edit /></el-icon>
+                      </el-button>
+                      <el-button circle size="small" @click="removePackingItem(item)">
+                        <el-icon style="font-size:0.72rem"><Delete /></el-icon>
+                      </el-button>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div class="card-right">
-                <div class="card-actions">
-                  <el-tooltip :content="t('travel.planner.editTooltip')" placement="top">
-                    <el-button circle size="small" @click="openEditDrawer(item)">
-                      <span style="font-size:0.72rem">✏️</span>
-                    </el-button>
-                  </el-tooltip>
-                  <el-tooltip :content="t('travel.planner.deleteTooltip')" placement="top">
-                    <el-button circle size="small" @click="removeAgendaItem(String(item.id ?? item._localIndex))">
-                      <span style="font-size:0.72rem">🗑️</span>
-                    </el-button>
-                  </el-tooltip>
-                </div>
-                <div class="card-save-status">
-                  <span v-if="!item.id || item._isDirty" class="status--new">{{ t('travel.planner.unsaved') }}</span>
-                  <span v-else class="status--saved">{{ t('travel.planner.saved') }}</span>
-                </div>
+
+              <div class="bookings-add-row">
+                <el-button size="small" @click="openAddPackingDrawer">{{ t('travel.packing.addItem') }}</el-button>
               </div>
             </div>
-          </div>
+          </template>
 
-          <button v-show="!collapsedDays.has(group.date)" class="add-to-day-btn" @click="openAddDrawer(group.date !== '__tbc__' ? group.date : '')">
-            {{ group.dayNumber !== null ? t('travel.planner.addToDay', { n: group.dayNumber }) : t('travel.planner.addToDateTbc') }}
-          </button>
-        </div>
+          <!-- ── Things to note ──────────────────────────────────────────── -->
+          <template v-else-if="activeSection === 'note'">
+            <NoteSuggestionPanel :country="itinerary.country" @add="onNoteAdd" />
 
-        <div class="form-add-global">
-          <el-button @click="openAddDrawer()">{{ t('travel.planner.addItem') }}</el-button>
-        </div>
-      </div>
-    </div>
+            <div v-if="noteItemsList.length === 0" class="bookings-empty">{{ t('travel.note.noItems') }}</div>
 
-
-      <!-- ── Packing Section ───────────────────────────────────────────────── -->
-      <div class="bookings-section" style="margin-top: 16px;">
-        <div class="bookings-header" @click="packingCollapsed = !packingCollapsed">
-          <div class="bookings-header-left">
-            <span class="bookings-title">{{ t('travel.packing.title') }}</span>
-            <div class="bookings-pills" v-if="(itinerary.packingItems ?? []).length > 0">
-              <span class="booking-pill">
-                {{ t('travel.packing.progress', { packed: packingPackedCount, total: (itinerary.packingItems ?? []).length }) }}
-              </span>
-            </div>
-          </div>
-          <div class="bookings-header-right">
-            <el-icon class="collapse-icon" :class="{ 'is-collapsed': packingCollapsed }">
-              <arrow-down />
-            </el-icon>
-          </div>
-        </div>
-
-        <div
-          v-show="!packingCollapsed"
-          @dragover.prevent
-          @drop="onDropPacking($event)"
-          :class="{ 'drop-active': draggingPacking }"
-        >
-          <PackingSuggestionPanel
-            @add="onPackingAdd"
-            @drag-start="draggingPacking = true"
-            @drag-end="draggingPacking = false"
-          />
-
-          <!-- Progress bar -->
-          <div class="packing-progress" style="padding: 10px 16px 0;" v-if="(itinerary.packingItems ?? []).length > 0">
-            <div class="packing-progress-bar">
-              <div
-                class="packing-progress-fill"
-                :style="{ width: ((itinerary.packingItems ?? []).length ? packingPackedCount / (itinerary.packingItems ?? []).length * 100 : 0) + '%' }"
-              />
-            </div>
-          </div>
-
-          <!-- Empty state -->
-          <div v-if="(itinerary.packingItems ?? []).length === 0" class="bookings-empty">
-            {{ t('travel.packing.noItems') }}
-          </div>
-
-          <!-- Items by category -->
-          <div v-else class="packing-categories" style="padding: 12px 16px;">
-            <div v-for="group in packingItemsByCategory" :key="group.cat.key" class="packing-category-group">
-              <div class="packing-cat-heading">{{ group.cat.emoji }} {{ t(group.cat.labelKey) }}</div>
-              <div class="packing-item"
-                v-for="item in group.items"
-                :key="item._localIndex ?? item.id"
-              >
+            <div v-else class="packing-categories">
+              <div class="packing-item" v-for="item in noteItemsList" :key="item._localIndex ?? item.id">
                 <button
                   class="packing-check"
-                  :class="{ 'packing-check--packed': item.packed }"
-                  @click="togglePackingItem(item)"
+                  :class="{ 'packing-check--packed': item.done }"
+                  @click="toggleNoteItem(item)"
                   type="button"
                 >
-                  <span v-if="item.packed">✓</span>
+                  <el-icon v-if="item.done"><Check /></el-icon>
                 </button>
-                <span class="packing-item-label" :class="{ 'packing-item-label--packed': item.packed }">
-                  {{ item.label }}
-                </span>
-                <span v-if="item.quantity" class="packing-qty">×{{ item.quantity }}</span>
+                <span class="packing-item-label" :class="{ 'packing-item-label--packed': item.done }">{{ item.label }}</span>
+                <a v-if="item.url" :href="item.url" target="_blank" rel="noopener" class="note-item-link">
+                  <el-icon><Link /></el-icon>
+                </a>
                 <div class="packing-item-actions">
-                  <el-button circle size="small" @click="openEditPackingDrawer(item)">
-                    <span style="font-size:0.72rem">✏️</span>
-                  </el-button>
-                  <el-button circle size="small" @click="removePackingItem(item)">
-                    <span style="font-size:0.72rem">🗑️</span>
+                  <el-button circle size="small" @click="removeNoteItem(item)">
+                    <el-icon style="font-size:0.72rem"><Delete /></el-icon>
                   </el-button>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div class="bookings-add-row">
-            <el-button size="small" @click="openAddPackingDrawer">{{ t('travel.packing.addItem') }}</el-button>
-          </div>
+            <div class="bookings-add-row">
+              <el-button size="small" @click="openAddNoteDialog">{{ t('travel.note.addItem') }}</el-button>
+            </div>
+          </template>
+
+          <!-- ── Schedule ─────────────────────────────────────────────────── -->
+          <template v-else-if="activeSection === 'schedule'">
+            <EmptyState v-if="groupedByDate.length === 0" :icon="MapLocation" :title="t('travel.planner.noSchedule')" />
+
+            <div v-else>
+              <div class="day-group-controls">
+                <el-button link size="small" @click="allCollapsed ? expandAll() : collapseAll()">
+                  <el-icon><Sort /></el-icon> {{ allCollapsed ? t('travel.viewer.expandAll') : t('travel.viewer.collapseAll') }}
+                </el-button>
+              </div>
+
+              <div
+                v-for="group in groupedByDate"
+                :key="group.date"
+                class="day-group"
+              >
+                <div class="day-group-header" @click="toggleDay(group.date)">
+                  <div v-if="group.dayNumber !== null" class="day-badge">{{ group.dayNumber }}</div>
+                  <div class="day-label">{{ formatGroupDate(group.date) }}</div>
+                  <span class="day-item-count" v-if="collapsedDays.has(group.date)">{{ group.items.length }} {{ group.items.length === 1 ? t('travel.viewer.item') : t('travel.viewer.items') }}</span>
+                  <span class="day-chevron">{{ collapsedDays.has(group.date) ? '›' : '⌄' }}</span>
+                </div>
+
+                <div v-show="!collapsedDays.has(group.date)" class="agenda-cards">
+                  <div v-for="item in group.items" :key="item.id ?? item._localIndex" class="agenda-card"
+                    :class="(item.id && !item._isDirty) ? 'card--saved' : 'card--new'">
+                    <div class="card-icon"><TravelIcon :svg="getCategoryIcon(item.category)" /></div>
+                    <div class="card-body">
+                      <div class="card-title">{{ item.title || t('travel.viewer.untitled') }}</div>
+                      <div v-if="getCardTime(item) || getCardCity(item) || item.budget" class="card-meta">
+                        <span v-if="getCardTime(item)" class="card-time">{{ getCardTime(item) }}</span>
+                        <span v-if="getCardCity(item)" class="card-city">
+                          <template v-if="getCardTime(item)"> · </template>{{ getCardCity(item) }}
+                        </span>
+                        <template v-if="item.budget">
+                          <span class="card-sep" v-if="getCardTime(item) || getCardCity(item)"> · </span>
+                          <span class="card-budget"><el-icon><Money /></el-icon> {{ item.budget.toLocaleString() }}</span>
+                        </template>
+                      </div>
+                      <div v-if="item.desc" class="card-notes">{{ item.desc }}</div>
+                      <div v-if="(item.files ?? []).some((f: any) => fileBlobs.get(f.uuid))" class="card-images">
+                        <el-image
+                          v-for="(file, fi) in (item.files ?? []).filter((f: any) => fileBlobs.get(f.uuid))"
+                          :key="file.uuid ?? fi"
+                          :src="fileBlobs.get(file.uuid)"
+                          :preview-src-list="(item.files ?? []).map((f: any) => fileBlobs.get(f.uuid)).filter(Boolean)"
+                          :initial-index="fi"
+                          fit="cover"
+                          class="card-image-thumb"
+                          preview-teleported
+                        />
+                      </div>
+                      <div v-else-if="(item.files ?? []).length" class="card-photo-chip">
+                        <el-icon><Camera /></el-icon> {{ item.files!.length }} photo{{ item.files!.length > 1 ? 's' : '' }}
+                      </div>
+                    </div>
+                    <div class="card-right">
+                      <div class="card-actions">
+                        <el-tooltip :content="t('travel.planner.editTooltip')" placement="top">
+                          <el-button circle size="small" @click="openEditDrawer(item)">
+                            <el-icon style="font-size:0.72rem"><Edit /></el-icon>
+                          </el-button>
+                        </el-tooltip>
+                        <el-tooltip :content="t('travel.planner.deleteTooltip')" placement="top">
+                          <el-button circle size="small" @click="removeAgendaItem(String(item.id ?? item._localIndex))">
+                            <el-icon style="font-size:0.72rem"><Delete /></el-icon>
+                          </el-button>
+                        </el-tooltip>
+                      </div>
+                      <div class="card-save-status">
+                        <span v-if="!item.id || item._isDirty" class="status--new">{{ t('travel.planner.unsaved') }}</span>
+                        <span v-else class="status--saved">{{ t('travel.planner.saved') }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <button v-show="!collapsedDays.has(group.date)" class="add-to-day-btn" @click="openAddDrawer(group.date !== '__tbc__' ? group.date : '')">
+                  {{ group.dayNumber !== null ? t('travel.planner.addToDay', { n: group.dayNumber }) : t('travel.planner.addToDateTbc') }}
+                </button>
+              </div>
+            </div>
+          </template>
+
         </div>
       </div>
+    </div><!-- end .form-mode -->
 
     </div><!-- end .planner-content -->
 
@@ -683,7 +965,10 @@ const onPrivacyClose = () => {
       <TravelMapView
         :agenda-items="itinerary.agendaItems ?? []"
         :fullscreen="isMapFullscreen"
+        :recommendations="mapRecommendations"
+        :destination-empty="!itinerary.destination?.trim()"
         @toggle-fullscreen="isMapFullscreen = !isMapFullscreen"
+        @add-recommendation="onAddRecommendation"
       />
     </div>
 
@@ -701,8 +986,8 @@ const onPrivacyClose = () => {
         v-if="editMode === 'form' && groupedByDate.length > 0"
         size="small"
         @click="allCollapsed ? expandAll() : collapseAll()"
-      >{{ allCollapsed ? '↕ Expand' : '↕ Collapse' }}</el-button>
-      <el-button size="small" @click="scrollToTop">↑ Top</el-button>
+      ><el-icon><Sort /></el-icon> {{ allCollapsed ? 'Expand' : 'Collapse' }}</el-button>
+      <el-button size="small" @click="scrollToTop"><el-icon><Top /></el-icon> Top</el-button>
     </div>
   </Teleport>
 
@@ -808,7 +1093,25 @@ const onPrivacyClose = () => {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  align-items: center;
+  /* flex-start, not center — .destination-field is taller than its siblings
+     (input + hint line below it), and centering would vertically center
+     that whole taller block, pulling the destination input itself out of
+     line with the single-line date-picker/pax-input beside it. */
+  align-items: flex-start;
+}
+
+.destination-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.destination-hint {
+  margin: 0;
+  padding-left: 2px;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  color: var(--el-text-color-secondary);
 }
 
 .planner-loading {
@@ -868,6 +1171,46 @@ const onPrivacyClose = () => {
 /* ── Form mode ── */
 .form-mode {
   flex: 1;
+}
+
+.planner-form-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.planner-section-body {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 18px 20px 20px;
+  background: var(--color-background);
+}
+
+.section-hint {
+  font-size: 0.8rem;
+  color: var(--el-text-color-secondary);
+  margin: 0 0 12px;
+}
+
+.section-hint--muted {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+@media (max-width: 900px) {
+  .planner-form-layout {
+    flex-direction: column;
+  }
+  .planner-form-layout :deep(.planner-side-nav) {
+    width: 100% !important;
+    flex-direction: row !important;
+    overflow-x: auto;
+    border-right: none !important;
+    border-bottom: 1px solid var(--color-border);
+    padding: 0 0 8px !important;
+  }
 }
 
 /* Day groups */
