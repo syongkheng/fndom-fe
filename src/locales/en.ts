@@ -999,6 +999,11 @@ export default {
       empty: 'No transactions yet.',
       viewAll: 'View all →',
     },
+    adminPanel: {
+      title: 'Admin',
+      desc: 'Users, roles, and system settings.',
+      open: 'Open →',
+    },
   },
   applepay: {
     eyebrow: 'Apple Pay',
@@ -1055,11 +1060,13 @@ export default {
     },
     telegramLogSubscriptions: {
       title: 'Telegram Log Alerts',
-      subtitle: 'Choose which backend modules send their request logs to the subscribed Telegram chat. Errors always alert regardless of this setting.',
+      subtitle: 'Choose which backend modules send their request logs to each subscribed Telegram chat. Errors always alert regardless of this setting.',
       loadFailed: 'Failed to load Telegram log subscriptions.',
       toggleFailed: 'Failed to update — please try again.',
+      chatCol: 'Chat',
+      noChats: 'No Telegram chat has subscribed yet — DM the bot /start to appear here.',
       cardTile: 'Telegram Log Alerts',
-      cardDesc: 'Turn Telegram log alerts on or off per backend module.',
+      cardDesc: 'Turn Telegram log alerts on or off per chat, per backend module.',
     },
   },
 }

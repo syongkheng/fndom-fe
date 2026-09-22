@@ -2,10 +2,11 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
-import { CircleCheck, CircleClose, WarningFilled } from '@element-plus/icons-vue'
+import type { CircleCheck } from '@element-plus/icons-vue'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
 import { useToast } from '@/composables/useToast'
+import { logStatusIcon } from '@/utilities/LogStatusIcon'
 
 interface RequestLogMatch {
   raw: string
@@ -66,9 +67,8 @@ interface TreeLine {
 }
 
 function statusMeta(code: number) {
-  if (code >= 500) return { statusClass: 'ls-status--danger', icon: CircleClose }
-  if (code >= 400) return { statusClass: 'ls-status--warning', icon: WarningFilled }
-  return { statusClass: 'ls-status--success', icon: CircleCheck }
+  const { level, icon } = logStatusIcon(code)
+  return { statusClass: `ls-status--${level}`, icon }
 }
 
 function treeLines(raw: string): TreeLine[] {

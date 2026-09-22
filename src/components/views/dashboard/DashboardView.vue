@@ -2,6 +2,7 @@
 import { useI18n } from 'vue-i18n'
 import RecentTransactionsCard from './RecentTransactionsCard.vue'
 import LogSearchCard from './LogSearchCard.vue'
+import AdminPanelCard from './AdminPanelCard.vue'
 import { usePermission } from '@/composables/usePermission'
 
 const { t } = useI18n()
@@ -12,7 +13,10 @@ const { hasRole } = usePermission()
   <div class="page-container">
     <div class="dash-widgets">
       <RecentTransactionsCard class="dash-widget" />
-      <LogSearchCard v-if="hasRole('SYSTEM_R5')" class="dash-widget" />
+      <template v-if="hasRole('SYSTEM_R5')">
+        <AdminPanelCard class="dash-widget" />
+        <LogSearchCard class="dash-widget" />
+      </template>
     </div>
 
     <header class="dash-header">

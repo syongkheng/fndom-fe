@@ -998,6 +998,11 @@ export default {
       empty: '暂无交易记录。',
       viewAll: '查看全部 →',
     },
+    adminPanel: {
+      title: '管理面板',
+      desc: '用户、角色与系统设置。',
+      open: '打开 →',
+    },
   },
   applepay: {
     eyebrow: 'Apple Pay',
@@ -1054,11 +1059,13 @@ export default {
     },
     telegramLogSubscriptions: {
       title: 'Telegram 日志提醒',
-      subtitle: '选择哪些后端模块的请求日志会推送到已订阅的 Telegram 聊天。无论此设置如何，错误始终会提醒。',
+      subtitle: '为每个已订阅的 Telegram 聊天选择哪些后端模块会推送请求日志。无论此设置如何，错误始终会提醒。',
       loadFailed: '加载 Telegram 日志订阅失败。',
       toggleFailed: '更新失败，请重试。',
+      chatCol: '聊天',
+      noChats: '目前还没有 Telegram 聊天订阅 —— 私信机器人 /start 即可在此显示。',
       cardTile: 'Telegram 日志提醒',
-      cardDesc: '按后端模块开启或关闭 Telegram 日志提醒。',
+      cardDesc: '按聊天、按后端模块开启或关闭 Telegram 日志提醒。',
     },
   },
 }

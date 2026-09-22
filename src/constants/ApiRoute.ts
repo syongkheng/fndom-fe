@@ -44,10 +44,12 @@ export const ApiRoute = {
     LIST_USERS: `/api/auth/admin/users`,
     UPDATE_USER_ROLES: (id: number) => `/api/auth/admin/users/${id}/roles`,
     SEARCH_REQUEST_LOG: (requestId: string) => `/api/auth/admin/request-logs/${requestId}`,
+    RECENT_REQUEST_LOGS: (limit: number) => `/api/auth/admin/recent-request-logs?limit=${limit}`,
   },
   TELEGRAM_LOG_SUBSCRIPTION: {
     ADMIN_LIST: `/api/auth/admin/telegram-log-subscriptions`,
-    ADMIN_TOGGLE: (moduleKey: string) => `/api/auth/admin/telegram-log-subscriptions/${moduleKey}`,
+    ADMIN_TOGGLE: (chatId: number, moduleKey: string) =>
+      `/api/auth/admin/telegram-log-subscriptions/${chatId}/${moduleKey}`,
   },
   BUDGET: {
     GET_ALL: `/api/budget`,

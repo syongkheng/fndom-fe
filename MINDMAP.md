@@ -104,7 +104,14 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   │     the search from that query param on mount). Same admin/SYSTEM_R5
 │   │   │     endpoint as the standalone /admin/log-searcher page — this is
 │   │   │     just a shortcut entry point from the dashboard, not a separate
-│   │   │     backend path.
+│   │   │     backend path. Also fetches GET ApiRoute.ADMIN.RECENT_REQUEST_LOGS(3)
+│   │   │     on mount → qindom's RequestLogSearch.recent() (newest N requests
+│   │   │     overall, lightweight DTO, no raw tree) and lists them compactly
+│   │   │     (method + path + colored status icon via src/utilities/LogStatusIcon.ts
+│   │   │     — shared with LogSearcherView.vue's tree rendering) below the search
+│   │   │     box; fails silently on error (passive background fetch).
+│   │   │     Also renders dashboard/AdminPanelCard.vue (same
+│   │   │     `hasRole('SYSTEM_R5')` guard) — a simple card linking to /admin.
 │   │   ├── /iot-key               iot-key → iot/IotDeviceKeyView
 │   │   ├── /ss-key                ss-key → ss-key/SsApiKeyView — generic
 │   │   │     "ss_" API key management (generate/regenerate/revoke), used by
@@ -397,13 +404,19 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   │     Reads a ?requestId= query param on mount and auto-searches — used
 │   │   │     by the Dashboard's LogSearchCard "search → redirect here" flow.
 │   │   └── TelegramLogSubscriptionView.vue  (/admin/telegram-log-subscriptions) —
-│   │         one el-switch row per backend module (imghost/analytics/applepay/etc,
-│   │         from qindom's TelegramLogModules.ts registry), toggled immediately
-│   │         on @change (optimistic, revert + toast on failure, no Save button).
-│   │         GET/POST ApiRoute.TELEGRAM_LOG_SUBSCRIPTION.ADMIN_LIST/ADMIN_TOGGLE →
-│   │         qindom's tb_telegram_log_subscription (scoped to whichever chat is
-│   │         currently subscribed — resolved server-side, not passed by the
-│   │         frontend). Errors always still alert regardless of a module's toggle.
+│   │         real matrix: one row per subscribed Telegram chat (every whitelisted
+│   │         admin who's DM'd the CDN bot /start — qindom's tb_tg_stats_whitelist),
+│   │         one column per backend module (imghost/analytics/applepay/etc, from
+│   │         qindom's TelegramLogModules.ts registry — column header shows the
+│   │         short key, full label on hover). <table> wrapped in overflow-x:auto
+│   │         (22 modules is wide) with the chat-label column `position:sticky` so
+│   │         it stays visible while scrolling. Each cell is an el-switch, toggled
+│   │         immediately on @change (optimistic, revert + toast on failure, no
+│   │         Save button), keyed by `${chatId}:${moduleKey}` for per-cell loading
+│   │         state. GET ApiRoute.TELEGRAM_LOG_SUBSCRIPTION.ADMIN_LIST returns the
+│   │         full { modules, chats } matrix; POST ADMIN_TOGGLE(chatId, moduleKey)
+│   │         flips one cell and returns the refreshed matrix. Errors always still
+│   │         alert every chat regardless of that chat's per-module toggle.
 │   │
 │   ├── IOT DEVICE KEY  /iot-key  — auth required
 │   │   └── IotDeviceKeyView.vue   — generate/regenerate/revoke API key for /iot device auth
