@@ -52,7 +52,10 @@ function summary(match: RequestLogMatch): string {
 }
 
 // Matches LoggingUtilities.ts's render(): the RESPONSE line is always
-// "└─ RESPONSE <code>" with no leading indent.
+// "└─ RESPONSE <code> <emoji>" — the emoji is console/Telegram's only way to
+// show status (plain text). Only the code is extracted; whatever trailing
+// emoji is there (its exact codepoints/variation selectors don't matter) is
+// dropped since we render our own icon here instead.
 const RESPONSE_LINE_RE = /^└─ RESPONSE (\d+)/
 
 interface TreeLine {
@@ -73,7 +76,7 @@ function treeLines(raw: string): TreeLine[] {
     const m = text.match(RESPONSE_LINE_RE)
     if (!m) return { text }
     const code = Number(m[1])
-    return { text, statusCode: code, ...statusMeta(code) }
+    return { text: `└─ RESPONSE ${code}`, statusCode: code, ...statusMeta(code) }
   })
 }
 
