@@ -75,17 +75,47 @@ const onCategoryChange = async (tx: ApplePayTransaction) => {
       {{ t('applepay.noTransactions') }}
     </div>
 
-    <el-table v-else :data="filteredTransactions" size="small" class="transactions-table">
-      <el-table-column :label="t('applepay.col.date')" min-width="150">
-        <template #default="{ row }">{{ formatDate(row.occurredDt) }}</template>
-      </el-table-column>
-      <el-table-column :label="t('applepay.col.merchant')" min-width="160" prop="merchant" />
-      <el-table-column :label="t('applepay.col.name')" min-width="160" prop="name" />
-      <el-table-column :label="t('applepay.col.amount')" width="120" align="right">
-        <template #default="{ row }">{{ formatAmount(row.amount) }}</template>
-      </el-table-column>
-      <el-table-column :label="t('applepay.col.category')" min-width="180">
-        <template #default="{ row }">
+    <template v-else>
+      <!-- Desktop / tablet: table -->
+      <el-table :data="filteredTransactions" size="small" class="transactions-table table-view">
+        <el-table-column :label="t('applepay.col.date')" min-width="150">
+          <template #default="{ row }">{{ formatDate(row.occurredDt) }}</template>
+        </el-table-column>
+        <el-table-column :label="t('applepay.col.merchant')" min-width="160" prop="merchant" />
+        <el-table-column :label="t('applepay.col.name')" min-width="160" prop="name" />
+        <el-table-column :label="t('applepay.col.amount')" width="120" align="right">
+          <template #default="{ row }">{{ formatAmount(row.amount) }}</template>
+        </el-table-column>
+        <el-table-column :label="t('applepay.col.category')" min-width="180">
+          <template #default="{ row }">
+            <el-select
+              v-model="row.category"
+              class="category-select"
+              filterable
+              allow-create
+              default-first-option
+              clearable
+              :loading="savingId === row.id"
+              :placeholder="t('applepay.setCategory')"
+              @change="onCategoryChange(row)"
+            >
+              <el-option v-for="opt in categoryOptions" :key="opt" :label="opt" :value="opt" />
+            </el-select>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- Mobile: cards -->
+      <ul class="transactions-cards card-view">
+        <li v-for="row in filteredTransactions" :key="row.id" class="tx-card">
+          <div class="tx-card-top">
+            <div class="tx-card-main">
+              <span class="tx-card-merchant">{{ row.merchant }}</span>
+              <span class="tx-card-name">{{ row.name }}</span>
+            </div>
+            <span class="tx-card-amount">{{ formatAmount(row.amount) }}</span>
+          </div>
+          <div class="tx-card-date">{{ formatDate(row.occurredDt) }}</div>
           <el-select
             v-model="row.category"
             class="category-select"
@@ -99,9 +129,9 @@ const onCategoryChange = async (tx: ApplePayTransaction) => {
           >
             <el-option v-for="opt in categoryOptions" :key="opt" :label="opt" :value="opt" />
           </el-select>
-        </template>
-      </el-table-column>
-    </el-table>
+        </li>
+      </ul>
+    </template>
   </div>
 </template>
 
@@ -192,6 +222,85 @@ const onCategoryChange = async (tx: ApplePayTransaction) => {
 
 .loading-state {
   padding: 20px 0;
+}
+
+/* Table/card swap — el-table's horizontal scroll is unusable on touch at
+   narrow widths (columns get squeezed instead of scrolling cleanly), so
+   below the app's usual 768px "medium" breakpoint we render cards instead. */
+.card-view {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .table-view {
+    display: none;
+  }
+
+  .card-view {
+    display: flex;
+  }
+}
+
+.transactions-cards {
+  flex-direction: column;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tx-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+}
+
+.tx-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.tx-card-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tx-card-merchant {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tx-card-name {
+  font-size: 0.78rem;
+  color: var(--color-text);
+  opacity: 0.6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tx-card-amount {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--color-heading);
+  flex-shrink: 0;
+}
+
+.tx-card-date {
+  font-size: 0.75rem;
+  color: var(--color-text);
+  opacity: 0.5;
 }
 
 @media (max-width: 540px) {
