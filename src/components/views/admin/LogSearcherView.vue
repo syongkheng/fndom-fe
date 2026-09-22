@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
+import { CircleCheck, CircleClose, WarningFilled } from '@element-plus/icons-vue'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
 import { useToast } from '@/composables/useToast'
@@ -50,6 +51,32 @@ function summary(match: RequestLogMatch): string {
   return `${match.timestamp} · ${match.method} ${match.path} · ${match.statusCode ?? '—'}`
 }
 
+// Matches LoggingUtilities.ts's render(): the RESPONSE line is always
+// "└─ RESPONSE <code>" with no leading indent.
+const RESPONSE_LINE_RE = /^└─ RESPONSE (\d+)/
+
+interface TreeLine {
+  text: string
+  statusCode?: number
+  statusClass?: string
+  icon?: typeof CircleCheck
+}
+
+function statusMeta(code: number) {
+  if (code >= 500) return { statusClass: 'ls-status--danger', icon: CircleClose }
+  if (code >= 400) return { statusClass: 'ls-status--warning', icon: WarningFilled }
+  return { statusClass: 'ls-status--success', icon: CircleCheck }
+}
+
+function treeLines(raw: string): TreeLine[] {
+  return raw.split('\n').map((text) => {
+    const m = text.match(RESPONSE_LINE_RE)
+    if (!m) return { text }
+    const code = Number(m[1])
+    return { text, statusCode: code, ...statusMeta(code) }
+  })
+}
+
 onMounted(() => {
   const prefill = route.query.requestId
   if (typeof prefill === 'string' && prefill) {
@@ -83,7 +110,15 @@ onMounted(() => {
 
       <el-collapse v-model="activeNames">
         <el-collapse-item v-for="(match, idx) in results" :key="idx" :name="idx" :title="summary(match)">
-          <pre class="ls-tree">{{ match.raw }}</pre>
+          <div class="ls-tree">
+            <div v-for="(line, lineIdx) in treeLines(match.raw)" :key="lineIdx" class="ls-tree-line">
+              <template v-if="line.icon">
+                <el-icon :class="line.statusClass" class="ls-status-icon"><component :is="line.icon" /></el-icon>
+                <span :class="line.statusClass">{{ line.text }}</span>
+              </template>
+              <template v-else>{{ line.text }}</template>
+            </div>
+          </div>
         </el-collapse-item>
       </el-collapse>
     </div>
@@ -137,14 +172,28 @@ onMounted(() => {
   font-family: monospace;
   font-size: 0.8rem;
   line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
   background: var(--color-background-soft);
   border-radius: 8px;
   padding: 14px 16px;
   margin: 0;
   overflow-x: auto;
 }
+
+.ls-tree-line {
+  white-space: pre;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ls-status-icon {
+  flex-shrink: 0;
+  font-size: 0.95rem;
+}
+
+.ls-status--success { color: var(--el-color-success); }
+.ls-status--warning { color: var(--el-color-warning); }
+.ls-status--danger { color: var(--el-color-danger); }
 
 .ls-empty {
   font-size: 0.88rem;
