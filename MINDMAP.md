@@ -389,13 +389,21 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   │     via the existing /imghost CDN tool first). Hits the qindom
 │   │   │     admin CRUD + admin/list routes under /api/suggestion/activity
 │   │   │     and /api/suggestion/place (see qindom MINDMAP's SUGGESTION section)
-│   │   └── LogSearcherView.vue  (/admin/log-searcher) — paste a req_xxxxx
-│   │         Request ID, hits GET ApiRoute.ADMIN.SEARCH_REQUEST_LOG →
-│   │         qindom's RequestLogSearch (parses qindom.out.log on the EC2 box,
-│   │         no DB/persistence involved). Renders each match's already-redacted
-│   │         ASCII tree verbatim in a <pre> block inside el-collapse (newest first).
-│   │         Reads a ?requestId= query param on mount and auto-searches — used
-│   │         by the Dashboard's LogSearchCard "search → redirect here" flow.
+│   │   ├── LogSearcherView.vue  (/admin/log-searcher) — paste a req_xxxxx
+│   │   │     Request ID, hits GET ApiRoute.ADMIN.SEARCH_REQUEST_LOG →
+│   │   │     qindom's RequestLogSearch (parses qindom.out.log on the EC2 box,
+│   │   │     no DB/persistence involved). Renders each match's already-redacted
+│   │   │     ASCII tree verbatim in a <pre> block inside el-collapse (newest first).
+│   │   │     Reads a ?requestId= query param on mount and auto-searches — used
+│   │   │     by the Dashboard's LogSearchCard "search → redirect here" flow.
+│   │   └── TelegramLogSubscriptionView.vue  (/admin/telegram-log-subscriptions) —
+│   │         one el-switch row per backend module (imghost/analytics/applepay/etc,
+│   │         from qindom's TelegramLogModules.ts registry), toggled immediately
+│   │         on @change (optimistic, revert + toast on failure, no Save button).
+│   │         GET/POST ApiRoute.TELEGRAM_LOG_SUBSCRIPTION.ADMIN_LIST/ADMIN_TOGGLE →
+│   │         qindom's tb_telegram_log_subscription (scoped to whichever chat is
+│   │         currently subscribed — resolved server-side, not passed by the
+│   │         frontend). Errors always still alert regardless of a module's toggle.
 │   │
 │   ├── IOT DEVICE KEY  /iot-key  — auth required
 │   │   └── IotDeviceKeyView.vue   — generate/regenerate/revoke API key for /iot device auth

@@ -45,6 +45,10 @@ export const ApiRoute = {
     UPDATE_USER_ROLES: (id: number) => `/api/auth/admin/users/${id}/roles`,
     SEARCH_REQUEST_LOG: (requestId: string) => `/api/auth/admin/request-logs/${requestId}`,
   },
+  TELEGRAM_LOG_SUBSCRIPTION: {
+    ADMIN_LIST: `/api/auth/admin/telegram-log-subscriptions`,
+    ADMIN_TOGGLE: (moduleKey: string) => `/api/auth/admin/telegram-log-subscriptions/${moduleKey}`,
+  },
   BUDGET: {
     GET_ALL: `/api/budget`,
     CREATE: `/api/budget`,

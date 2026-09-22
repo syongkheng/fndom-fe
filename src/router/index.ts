@@ -185,6 +185,12 @@ const router = createRouter({
       beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
     },
     {
+      path: '/admin/telegram-log-subscriptions',
+      name: 'admin-telegram-log-subscriptions',
+      component: () => import('../components/views/admin/TelegramLogSubscriptionView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
+    },
+    {
       path: '/imghost',
       name: 'imghost',
       component: () => import('../components/views/imghost/HomeView.vue'),

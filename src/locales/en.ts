@@ -1053,5 +1053,13 @@ export default {
       cardTile: 'Log Searcher',
       cardDesc: 'Search server request logs by Request ID and inspect the full event tree.',
     },
+    telegramLogSubscriptions: {
+      title: 'Telegram Log Alerts',
+      subtitle: 'Choose which backend modules send their request logs to the subscribed Telegram chat. Errors always alert regardless of this setting.',
+      loadFailed: 'Failed to load Telegram log subscriptions.',
+      toggleFailed: 'Failed to update — please try again.',
+      cardTile: 'Telegram Log Alerts',
+      cardDesc: 'Turn Telegram log alerts on or off per backend module.',
+    },
   },
 }

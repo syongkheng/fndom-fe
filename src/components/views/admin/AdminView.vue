@@ -93,6 +93,15 @@ onMounted(async () => {
         <div class="admin-card-arrow">→</div>
       </div>
 
+      <div class="admin-card" @click="router.push('/admin/telegram-log-subscriptions')">
+        <div class="admin-card-icon">🔔</div>
+        <div class="admin-card-body">
+          <div class="admin-card-title">{{ t('admin.telegramLogSubscriptions.cardTile') }}</div>
+          <div class="admin-card-desc">{{ t('admin.telegramLogSubscriptions.cardDesc') }}</div>
+        </div>
+        <div class="admin-card-arrow">→</div>
+      </div>
+
     </div>
   </div>
 </template>

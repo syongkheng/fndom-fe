@@ -1052,5 +1052,13 @@ export default {
       cardTile: '日志查询',
       cardDesc: '按请求 ID 搜索服务端请求日志，查看完整事件树。',
     },
+    telegramLogSubscriptions: {
+      title: 'Telegram 日志提醒',
+      subtitle: '选择哪些后端模块的请求日志会推送到已订阅的 Telegram 聊天。无论此设置如何，错误始终会提醒。',
+      loadFailed: '加载 Telegram 日志订阅失败。',
+      toggleFailed: '更新失败，请重试。',
+      cardTile: 'Telegram 日志提醒',
+      cardDesc: '按后端模块开启或关闭 Telegram 日志提醒。',
+    },
   },
 }
