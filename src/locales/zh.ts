@@ -56,7 +56,7 @@ export default {
       },
       tools: {
         title: '生活工具',
-        desc: 'HDB 住房查询、IPPT 体能追踪、抖音直播检测 — 专为新加坡生活打造的实用工具。',
+        desc: 'HDB 住房查询、IPPT 体能追踪、巴士时刻查询 — 专为新加坡生活打造的实用工具。',
       },
     },
     cta: {
@@ -107,7 +107,6 @@ export default {
       flat:        { label: '房屋分析',         desc: '按邮编搜索 · 地铁与公交距离' },
       scenic:      { label: '景区',             desc: '中国 5A 景区 · 记录您的到访' },
       travel:      { label: '旅行',             desc: '行程规划与协作' },
-      douyin:      { label: '抖音直播',         desc: '查看抖音用户是否正在直播' },
       telegram:    { label: 'Telegram 存储',    desc: '通过 Telegram 机器人上传媒体并按 ID 检索' },
       imghost:     { label: '图片 CDN',         desc: '上传图片 · 获取可分享的 CDN 链接' },
       ippt:        { label: 'IPPT · 训练',      desc: '追踪俯卧撑、仰卧起坐和 2.4 公里跑' },

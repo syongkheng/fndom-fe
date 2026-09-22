@@ -25,7 +25,6 @@ export default defineConfig({
           'vendor-vue':     ['vue', 'vue-router', 'pinia'],
           'vendor-element': ['element-plus'],
           'vendor-leaflet': ['leaflet'],
-          'vendor-hls':     ['hls.js'],
         },
       },
     },

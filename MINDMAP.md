@@ -366,9 +366,6 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │         straight to the row object from the store's array, same
 │   │         mutate-in-place pattern as BudgetItemTable
 │   │
-│   ├── DOUYIN  /douyin  — auth + feature
-│   │   └── HomeView.vue           — live stream checker
-│   │
 │   ├── MEAL  /meal  — auth + feature
 │   │   └── HomeView.vue
 │   │
@@ -569,7 +566,6 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │       ├── /api/file          — upload, delete
 │       ├── /api/feature/*     — flags, toggle, admin
 │       ├── /api/auth/admin/*  — user list, role update
-│       ├── /api/douyin/*      — live, ranklist
 │       ├── /api/meal/*        — log, range, photo
 │       ├── /api/sleep/*       — log, bulk, parse-screenshot
 │       ├── /api/telegram/*    — link status, media management

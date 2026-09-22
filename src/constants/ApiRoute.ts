@@ -81,10 +81,6 @@ export const ApiRoute = {
       REMOVE: `/api/img/admin/remove`,
     },
   },
-  DOUYIN: {
-    CHECK_LIVE: `/api/douyin/live`,
-    RANK_LIST: `/api/douyin/ranklist`,
-  },
   SCENIC: {
     GET_ALL: `/api/scenic`,
     GET_CHECKLIST: `/api/scenic/checklist`,

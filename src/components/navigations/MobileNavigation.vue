@@ -36,7 +36,6 @@ const publicModules = computed(() => [
 
 const personalModules = computed(() => [
   { label: t('workbench.tiles.travel.label'),      path: '/travel' },
-  { label: t('workbench.tiles.douyin.label'),      path: '/douyin' },
   { label: t('workbench.tiles.telegram.label'),    path: '/telegram' },
   { label: t('workbench.tiles.marketplace.label'), path: '/llm' },
 ])

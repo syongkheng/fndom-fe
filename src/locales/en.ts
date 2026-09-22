@@ -57,7 +57,7 @@ export default {
       },
       tools: {
         title: 'Lifestyle Tools',
-        desc: 'HDB housing lookup, IPPT fitness tracker, Douyin live checker — practical tools built for Singapore.',
+        desc: 'HDB housing lookup, IPPT fitness tracker, bus timings — practical tools built for Singapore.',
       },
     },
     cta: {
@@ -108,7 +108,6 @@ export default {
       flat:        { label: 'Flat Analysis',     desc: 'Search by postal code · MRT and bus stop proximity' },
       scenic:      { label: 'Scenic Spots',      desc: 'China 5A scenic spots · Track your visits by province' },
       travel:      { label: 'Travel',            desc: 'Itinerary planning and collaboration' },
-      douyin:      { label: 'Douyin Live',       desc: 'Check if a Douyin user is livestreaming' },
       telegram:    { label: 'Telegram Storage',  desc: 'Upload media via Telegram bot and retrieve by ID' },
       imghost:     { label: 'Image CDN',         desc: 'Upload an image · Get a shareable CDN link' },
       ippt:        { label: 'IPPT · Strider',    desc: 'Track push-ups, sit-ups and 2.4km run · Project your score' },
