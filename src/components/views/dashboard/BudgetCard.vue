@@ -7,15 +7,15 @@ const nav = useNav()
 </script>
 
 <template>
-  <div class="admin-panel-card" role="button" tabindex="0" @click="nav.redirectTo('/admin')" @keyup.enter="nav.redirectTo('/admin')">
-    <p class="admin-panel-title">{{ t('dashboard.adminPanel.title') }}</p>
-    <p class="admin-panel-desc">{{ t('dashboard.adminPanel.desc') }}</p>
-    <span class="admin-panel-open">{{ t('dashboard.adminPanel.open') }}</span>
+  <div class="budget-card" role="button" tabindex="0" @click="nav.redirectTo('/budget')" @keyup.enter="nav.redirectTo('/budget')">
+    <p class="budget-card-title">{{ t('dashboard.budget.title') }}</p>
+    <p class="budget-card-desc">{{ t('dashboard.budget.desc') }}</p>
+    <span class="budget-card-open">{{ t('dashboard.budget.open') }}</span>
   </div>
 </template>
 
 <style scoped>
-.admin-panel-card {
+.budget-card {
   display: inline-flex;
   flex-direction: column;
   align-items: stretch;
@@ -30,12 +30,12 @@ const nav = useNav()
   transition: border-color 0.15s, background 0.15s;
 }
 
-.admin-panel-card:hover {
+.budget-card:hover {
   border-color: var(--el-color-primary);
   background: var(--color-background-mute);
 }
 
-.admin-panel-title {
+.budget-card-title {
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -45,14 +45,14 @@ const nav = useNav()
   margin: 0 0 8px;
 }
 
-.admin-panel-desc {
+.budget-card-desc {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-heading);
   margin: 0;
 }
 
-.admin-panel-open {
+.budget-card-open {
   align-self: flex-start;
   margin-top: 12px;
   font-size: 0.78rem;

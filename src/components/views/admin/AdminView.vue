@@ -66,24 +66,6 @@ onMounted(async () => {
         <div class="admin-card-arrow">→</div>
       </div>
 
-      <div class="admin-card" @click="router.push('/admin/llm-pricing')">
-        <div class="admin-card-icon">💰</div>
-        <div class="admin-card-body">
-          <div class="admin-card-title">Marketplace Pricing</div>
-          <div class="admin-card-desc">Configure model availability, billing rates, and display prices for the AI marketplace.</div>
-        </div>
-        <div class="admin-card-arrow">→</div>
-      </div>
-
-      <div class="admin-card" @click="router.push('/admin/suggestions')">
-        <div class="admin-card-icon">📍</div>
-        <div class="admin-card-body">
-          <div class="admin-card-title">Trip Recommendations</div>
-          <div class="admin-card-desc">Curate the "Things to do" and "Places to visit" suggestions shown on the trip planner map, including descriptions and images.</div>
-        </div>
-        <div class="admin-card-arrow">→</div>
-      </div>
-
       <div class="admin-card" @click="router.push('/admin/log-searcher')">
         <div class="admin-card-icon">🔍</div>
         <div class="admin-card-body">

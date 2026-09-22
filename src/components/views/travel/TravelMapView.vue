@@ -1,20 +1,9 @@
 <template>
   <div class="travel-map-wrapper">
-    <!-- Filter bar (shown once items are resolved or there are recommendations to browse) -->
+    <!-- Filter bar (shown once items are resolved) -->
     <div class="map-filters">
       <div class="map-filters-top">
-        <div v-if="sorted.length > 0 || (recommendations && recommendations.length > 0)" class="filter-sections">
-          <div v-if="recommendations && recommendations.length > 0" class="filter-section">
-            <span class="filter-label">{{ t('travel.recommendation.filterLabel') }}</span>
-            <div class="filter-chips">
-              <button class="filter-chip" :class="{ active: showRecommendations }" @click="showRecommendations = true">
-                {{ t('travel.recommendation.filterAll') }}
-              </button>
-              <button class="filter-chip" :class="{ active: !showRecommendations }" @click="showRecommendations = false">
-                {{ t('travel.recommendation.filterSelectedOnly') }}
-              </button>
-            </div>
-          </div>
+        <div v-if="sorted.length > 0" class="filter-sections">
           <div v-if="sorted.length > 0" class="filter-section filter-section--bordered">
             <span class="filter-label">Type</span>
             <div class="filter-chips">
@@ -52,20 +41,7 @@
     </div>
 
     <div class="map-area">
-      <!-- Priority order matters: a ghost pin actually on the map (from
-           recommendations, however destinationRef resolved — explicit
-           Destination or the sessionTitle fallback) always wins over the
-           "fill in Destination" message, since telling the user to fill in
-           something that already produced visible pins would be confusing.
-           Only fall back to the destination-specific empty state when there
-           are truly no pins of any kind (confirmed or ghost) yet. -->
       <div v-if="resolving" class="map-overlay-msg">{{ t('travel.mapStatus.resolving') }}</div>
-      <div v-else-if="sorted.length === 0 && (recommendations?.length ?? 0) > 0" key="explore" class="map-empty-label">
-        {{ t('travel.recommendation.exploreHint') }}
-      </div>
-      <div v-else-if="destinationEmpty && sorted.length === 0" key="no-destination" class="map-empty-label">
-        {{ t('travel.mapStatus.noDestination') }}
-      </div>
       <div v-else-if="sorted.length === 0" key="no-location" class="map-empty-label">
         {{ t('travel.mapStatus.noLocationData') }}
       </div>
@@ -99,46 +75,6 @@
         </div>
         <button class="stepper-btn" :disabled="activeStepIndex >= filteredItems.length - 1" @click="stepNext">›</button>
       </div>
-
-      <!-- Detail side panel — toggled by clicking a "potential place of interest" (ghost) pin -->
-      <Transition name="detail-slide">
-        <div v-if="selectedRecommendation" class="place-detail-panel">
-          <button class="detail-close-btn" type="button" @click="closeDetailPanel" :title="t('travel.recommendation.close')">
-            <el-icon><Close /></el-icon>
-          </button>
-
-          <div v-if="selectedRecommendation.images?.length" class="detail-gallery">
-            <img :src="selectedRecommendation.images[selectedImageIndex]" class="detail-gallery-img" />
-            <template v-if="selectedRecommendation.images.length > 1">
-              <button class="detail-gallery-nav detail-gallery-nav--prev" type="button"
-                @click="selectedImageIndex = (selectedImageIndex - 1 + selectedRecommendation.images.length) % selectedRecommendation.images.length">‹</button>
-              <button class="detail-gallery-nav detail-gallery-nav--next" type="button"
-                @click="selectedImageIndex = (selectedImageIndex + 1) % selectedRecommendation.images.length">›</button>
-              <div class="detail-gallery-dots">
-                <span v-for="(img, i) in selectedRecommendation.images" :key="i" class="detail-gallery-dot" :class="{ active: i === selectedImageIndex }" />
-              </div>
-            </template>
-          </div>
-          <div v-else class="detail-gallery detail-gallery--empty">
-            <TravelIcon :svg="getCategoryIconSvg(selectedRecommendation.category)" />
-          </div>
-
-          <div class="detail-body">
-            <div class="detail-category-row">
-              <TravelIcon :svg="getCategoryIconSvg(selectedRecommendation.category)" />
-              <span v-if="selectedRecommendation.category">{{ t(`travel.category.${selectedRecommendation.category}`) }}</span>
-              <span v-if="selectedRecommendation.source === 'curated'" class="detail-curated-badge">{{ t('travel.recommendation.curatedBadge') }}</span>
-            </div>
-            <h3 class="detail-title">{{ selectedRecommendation.title }}</h3>
-            <p v-if="selectedRecommendation.description" class="detail-description">{{ selectedRecommendation.description }}</p>
-            <p v-else class="detail-description detail-description--empty">{{ t('travel.recommendation.noDetails') }}</p>
-
-            <el-button type="primary" class="detail-add-btn" @click="addSelectedRecommendation">
-              {{ t('travel.recommendation.addToTrip') }}
-            </el-button>
-          </div>
-        </div>
-      </Transition>
     </div>
   </div>
 </template>
@@ -153,49 +89,21 @@ import { searchPlaces } from '@/composables/useGeocode'
 import type { AgendaItem } from '@/interfaces/forms/itinerary/AgendaItem'
 import { CATEGORY_ICON_SVG, PIN_ICON_SVG, getCategoryIconSvg } from '@/constants/TravelIconSvg'
 import TravelIcon from '@/components/icons/TravelIcon.vue'
-import { FullScreen, ScaleToOriginal, Aim, Compass, MapLocation, Close } from '@element-plus/icons-vue'
+import { FullScreen, ScaleToOriginal, Aim, Compass, MapLocation } from '@element-plus/icons-vue'
 
 const DAY_COLORS = ['#60A5FA', '#FBBF24', '#34D399', '#F87171', '#A78BFA', '#FB923C', '#22D3EE', '#F472B6']
 const getDayColor = (day: number) => DAY_COLORS[(day - 1) % DAY_COLORS.length]
 
-export interface RecommendationPin {
-  key: string
-  title: string
-  category?: string
-  lat: number
-  lng: number
-  // Opaque to this component — passed straight back through the
-  // add-recommendation emit so the caller can tell pin sources apart
-  // (e.g. Things-to-do vs Places-to-visit) without a second lookup.
-  kind?: string
-  description?: string
-  images?: string[]
-  // 'curated' rows have an admin-editable record (id set); 'overpass'/
-  // undefined rows are live lookup results with no backing record to edit.
-  source?: 'curated' | 'overpass'
-  id?: number
-}
-
 const { t } = useI18n()
-const props = defineProps<{ agendaItems: AgendaItem[]; fullscreen?: boolean; recommendations?: RecommendationPin[]; destinationEmpty?: boolean }>()
-const emit = defineEmits<{ 'toggle-fullscreen': []; 'add-recommendation': [pin: RecommendationPin] }>()
+const props = defineProps<{ agendaItems: AgendaItem[]; fullscreen?: boolean }>()
+const emit = defineEmits<{ 'toggle-fullscreen': [] }>()
 
 // Use plain variables for Leaflet instances to avoid Vue ref type incompatibility
 let mapInstance: LeafletMap | null = null
 let markerGroup: FeatureGroup | null = null
-let recommendationGroup: FeatureGroup | null = null
 let routeLines: L.Polyline[] = []
 let tipEl: HTMLDivElement | null = null
 const resolving = ref(false)
-const recommendationsByKey = new Map<string, RecommendationPin>()
-// The detail side panel for "potential place of interest" pins — clicking a
-// ghost pin toggles it (click again / different pin / close button).
-const selectedRecommendation = ref<RecommendationPin | null>(null)
-const selectedImageIndex = ref(0)
-// "All" shows recommendation (ghost) pins alongside confirmed picks;
-// "Selected only" hides them, showing just what's already been added.
-const showRecommendations = ref(true)
-let lastRecommendations: RecommendationPin[] = []
 
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
@@ -483,80 +391,13 @@ function renderMap(items: ResolvedItem[]) {
   highlightStep(activeStepIndex.value)
 }
 
-// Bounds spanning whichever of confirmed-item pins / recommendation pins are
-// currently on the map, so browsing recommendations before adding anything
-// still zooms somewhere useful instead of the default world view.
 function fitToVisible() {
-  if (!mapInstance) return
-  const groups = [markerGroup, recommendationGroup].filter(
-    (g): g is FeatureGroup => !!g && g.getLayers().length > 0,
-  )
-  if (groups.length === 0) return
-  let bounds: L.LatLngBounds | undefined
-  for (const g of groups) {
-    bounds = bounds ? bounds.extend(g.getBounds()) : g.getBounds()
-  }
-  if (bounds) mapInstance.fitBounds(bounds, { padding: [40, 40] })
+  if (!mapInstance || !markerGroup || markerGroup.getLayers().length === 0) return
+  mapInstance.fitBounds(markerGroup.getBounds(), { padding: [40, 40] })
 }
 
 function fitAll() {
   fitToVisible()
-}
-
-// ── Recommendation (not-yet-added) pins — a separate layer so they can be
-// cleared/redrawn independently of the confirmed-items markerGroup. Ghost
-// style (outlined, 50% opacity, "+" badge) distinguishes them from solid
-// confirmed pins. `showRecommendations` (the "All"/"Selected only" filter)
-// just re-renders from `lastRecommendations` — no re-fetch needed.
-function renderRecommendations(pins: RecommendationPin[]) {
-  if (!mapInstance) return
-  lastRecommendations = pins
-
-  // If the pin the detail panel is showing has dropped out of the list
-  // (e.g. it was just added to the trip), close the panel instead of
-  // leaving it pointed at stale data.
-  if (selectedRecommendation.value && !pins.some((p) => p.key === selectedRecommendation.value!.key)) {
-    selectedRecommendation.value = null
-  }
-
-  if (recommendationGroup) { recommendationGroup.clearLayers(); recommendationGroup.removeFrom(mapInstance) }
-  recommendationsByKey.clear()
-  recommendationGroup = L.featureGroup()
-
-  if (showRecommendations.value) {
-    for (const pin of pins) {
-      recommendationsByKey.set(pin.key, pin)
-      const pinIconHtml = iconMarkup(getCategoryIconSvg(pin.category), 13, '#555')
-      const icon = L.divIcon({
-        className: '',
-        html: `<div class="travel-pin travel-pin--ghost"><span class="pin-emoji">${pinIconHtml}</span><span class="pin-plus">+</span></div>`,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
-      })
-
-      const marker = L.marker([pin.lat, pin.lng], { icon })
-      // Click toggles the detail side panel (see .place-detail-panel below)
-      // instead of a Leaflet popup — same pin again closes it.
-      marker.on('click', () => {
-        selectedImageIndex.value = 0
-        selectedRecommendation.value = selectedRecommendation.value?.key === pin.key ? null : pin
-      })
-      marker.addTo(recommendationGroup)
-    }
-  }
-
-  recommendationGroup.addTo(mapInstance)
-  fitToVisible()
-}
-
-function closeDetailPanel() {
-  selectedRecommendation.value = null
-}
-
-function addSelectedRecommendation() {
-  if (!selectedRecommendation.value) return
-  emit('add-recommendation', selectedRecommendation.value)
-  selectedRecommendation.value = null
 }
 
 async function refresh(items: AgendaItem[]) {
@@ -652,7 +493,6 @@ onMounted(() => {
   mapInstance.on('popupclose', hideTip)
 
   refresh(props.agendaItems)
-  renderRecommendations(props.recommendations ?? [])
   document.addEventListener('keydown', onKeyDown)
 })
 
@@ -664,7 +504,6 @@ onUnmounted(() => {
   satelliteBase = null
   satelliteLabels = null
   streetLayer = null
-  recommendationGroup = null
   if (tipEl?.parentNode) {
     tipEl.parentNode.removeChild(tipEl)
     tipEl = null
@@ -672,8 +511,6 @@ onUnmounted(() => {
 })
 
 watch(() => props.agendaItems, (items) => refresh(items), { deep: true })
-watch(() => props.recommendations, (pins) => renderRecommendations(pins ?? []))
-watch(showRecommendations, () => renderRecommendations(lastRecommendations))
 
 watch(() => props.fullscreen, () => {
   setTimeout(() => mapInstance?.invalidateSize(), 50)
@@ -829,13 +666,9 @@ function onKeyDown(e: KeyboardEvent) {
   background: rgba(255, 255, 255, 0.6);
 }
 
-/* Unlike .map-overlay-msg, this never washes the whole map — recommendation
-   (ghost) pins can still be showing underneath even when there are no
-   confirmed agenda items yet, and a full-bleed tint made them look inert. */
 /* Top-anchored (below the corner buttons, top: 12px / ~30px tall) and
-   accent-colored rather than the old bottom neutral pill — this is an
-   active nudge ("fill in Destination" / "tap a marker"), not passive status
-   text, so it should read as something to act on, not something to ignore. */
+   accent-colored rather than a neutral pill — an active nudge, not passive
+   status text, so it should read as something to act on. */
 .map-empty-label {
   position: absolute;
   top: 56px;
@@ -979,174 +812,6 @@ function onKeyDown(e: KeyboardEvent) {
   max-width: 180px;
 }
 
-/* ── Place detail side panel ─────────────────────────────────────────── */
-.place-detail-panel {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: min(320px, 88%);
-  z-index: 1100;
-  background: #fff;
-  box-shadow: -4px 0 20px rgba(0,0,0,0.18);
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-}
-
-.detail-slide-enter-active,
-.detail-slide-leave-active {
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-.detail-slide-enter-from,
-.detail-slide-leave-to {
-  transform: translateX(100%);
-  opacity: 0;
-}
-
-.detail-close-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 1;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255,255,255,0.9);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: #333;
-}
-
-.detail-gallery {
-  position: relative;
-  width: 100%;
-  height: 180px;
-  flex-shrink: 0;
-  background: #f0f0f0;
-}
-
-.detail-gallery--empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #bbb;
-}
-
-.detail-gallery--empty :deep(svg) {
-  width: 48px;
-  height: 48px;
-}
-
-.detail-gallery-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.detail-gallery-nav {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(0,0,0,0.45);
-  color: #fff;
-  font-size: 1.1rem;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.detail-gallery-nav--prev { left: 8px; }
-.detail-gallery-nav--next { right: 8px; }
-
-.detail-gallery-dots {
-  position: absolute;
-  bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 5px;
-}
-
-.detail-gallery-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.55);
-}
-
-.detail-gallery-dot.active {
-  background: #fff;
-}
-
-.detail-body {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.detail-category-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #888;
-}
-
-.detail-category-row :deep(svg) {
-  width: 14px;
-  height: 14px;
-}
-
-.detail-curated-badge {
-  margin-left: auto;
-  background: var(--el-color-success-light-8, #e1f3d8);
-  color: var(--el-color-success, #67c23a);
-  border-radius: 10px;
-  padding: 1px 8px;
-  text-transform: none;
-  letter-spacing: normal;
-  font-size: 0.68rem;
-}
-
-.detail-title {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #111;
-  margin: 0;
-}
-
-.detail-description {
-  font-size: 0.85rem;
-  line-height: 1.5;
-  color: #555;
-  margin: 0;
-}
-
-.detail-description--empty {
-  color: #aaa;
-  font-style: italic;
-}
-
-.detail-add-btn {
-  margin-top: 8px;
-  width: 100%;
-}
 </style>
 
 <style>
@@ -1230,40 +895,6 @@ function onKeyDown(e: KeyboardEvent) {
   width: 42px !important;
   height: 42px !important;
   box-shadow: 0 0 0 4px rgba(255,255,255,0.55), 0 3px 12px rgba(0,0,0,0.5) !important;
-}
-
-.travel-pin--ghost {
-  background: #fff !important;
-  border: 2px dashed #888 !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.25) !important;
-  opacity: 0.5;
-  transition: opacity 0.12s;
-}
-
-.travel-pin--ghost:hover {
-  opacity: 0.85;
-}
-
-.travel-pin--ghost .pin-emoji {
-  font-size: 13px;
-}
-
-.pin-plus {
-  position: absolute;
-  bottom: -3px;
-  right: -3px;
-  background: var(--el-color-primary, #E8795A);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 800;
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1.5px solid #fff;
-  line-height: 1;
 }
 
 .popup-add-btn {

@@ -54,7 +54,8 @@ const formatDate = (ts: number) =>
   flex-direction: column;
   align-items: stretch;
   width: 100%;
-  max-width: 300px;
+  height: 100%;
+  box-sizing: border-box;
   padding: 14px 16px;
   border-radius: 14px;
   background: var(--color-background-soft);

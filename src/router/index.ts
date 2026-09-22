@@ -161,18 +161,6 @@ const router = createRouter({
       beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
     },
     {
-      path: '/admin/llm-pricing',
-      name: 'admin-llm-pricing',
-      component: () => import('../components/views/admin/MarketplacePricingView.vue'),
-      beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
-    },
-    {
-      path: '/admin/suggestions',
-      name: 'admin-suggestions',
-      component: () => import('../components/views/admin/SuggestionAdminView.vue'),
-      beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
-    },
-    {
       path: '/admin/log-searcher',
       name: 'admin-log-searcher',
       component: () => import('../components/views/admin/LogSearcherView.vue'),

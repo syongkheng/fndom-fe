@@ -79,39 +79,76 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │
 │   ├── AUTH REQUIRED (authGuard)
 │   │   ├── /profile               profile → ProfileView
-│   │   ├── /dashboard             dashboard → dashboard/DashboardView — mostly
-│   │   │     still placeholder (eyebrow/title/subtitle, more to come), but
-│   │   │     now also renders dashboard/RecentTransactionsCard.vue first
-│   │   │     (top-left, normal flow not absolute-positioned) — top 3 Apple
-│   │   │     Pay transactions via the existing applepay store/GET /api/applepay
-│   │   │     (already sorted occurred_dt desc server-side, just .slice(0,3)),
-│   │   │     reusing ApplePayDashboardView's exact formatAmount/formatDate
-│   │   │     helpers (duplicated, not extracted — only 2 call sites). Works
-│   │   │     because Siri Shortcuts' ss_ key and the JWT session already
-│   │   │     resolve to the same backend user_id (ss-key generation, Apple
-│   │   │     Pay ingestion, and this GET route all key off getUser(req).id
-│   │   │     or the api-key-resolved equivalent) — see the qindom MINDMAP's
-│   │   │     SS API KEY MGMT / APPLE PAY DASHBOARD sections.
+│   │   ├── /dashboard             dashboard → dashboard/DashboardView — no
+│   │   │     header/eyebrow text (the "Welcome back" placeholder block was
+│   │   │     removed 2026-09-22, dashboard.eyebrow/title/subtitle locale
+│   │   │     keys removed with it). Instead a draggable/resizable widget
+│   │   │     grid (2026-09-22): `.dash-widgets` is a 4-col CSS grid (2 cols
+│   │   │     ≤900px, 1 col ≤500px, plain media queries — no JS breakpoint
+│   │   │     logic needed), each `.dash-widget-slot` sets `grid-column: span
+│   │   │     var(--col-span)`. A `WIDGETS` registry (component + optional
+│   │   │     `requiresRole`) drives both the render list and a persisted
+│   │   │     `order: WidgetId[]` (localStorage `fndom-dashboard-widget-order`)
+│   │   │     and `spans: Record<WidgetId, number>` (localStorage
+│   │   │     `fndom-dashboard-widget-sizes`) — stored order/spans are merged
+│   │   │     against `DEFAULT_ORDER`/`DEFAULT_SPAN` on load so a widget added
+│   │   │     later still shows up for existing users. Two small per-slot
+│   │   │     handles, both Pointer Events (mouse + touch, no dnd library):
+│   │   │     top-right grip (Rank icon) drags to reorder — live-swaps
+│   │   │     `order` via `document.elementFromPoint` under the pointer as
+│   │   │     you drag, `TransitionGroup` (name disabled mid-drag to avoid
+│   │   │     fighting the dragged item's own inline transform) animates the
+│   │   │     rest sliding into place, release does a rAF-delayed settle
+│   │   │     animation back to (0,0); bottom-right corner (small SVG
+│   │   │     diagonal-lines grip) drags to resize — column width is measured
+│   │   │     once at drag start (`grid.getBoundingClientRect().width /
+│   │   │     currentColumnCount`), live span = startSpan + round(dx /
+│   │   │     columnWidth), clamped to [1, currentColumnCount] so it snaps in
+│   │   │     whole-column steps and auto-caps to however many columns the
+│   │   │     current breakpoint has. Both handles are siblings of the actual
+│   │   │     card component (not descendants), so a card's own click-to-
+│   │   │     navigate keeps working untouched under the handles. Widget card
+│   │   │     components (RecentTransactionsCard/TravelPlanningCard/
+│   │   │     BudgetCard/AdminPanelCard/LogSearchCard) all had their old
+│   │   │     `max-width: 300-340px` cap removed (`width/height: 100%;
+│   │   │     box-sizing: border-box` instead) so they actually grow to fill
+│   │   │     a wider `--col-span` grid cell.
+│   │   │       • RecentTransactionsCard.vue — top 3 Apple Pay transactions
+│   │   │         via the existing applepay store/GET /api/applepay (already
+│   │   │         sorted occurred_dt desc server-side, just .slice(0,3)),
+│   │   │         reusing ApplePayDashboardView's exact formatAmount/formatDate
+│   │   │         helpers (duplicated, not extracted — only 2 call sites).
+│   │   │         Works because Siri Shortcuts' ss_ key and the JWT session
+│   │   │         already resolve to the same backend user_id (ss-key
+│   │   │         generation, Apple Pay ingestion, and this GET route all key
+│   │   │         off getUser(req).id or the api-key-resolved equivalent) —
+│   │   │         see the qindom MINDMAP's SS API KEY MGMT / APPLE PAY
+│   │   │         DASHBOARD sections.
+│   │   │       • TravelPlanningCard.vue (2026-09-22, always shown, no role
+│   │   │         gate) — simple click-through card → /travel/trips.
+│   │   │       • BudgetCard.vue (2026-09-22, always shown, no role gate) —
+│   │   │         simple click-through card → /budget.
+│   │   │       • LogSearchCard.vue (`hasRole('SYSTEM_R5')` only) — a small
+│   │   │         "Request ID → search" input that navigates to
+│   │   │         /admin/log-searcher?requestId=<id> (LogSearcherView auto-runs
+│   │   │         the search from that query param on mount). Same
+│   │   │         admin/SYSTEM_R5 endpoint as the standalone /admin/log-searcher
+│   │   │         page — this is just a shortcut entry point from the
+│   │   │         dashboard, not a separate backend path. Also fetches GET
+│   │   │         ApiRoute.ADMIN.RECENT_REQUEST_LOGS(3) on mount → qindom's
+│   │   │         RequestLogSearch.recent() (newest N requests overall,
+│   │   │         lightweight DTO, no raw tree) and lists them compactly
+│   │   │         (method + path + colored status icon via
+│   │   │         src/utilities/LogStatusIcon.ts — shared with
+│   │   │         LogSearcherView.vue's tree rendering) below the search box;
+│   │   │         fails silently on error (passive background fetch).
+│   │   │       • AdminPanelCard.vue (`hasRole('SYSTEM_R5')` only) — a simple
+│   │   │         card linking to /admin.
 │   │   │     useNav().redirectToDashboard() now goes here (used to just
 │   │   │     redirectTo('/') — changed since '/' is now the art hero, not a
 │   │   │     real landing page — also affects LoginView's post-login
 │   │   │     redirect and SideNavigation's dashboard menu item, both already
 │   │   │     called this same helper)
-│   │   │     Also renders dashboard/LogSearchCard.vue next to the transactions
-│   │   │     card, but only `v-if="hasRole('SYSTEM_R5')"` (usePermission) —
-│   │   │     a small "Request ID → search" input that navigates to
-│   │   │     /admin/log-searcher?requestId=<id> (LogSearcherView auto-runs
-│   │   │     the search from that query param on mount). Same admin/SYSTEM_R5
-│   │   │     endpoint as the standalone /admin/log-searcher page — this is
-│   │   │     just a shortcut entry point from the dashboard, not a separate
-│   │   │     backend path. Also fetches GET ApiRoute.ADMIN.RECENT_REQUEST_LOGS(3)
-│   │   │     on mount → qindom's RequestLogSearch.recent() (newest N requests
-│   │   │     overall, lightweight DTO, no raw tree) and lists them compactly
-│   │   │     (method + path + colored status icon via src/utilities/LogStatusIcon.ts
-│   │   │     — shared with LogSearcherView.vue's tree rendering) below the search
-│   │   │     box; fails silently on error (passive background fetch).
-│   │   │     Also renders dashboard/AdminPanelCard.vue (same
-│   │   │     `hasRole('SYSTEM_R5')` guard) — a simple card linking to /admin.
 │   │   ├── /iot-key               iot-key → iot/IotDeviceKeyView
 │   │   ├── /ss-key                ss-key → ss-key/SsApiKeyView — generic
 │   │   │     "ss_" API key management (generate/regenerate/revoke), used by
@@ -223,47 +260,25 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │
 │   ├── TRAVEL  /travel  — auth + feature
 │   │   ├── TravelListView.vue     — list of trips; "New Trip" opens CreateTripDialog
-│   │   ├── TravelPlannerView.vue  — recommendation-driven trip planner, side-nav
-│   │   │     layout (not a long scroll): PlannerSideNav switches a single
-│   │   │     `activeSection` (todo/places/bring/note/schedule) — only that
-│   │   │     section's body renders in `.planner-section-body`.
-│   │   │       • Things to do / Places to visit: NOT chip lists — explored
-│   │   │         on the map itself (see TravelMapView `recommendations` prop
-│   │   │         below). Section body is just the picked-items checklist +
-│   │   │         a day-assign popover + hint text. useActivitySuggestions/
-│   │   │         usePlaceSuggestions (composables) feed activityRecommendations/
-│   │   │         placeRecommendations computeds; only the active tab's set is
-│   │   │         passed to the map (mapRecommendations computed) so exploring
-│   │   │         one category never visually competes with another.
-│   │   │       • destinationRef (feeds both composables) falls back to
-│   │   │         itinerary.sessionTitle when the separate Destination field is
-│   │   │         empty, so ghost pins show as soon as a trip has a name —
-│   │   │         without this, a filled-in title with a blank Destination
-│   │   │         field silently yields zero suggestions on both tabs. Places
-│   │   │         (Nominatim-geocoded) resolve fine even for a CJK title;
-│   │   │         curated Things-to-do rows are matched by LOWER(destination_tag)
-│   │   │         LIKE against English tags (e.g. "Singapore"), so a CJK-only
-│   │   │         title won't surface those curated activity suggestions.
-│   │   │       • destinationRef reads `committedDestination`, not the raw
-│   │   │         `itinerary.destination` v-model — the Destination
-│   │   │         `el-autocomplete`'s v-model updates on every keystroke, and
-│   │   │         feeding that straight into the suggestion composables would
-│   │   │         fire a fetch per partial keystroke ("S", "Si", "Sin"…).
-│   │   │         `committedDestination` only updates on `@select` (picked a
-│   │   │         dropdown suggestion) or `@blur` (typed a full value and
-│   │   │         moved on), so suggestions load once per settled value. The
-│   │   │         Destination-empty hint text and TravelMapView's
-│   │   │         `destinationEmpty` prop still read the raw live v-model —
-│   │   │         only the actual suggestion *fetch* is gated on commit.
-│   │   │       • Things-to-do suggestions have no DB coordinates — geocoded
-│   │   │         client-side per title+destination (throttled searchPlaces,
-│   │   │         cached in activityCoordsCache) purely to place a ghost pin.
-│   │   │         Both Things-to-do and Places-to-visit picks persist their
-│   │   │         coordinates on add (onAddRecommendation) — the actual
-│   │   │         discriminator is qindom tb_travel_agenda_item.list_type
-│   │   │         ('todo'|'place', threaded through create/edit like
-│   │   │         noteItems was; see AgendaItem.listType), since coordinate
-│   │   │         presence alone can't split them once both carry coordinates.
+│   │   ├── TravelPlannerView.vue  — trip planner, side-nav layout (not a long
+│   │   │     scroll): PlannerSideNav switches a single `activeSection`
+│   │   │     (todo/places/bring/note/schedule) — only that section's body
+│   │   │     renders in `.planner-section-body`.
+│   │   │       • Things to do / Places to visit: both are plain manual
+│   │   │         checklists now (Trip Recommendation feature — admin-curated
+│   │   │         suggestions + "explore the map" ghost pins — was removed).
+│   │   │         Things to do adds via `openAddDrawer()` (AgendaDrawer,
+│   │   │         listType defaults to 'todo'); Places to visit adds via the
+│   │   │         new `openAddPlaceDrawer()` (same drawer, listType: 'place'
+│   │   │         preset — AgendaDrawer itself has no listType field, it just
+│   │   │         spreads back whatever `item` prop it was given). Both tabs
+│   │   │         list their items with a day-assign popover + delete, same
+│   │   │         as before.
+│   │   │       • Things-to-do/Places-to-visit split is still driven by the
+│   │   │         explicit `listType` field on AgendaItem ('todo'|'place',
+│   │   │         qindom tb_travel_agenda_item.list_type) — unscheduled items
+│   │   │         (no date) surface in these sections; assigning a day moves
+│   │   │         them into the Schedule tab's day-group timeline.
 │   │   │       • Schedule tab: the original day-group timeline, unchanged,
 │   │   │         fed by scheduledAgendaItemsRef (items with a date) instead
 │   │   │         of the full agenda list.
@@ -280,44 +295,13 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   │     ApiRoute.SUGGESTION.NOTES(country); mandatory/optional badge +
 │   │   │     deadline copy + "open official site" link — never a submit action
 │   │   ├── TravelViewerView.vue   — public share viewer
-│   │   ├── TravelMapView.vue      — extended with a `recommendations` prop
-│   │   │     (ghost/outline pins, separate `recommendationGroup` Leaflet
-│   │   │     layer from the confirmed-items `markerGroup`) + `add-recommendation`
-│   │   │     emit. `fitToVisible()` unions confirmed + recommendation pin
-│   │   │     bounds so browsing recs with zero picks yet still zooms
-│   │   │     somewhere useful instead of the world view. Ghost pins render
-│   │   │     at 50% opacity (85% on hover); a "Markers: All / Selected only"
-│   │   │     filter chip (showRecommendations ref) toggles them off without
-│   │   │     re-fetching — re-renders from `lastRecommendations` on toggle.
-│   │   │     Clicking a ghost pin toggles `.place-detail-panel` (slide-in
-│   │   │     overlay, not a Leaflet popup — same pin again / × closes it):
-│   │   │     image gallery (or a category-icon placeholder if none),
-│   │   │     description, a "Curated" badge when `source === 'curated'`
-│   │   │     (has an admin-editable tb_suggestion_activity/place record),
-│   │   │     and the "+ Add to trip" action. Confirmed pins keep their
-│   │   │     original popup — the detail panel is recommendation-only.
-│   │   │       • Empty-state text: `.map-overlay-msg` (full-bleed translucent
-│   │   │         wash) is used only for the `resolving` loading state now —
-│   │   │         it used to also cover "no agenda items"/"no filter matches",
-│   │   │         which visually deadened ghost/recommendation pins still
-│   │   │         showing underneath even with zero confirmed items. Those two
-│   │   │         (plus a third, destination-specific state) now share one
-│   │   │         bottom-anchored `.map-empty-label` pill instead, chosen by
-│   │   │         priority: (1) `sorted.length === 0 && recommendations.length
-│   │   │         > 0` → "tap a marker" (travel.recommendation.exploreHint) —
-│   │   │         ghost pins are up regardless of *why* (explicit Destination
-│   │   │         or TravelPlannerView's sessionTitle fallback), so this wins
-│   │   │         even when Destination itself is still blank; (2)
-│   │   │         `destinationEmpty && sorted.length === 0` → "fill in
-│   │   │         Destination" (travel.mapStatus.noDestination), only once no
-│   │   │         pins of any kind exist; (3)/(4) the original "no agenda
-│   │   │         items"/"no filter matches" as before. `destinationEmpty`
-│   │   │         prop = TravelPlannerView passing `!itinerary.destination?.trim()`.
-│   │   │         A second, independent "fill in Destination" hint
-│   │   │         (`.destination-hint`) lives inline under the Destination
-│   │   │         field itself in TravelPlannerView's header — same message,
-│   │   │         different surface, so the nudge appears right where the user
-│   │   │         needs to act, not just on the map.
+│   │   ├── TravelMapView.vue      — plain confirmed-items map: day-colored
+│   │   │     pins/route lines, category+day filter chips, fullscreen toggle,
+│   │   │     satellite/street tile switch, stepper nav. (The `recommendations`
+│   │   │     prop, ghost/outline pins, `place-detail-panel` slide-in, and
+│   │   │     `add-recommendation` emit were removed along with Trip
+│   │   │     Recommendation — see below.) `fitToVisible()` now only bounds
+│   │   │     the confirmed-items `markerGroup`.
 │   │   ├── AgendaDrawer.vue
 │   │   ├── BookingDrawer.vue      — built, wired in the store, still unmounted
 │   │   ├── PrivacyDialog.vue
@@ -383,16 +367,18 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
    │   └── HomeView.vue           — single-SFC with 5-tab internal nav (dashboard, log, calculator, schedule, plan) + pushed achievements/profile; onboarding modal on first open
    │
    ├── ADMIN  /admin  — SYSTEM_R5 only
-│   │   ├── AdminView.vue
+│   │   ├── AdminView.vue           — card launchpad; "Marketplace Pricing"
+│   │   │     (/admin/llm-pricing → MarketplacePricingView.vue) and "Trip
+│   │   │     Recommendations" (/admin/suggestions → SuggestionAdminView.vue)
+│   │   │     cards were removed (2026-09-22) — Marketplace Pricing's backend
+│   │   │     (/api/llm/admin/*) was never actually implemented; Trip
+│   │   │     Recommendations' activity/place admin CRUD + the Travel
+│   │   │     Planner's "explore the map" suggestion pins were removed
+│   │   │     together (see TRAVEL section above and qindom MINDMAP's
+│   │   │     SUGGESTION section) — Packing/Note suggestions (a separate,
+│   │   │     non-admin sub-feature) are untouched.
 │   │   ├── UserManagementView.vue
-│   │   ├── FeatureFlagView.vue
-│   │   ├── SuggestionAdminView.vue  (/admin/suggestions) — tabbed
-│   │   │     Places/Activities CRUD table + create-edit el-dialog (title,
-│   │   │     destination_tag, category, description, repeatable image-URL
-│   │   │     list — paste-a-link only, no upload widget; suggest hosting
-│   │   │     via the existing /imghost CDN tool first). Hits the qindom
-│   │   │     admin CRUD + admin/list routes under /api/suggestion/activity
-│   │   │     and /api/suggestion/place (see qindom MINDMAP's SUGGESTION section)
+│   │   ├── TgImageAdminView.vue    (/admin/tg-image)
 │   │   ├── LogSearcherView.vue  (/admin/log-searcher) — paste a req_xxxxx
 │   │   │     Request ID, hits GET ApiRoute.ADMIN.SEARCH_REQUEST_LOG →
 │   │   │     qindom's RequestLogSearch (parses qindom.out.log on the EC2 box,
@@ -401,19 +387,24 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   │     Reads a ?requestId= query param on mount and auto-searches — used
 │   │   │     by the Dashboard's LogSearchCard "search → redirect here" flow.
 │   │   └── TelegramLogSubscriptionView.vue  (/admin/telegram-log-subscriptions) —
-│   │         real matrix: one row per subscribed Telegram chat (every whitelisted
-│   │         admin who's DM'd the CDN bot /start — qindom's tb_tg_stats_whitelist),
-│   │         one column per backend module (imghost/analytics/applepay/etc, from
-│   │         qindom's TelegramLogModules.ts registry — column header shows the
-│   │         short key, full label on hover). <table> wrapped in overflow-x:auto
-│   │         (22 modules is wide) with the chat-label column `position:sticky` so
-│   │         it stays visible while scrolling. Each cell is an el-switch, toggled
-│   │         immediately on @change (optimistic, revert + toast on failure, no
-│   │         Save button), keyed by `${chatId}:${moduleKey}` for per-cell loading
-│   │         state. GET ApiRoute.TELEGRAM_LOG_SUBSCRIPTION.ADMIN_LIST returns the
-│   │         full { modules, chats } matrix; POST ADMIN_TOGGLE(chatId, moduleKey)
-│   │         flips one cell and returns the refreshed matrix. Errors always still
-│   │         alert every chat regardless of that chat's per-module toggle.
+│   │         real matrix: one row per backend module (imghost/analytics/applepay/
+│   │         etc, ~20+ from qindom's TelegramLogModules.ts registry — row label
+│   │         shows the short key, full label on hover), one column per subscribed
+│   │         Telegram chat (every whitelisted admin who's DM'd the CDN bot /start
+│   │         — qindom's tb_tg_stats_whitelist, usually just 1-3). Modules as rows
+│   │         (not columns) deliberately — with 20+ modules but few chats, a wide
+│   │         table with one column per module didn't fit/scroll well; rows scroll
+│   │         vertically instead, which is normal. <table> still wrapped in
+│   │         overflow-x:auto with the module-label column `position:sticky` (in
+│   │         case chat count ever grows past what fits). Each cell is an
+│   │         el-switch, toggled immediately on @change (optimistic, revert + toast
+│   │         on failure, no Save button), keyed by `${chatId}:${moduleKey}` for
+│   │         per-cell loading state. GET ApiRoute.TELEGRAM_LOG_SUBSCRIPTION.ADMIN_LIST
+│   │         returns the full { modules, chats } payload (unchanged shape — only
+│   │         the frontend's row/column orientation changed); POST
+│   │         ADMIN_TOGGLE(chatId, moduleKey) flips one cell and returns the
+│   │         refreshed data. Errors always still alert every chat regardless of
+│   │         that chat's per-module toggle.
 │   │
 │   ├── IOT DEVICE KEY  /iot-key  — auth required
 │   │   └── IotDeviceKeyView.vue   — generate/regenerate/revoke API key for /iot device auth
@@ -508,18 +499,12 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   ├── useTravelDayGroups.ts  — group agenda items by date
 │   ├── useGeocode.ts          — searchPlaces() (proxies /api/geocode, now
 │   │         surfaces `country` too); dead nearbyPOIs()/POICategory direct-
-│   │         to-Nominatim code removed (superseded by backend /api/places)
+│   │         to-Nominatim code removed. (useActivitySuggestions.ts /
+│   │         usePlaceSuggestions.ts — the "explore the map" suggestion
+│   │         fetchers for Things-to-do/Places-to-visit — were deleted
+│   │         2026-09-22 with the Trip Recommendation feature; see TRAVEL
+│   │         section above.)
 │   ├── useTravelExport.ts     — export itineraries (JSON/CSV)
-│   ├── useActivitySuggestions.ts — fetch-on-destination-change for
-│   │         "Things to do" (ApiRoute.SUGGESTION.ACTIVITIES, now includes
-│   │         description/images_json); extracted from the now-deleted
-│   │         ActivitySuggestionPanel.vue chip component. Also exports
-│   │         `parseImages(images_json)` — shared JSON-string[]-parse helper
-│   │         reused by the admin page and TravelPlannerView
-│   ├── usePlaceSuggestions.ts    — same, for ApiRoute.PLACES.NEARBY
-│   │         ("Places to visit"); extracted from the deleted PlaceSuggestionPanel.vue.
-│   │         PlaceSuggestion now carries id/description/images/source
-│   │         ('curated'|'overpass') per the backend's curated+live merge
 │   ├── usePageTracking.ts     — router.afterEach → Analytics.pageView; called in App.vue
 │   └── useToast.ts            — module-level (not Pinia) reactive `toasts`
 │         list + push/dismiss; `success/error/info(message)` for simple
@@ -571,8 +556,14 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │       ├── /api/telegram/*    — link status, media management
 │       ├── /api/iot-key/*     — IoT device API key generate/status/revoke
 │       ├── /api/garmin/*      — today (intraday), summary?days=N (history)
-│       ├── /api/places        — nearby POIs for a destination (live Overpass)
-│       └── /api/suggestion/note — country-scoped pre-trip reminders (new)
+│       ├── /api/suggestion/packing, /api/suggestion/note — Things-to-bring/
+│       │         Things-to-note suggestions (Packing/Note sub-features only —
+│       │         Suggestion activity/place + /api/places were removed
+│       │         2026-09-22 with the Trip Recommendation admin feature)
+│       └── /api/llm/models    — the only surviving MARKETPLACE route; the
+│                 rest (wallet/chat/api-key/admin pricing) were never backed
+│                 by a real qindom endpoint — admin pricing UI removed
+│                 2026-09-22, consumer chat/wallet UI left as-is (out of scope)
 │
 ├── UTILITIES (src/utilities/)
 │   ├── StorageUtils.ts        — localStorage wrapper; getVisitorSessionId() used by analytics

@@ -343,29 +343,6 @@ export const useItineraryStore = defineStore('itinerary', () => {
     updateNoteItem({ ...item, done: !item.done })
   }
 
-  // Lightweight "add this recommendation" action for Things to do / Places to
-  // visit — builds a minimal, unscheduled AgendaItem (no date/day/files) so
-  // it doesn't need the full AgendaDrawer form round-trip. `listType` is the
-  // discriminator TravelPlannerView.vue's section filters key off — both
-  // kinds may carry coordinates now (Things-to-do gets geocoded client-side
-  // purely so it can be plotted), so coordinate-presence alone can't tell
-  // them apart.
-  const addTodoItem = (input: { title: string; listType: 'todo' | 'place'; category?: string; coordinates?: { lat: number; lng: number }; desc?: string }) => {
-    itinerary.agendaItems?.push({
-      _localIndex: `todo-${Date.now()}`,
-      title: input.title,
-      category: input.category,
-      listType: input.listType,
-      desc: input.desc,
-      coordinates: input.coordinates,
-      unknownTime: true,
-      files: [],
-      _fileIdsToDelete: [],
-      _filesToInsert: [],
-      _agendaToFileMapping: [],
-    })
-  }
-
   // Sets/clears the day for a picked item — the lightweight "assign to a
   // day" action, as an alternative to the full AgendaDrawer form. Setting a
   // date moves the item out of the Things-to-do/Places-to-visit sections and
@@ -553,7 +530,6 @@ export const useItineraryStore = defineStore('itinerary', () => {
     removeNoteItem,
     updateNoteItem,
     toggleNoteItem,
-    addTodoItem,
     assignItemDay,
     saveDraft,
     loadDraft,

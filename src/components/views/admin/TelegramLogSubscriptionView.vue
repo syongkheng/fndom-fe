@@ -75,16 +75,16 @@ onMounted(load)
       <table class="tlp-table">
         <thead>
           <tr>
-            <th class="tlp-th-chat">{{ t('admin.telegramLogSubscriptions.chatCol') }}</th>
-            <th v-for="mod in modules" :key="mod.key" :title="mod.label" class="tlp-th-module">
-              {{ mod.key }}
+            <th class="tlp-th-module">{{ t('admin.telegramLogSubscriptions.moduleCol') }}</th>
+            <th v-for="chat in chats" :key="chat.chatId" class="tlp-th-chat">
+              {{ chat.label }}
             </th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="chat in chats" :key="chat.chatId">
-            <td class="tlp-td-chat">{{ chat.label }}</td>
-            <td v-for="mod in modules" :key="mod.key" class="tlp-td-cell">
+          <tr v-for="mod in modules" :key="mod.key">
+            <td :title="mod.label" class="tlp-td-module">{{ mod.key }}</td>
+            <td v-for="chat in chats" :key="chat.chatId" class="tlp-td-cell">
               <el-switch
                 v-model="chat.enabled[mod.key]"
                 size="small"
@@ -152,23 +152,23 @@ onMounted(load)
   white-space: nowrap;
 }
 
-.tlp-th-chat,
-.tlp-td-chat {
+.tlp-th-module,
+.tlp-td-module {
   position: sticky;
   left: 0;
   background: var(--color-background-soft);
   z-index: 1;
   border-right: 1px solid var(--color-border);
-  font-weight: 600;
+  font-family: monospace;
+  font-weight: 700;
   color: var(--color-heading);
 }
 
-.tlp-th-module {
-  font-family: monospace;
-  font-size: 0.72rem;
+.tlp-th-chat {
+  font-size: 0.78rem;
   font-weight: 700;
   color: var(--color-text);
-  opacity: 0.6;
+  opacity: 0.7;
   text-align: center;
   background: var(--color-background-soft);
 }
