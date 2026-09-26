@@ -996,7 +996,7 @@ export default {
   applepay: {
     eyebrow: 'Apple Pay',
     title: 'Transactions',
-    subtitle: 'Logged automatically from the "When Apple Pay is used" Shortcut.',
+    subtitle: 'Logged automatically from the "When Apple Pay is used" Shortcut and from forwarded bank transaction emails.',
     total: 'Total',
     filteredTotal: 'Filtered Total',
     allCategories: 'All categories',
@@ -1004,10 +1004,13 @@ export default {
     noTransactions: 'No transactions yet.',
     setCategory: 'Set category',
     saveFailed: 'Failed to save category',
+    sourceNfc: 'NFC',
+    sourceEmail: 'Email',
     col: {
       date: 'Date',
       merchant: 'Merchant',
-      name: 'Name',
+      name: 'Name / Card',
+      source: 'Source',
       amount: 'Amount',
       category: 'Category',
     },

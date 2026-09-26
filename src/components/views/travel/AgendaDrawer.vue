@@ -99,7 +99,7 @@ watch(uploadingCount, (count) => emit('uploading', count > 0))
 
 const resolveFileUrl = (f: FileWithPreview): string => {
   const tgCode = f.tgShortCode ?? (f as any).tg_short_code
-  if (tgCode) return `${HttpClient.defaults.baseURL ?? ''}/api/img/${tgCode}`
+  if (tgCode) return `${HttpClient.defaults.baseURL ?? ''}/img/${tgCode}`
   return f.previewUrl
 }
 

@@ -78,15 +78,15 @@ const removeAdmin = async (record: AdminRecord) => {
     <div class="tgia-header">
       <div class="tgia-header-left">
         <el-button text size="small" @click="router.push('/admin')" class="tgia-back">← Admin</el-button>
-        <h1 class="tgia-title">Image Hosting Admins</h1>
-        <p class="tgia-subtitle">{{ admins.length }} admin{{ admins.length !== 1 ? 's' : '' }} — these users can access the CDN bot commands</p>
+        <h1 class="tgia-title">Telegram Bot Admins</h1>
+        <p class="tgia-subtitle">{{ admins.length }} admin{{ admins.length !== 1 ? 's' : '' }} — can use bot commands (CDN stats/list) and onboard for <RouterLink to="/admin/telegram-log-subscriptions">Telegram log alerts</RouterLink></p>
       </div>
       <el-button type="primary" size="small" @click="openAdd">+ Add Admin</el-button>
     </div>
 
     <!-- Empty -->
     <div v-if="!loading && admins.length === 0" class="tgia-empty">
-      No admins yet. Add a Telegram user ID to grant bot access.
+      No admins yet. Add a Telegram user ID, then have them DM the bot /start to finish onboarding.
     </div>
 
     <!-- List -->
@@ -118,7 +118,7 @@ const removeAdmin = async (record: AdminRecord) => {
             placeholder="e.g. 123456789"
             type="number"
           />
-          <p class="tgia-hint">Numeric Telegram user ID. The user must interact with the CDN bot after being added.</p>
+          <p class="tgia-hint">Numeric Telegram user ID. The user must DM the bot /start after being added — this captures their chat ID, both for bot command access and to appear in Telegram Log Alerts.</p>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -171,9 +171,13 @@ const removeAdmin = async (record: AdminRecord) => {
 
 .tgia-subtitle {
   font-size: 0.85rem;
-  color: var(--color-text);
-  opacity: 0.5;
+  color: var(--color-text-secondary);
   margin: 4px 0 0;
+}
+
+.tgia-subtitle a {
+  color: var(--el-color-primary);
+  font-weight: 600;
 }
 
 .tgia-empty {

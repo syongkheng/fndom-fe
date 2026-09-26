@@ -79,7 +79,7 @@ async function upload() {
     const form = new FormData()
     form.append('file', selectedFile.value)
     const res = await HttpClient.post<{ code: number; data: { shortCode: string; url: string } }>(
-      '/api/img/upload',
+      '/img/upload',
       form,
       {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -89,7 +89,7 @@ async function upload() {
       },
     )
     const { shortCode } = res.data.data
-    const fullUrl = `${cdnBase}/api/img/${shortCode}`
+    const fullUrl = `${cdnBase}/img/${shortCode}`
     const uploaded: UploadedImage = {
       shortCode,
       fullUrl,

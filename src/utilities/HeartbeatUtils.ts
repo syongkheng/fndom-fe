@@ -1,5 +1,5 @@
 const BASE_URL = import.meta.env.VITE_SERVER_BASE_URL as string
-const ENDPOINT = `${BASE_URL}/api/analytics/heartbeat`
+const ENDPOINT = `${BASE_URL}/analytics/heartbeat`
 
 export function startHeartbeat(visitorId: string, interval = 30000) {
   const send = (keepalive = false) => {

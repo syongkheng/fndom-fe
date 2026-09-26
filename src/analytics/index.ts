@@ -1,7 +1,7 @@
 import { StorageUtils } from '@/utilities/StorageUtils'
 
 const BASE_URL = (import.meta.env.VITE_SERVER_BASE_URL as string | undefined) ?? 'http://localhost:3000'
-const ENDPOINT = `${BASE_URL}/api/analytics`
+const ENDPOINT = `${BASE_URL}/analytics`
 const SYSTEM = 'fndom'
 
 export interface AnalyticsEvent {

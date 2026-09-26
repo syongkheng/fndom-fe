@@ -995,7 +995,7 @@ export default {
   applepay: {
     eyebrow: 'Apple Pay',
     title: '交易记录',
-    subtitle: '通过“使用 Apple Pay 时”捷径自动记录。',
+    subtitle: '通过“使用 Apple Pay 时”捷径与银行交易提醒邮件转发自动记录。',
     total: '总计',
     filteredTotal: '筛选合计',
     allCategories: '所有分类',
@@ -1003,10 +1003,13 @@ export default {
     noTransactions: '暂无交易记录。',
     setCategory: '设置分类',
     saveFailed: '保存分类失败',
+    sourceNfc: 'NFC',
+    sourceEmail: '邮件',
     col: {
       date: '日期',
       merchant: '商家',
-      name: '名称',
+      name: '名称 / 卡号',
+      source: '来源',
       amount: '金额',
       category: '分类',
     },

@@ -7,7 +7,7 @@ export function useTgImageUpload() {
     if (meta?.uuid) form.append('uuid', meta.uuid)
     if (meta?.sessionId) form.append('sessionId', meta.sessionId)
     const res = await HttpClient.post<{ code: number; status: string; data: { shortCode: string; url: string } }>(
-      '/api/img/upload',
+      '/img/upload',
       form,
       { headers: { 'Content-Type': 'multipart/form-data' } },
     )

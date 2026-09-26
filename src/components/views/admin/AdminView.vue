@@ -54,10 +54,10 @@ onMounted(async () => {
       </div>
 
       <div class="admin-card" @click="router.push('/admin/tg-image')">
-        <div class="admin-card-icon">🖼️</div>
+        <div class="admin-card-icon">🤖</div>
         <div class="admin-card-body">
-          <div class="admin-card-title">Image Hosting Admins</div>
-          <div class="admin-card-desc">Manage who can access CDN bot commands for hosted image stats.</div>
+          <div class="admin-card-title">Telegram Bot Admins</div>
+          <div class="admin-card-desc">Manage who can use the bot's admin commands and onboard for Telegram log alerts.</div>
           <div class="admin-card-stat" v-if="imgAdminCount !== null">
             <span class="stat-num">{{ imgAdminCount }}</span>
             <span class="stat-lbl">admin{{ imgAdminCount !== 1 ? 's' : '' }}</span>

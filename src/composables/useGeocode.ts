@@ -26,7 +26,7 @@ function parseResult(r: Record<string, unknown>): Place {
 
 export async function searchPlaces(query: string): Promise<Place[]> {
   if (!query.trim()) return []
-  const res = await HttpClient.get<{ data: Record<string, unknown>[] }>('/api/geocode', {
+  const res = await HttpClient.get<{ data: Record<string, unknown>[] }>('/geocode', {
     params: { q: query },
   })
   return (res.data.data ?? []).map(parseResult)

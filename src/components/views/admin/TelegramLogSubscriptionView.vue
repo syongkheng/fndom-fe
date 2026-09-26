@@ -8,6 +8,7 @@ import { useToast } from '@/composables/useToast'
 interface ModuleCol {
   key: string
   label: string
+  paths: string[]
 }
 
 interface ChatRow {
@@ -83,7 +84,10 @@ onMounted(load)
         </thead>
         <tbody>
           <tr v-for="mod in modules" :key="mod.key">
-            <td :title="mod.label" class="tlp-td-module">{{ mod.key }}</td>
+            <td class="tlp-td-module" :title="mod.paths.join(', ')">
+              <span class="tlp-module-label">{{ mod.label }}</span>
+              <span class="tlp-module-path">{{ mod.paths.join(', ') }}</span>
+            </td>
             <td v-for="chat in chats" :key="chat.chatId" class="tlp-td-cell">
               <el-switch
                 v-model="chat.enabled[mod.key]"
@@ -108,22 +112,22 @@ onMounted(load)
 }
 
 .tlp-header {
-  padding: 24px 0 20px;
+  padding: 16px 0 12px;
 }
 
 .tlp-title {
-  font-size: 1.7rem;
+  font-size: 1.35rem;
   font-weight: 800;
   color: var(--color-heading);
-  margin: 0 0 4px;
+  margin: 0 0 2px;
 }
 
 .tlp-subtitle {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   color: var(--color-text);
   opacity: 0.55;
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .tlp-empty {
@@ -134,22 +138,26 @@ onMounted(load)
 }
 
 .tlp-table-wrap {
+  display: inline-block;
+  max-width: 100%;
   overflow-x: auto;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: 10px;
 }
 
 .tlp-table {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   width: max-content;
-  min-width: 100%;
+  font-size: 0.8rem;
 }
 
 .tlp-table th,
 .tlp-table td {
-  padding: 10px 12px;
+  padding: 5px 10px;
   border-bottom: 1px solid var(--color-border);
   white-space: nowrap;
+  line-height: 1.3;
 }
 
 .tlp-th-module,
@@ -159,13 +167,35 @@ onMounted(load)
   background: var(--color-background-soft);
   z-index: 1;
   border-right: 1px solid var(--color-border);
-  font-family: monospace;
-  font-weight: 700;
+  text-align: left;
+}
+
+.tlp-td-module {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  max-width: 320px;
+  overflow: hidden;
+}
+
+.tlp-module-label {
+  font-weight: 600;
   color: var(--color-heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tlp-module-path {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 0.7rem;
+  color: var(--color-text);
+  opacity: 0.45;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
 }
 
 .tlp-th-chat {
-  font-size: 0.78rem;
   font-weight: 700;
   color: var(--color-text);
   opacity: 0.7;
@@ -175,6 +205,14 @@ onMounted(load)
 
 .tlp-td-cell {
   text-align: center;
+}
+
+.tlp-td-cell :deep(.el-switch) {
+  height: auto;
+}
+
+.tlp-table tbody tr:hover td {
+  background: var(--color-background-mute);
 }
 
 .tlp-table tbody tr:last-child td {

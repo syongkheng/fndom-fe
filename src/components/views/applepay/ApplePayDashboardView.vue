@@ -36,6 +36,11 @@ const formatAmount = (n: number) =>
 const formatDate = (ts: number) =>
   new Date(ts).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
+// V1 rows (NFC taps) carry an Apple Pay device name; V2 rows (bank email
+// forwarding) carry a card number instead — surface whichever the row has.
+const formatDetail = (tx: ApplePayTransaction) => tx.name ?? (tx.cardLast4 ? `•• ${tx.cardLast4}` : '—')
+const sourceLabel = (source: string) => (source === 'v2' ? t('applepay.sourceEmail') : t('applepay.sourceNfc'))
+
 const savingId = ref<string | null>(null)
 
 const onCategoryChange = async (tx: ApplePayTransaction) => {
@@ -82,7 +87,14 @@ const onCategoryChange = async (tx: ApplePayTransaction) => {
           <template #default="{ row }">{{ formatDate(row.occurredDt) }}</template>
         </el-table-column>
         <el-table-column :label="t('applepay.col.merchant')" min-width="160" prop="merchant" />
-        <el-table-column :label="t('applepay.col.name')" min-width="160" prop="name" />
+        <el-table-column :label="t('applepay.col.name')" min-width="140">
+          <template #default="{ row }">{{ formatDetail(row) }}</template>
+        </el-table-column>
+        <el-table-column :label="t('applepay.col.source')" width="90">
+          <template #default="{ row }">
+            <el-tag size="small" :type="row.source === 'v2' ? 'success' : 'info'">{{ sourceLabel(row.source) }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column :label="t('applepay.col.amount')" width="120" align="right">
           <template #default="{ row }">{{ formatAmount(row.amount) }}</template>
         </el-table-column>
@@ -111,11 +123,14 @@ const onCategoryChange = async (tx: ApplePayTransaction) => {
           <div class="tx-card-top">
             <div class="tx-card-main">
               <span class="tx-card-merchant">{{ row.merchant }}</span>
-              <span class="tx-card-name">{{ row.name }}</span>
+              <span class="tx-card-name">{{ formatDetail(row) }}</span>
             </div>
             <span class="tx-card-amount">{{ formatAmount(row.amount) }}</span>
           </div>
-          <div class="tx-card-date">{{ formatDate(row.occurredDt) }}</div>
+          <div class="tx-card-date">
+            {{ formatDate(row.occurredDt) }}
+            <el-tag size="small" :type="row.source === 'v2' ? 'success' : 'info'" class="tx-card-source">{{ sourceLabel(row.source) }}</el-tag>
+          </div>
           <el-select
             v-model="row.category"
             class="category-select"
@@ -298,9 +313,16 @@ const onCategoryChange = async (tx: ApplePayTransaction) => {
 }
 
 .tx-card-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 0.75rem;
   color: var(--color-text);
   opacity: 0.5;
+}
+
+.tx-card-source {
+  opacity: 1;
 }
 
 @media (max-width: 540px) {
