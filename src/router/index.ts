@@ -34,12 +34,6 @@ const router = createRouter({
       beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
     },
     {
-      path: '/scenic',
-      name: 'scenic',
-      component: () => import('../components/views/scenic/HomeView.vue'),
-      beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
-    },
-    {
       path: '/flat',
       name: 'flat',
       component: () => import('../components/views/flat/HomeView.vue'),
@@ -106,12 +100,6 @@ const router = createRouter({
       name: 'health',
       component: () => import('../components/views/health/GarminHealthView.vue'),
       beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
-    },
-    {
-      path: '/telegram',
-      name: 'telegram',
-      component: () => import('../components/views/telegram/HomeView.vue'),
-      beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
     },
     {
       path: '/ippt',

@@ -32,7 +32,7 @@ HttpClient.interceptors.request.use(
 
     // Inject X-API-Key only on chat endpoints — not on wallet, sessions, models, etc.
     const url = config.url ?? ''
-    const CHAT_ENDPOINTS = ['/api/llm/chat', '/api/llm/trial/chat']
+    const CHAT_ENDPOINTS = ['/v1/llm/chat', '/v1/llm/trial/chat']
     if (CHAT_ENDPOINTS.some(p => url.startsWith(p))) {
       if (_activeApiKey) config.headers['X-API-Key'] = _activeApiKey
     }

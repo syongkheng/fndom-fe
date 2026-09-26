@@ -106,9 +106,7 @@ export default {
     tiles: {
       pphs:        { label: 'PPHS',             desc: 'Public housing info, bus stops and MRT proximity' },
       flat:        { label: 'Flat Analysis',     desc: 'Search by postal code · MRT and bus stop proximity' },
-      scenic:      { label: 'Scenic Spots',      desc: 'China 5A scenic spots · Track your visits by province' },
       travel:      { label: 'Travel',            desc: 'Itinerary planning and collaboration' },
-      telegram:    { label: 'Telegram Storage',  desc: 'Upload media via Telegram bot and retrieve by ID' },
       imghost:     { label: 'Image CDN',         desc: 'Upload an image · Get a shareable CDN link' },
       ippt:        { label: 'IPPT · Strider',    desc: 'Track push-ups, sit-ups and 2.4km run · Project your score' },
       marketplace: { label: 'Marketplace',       desc: 'Browse and chat with AI-powered services' },
@@ -800,9 +798,6 @@ export default {
     itineraryAccessDenied: 'You are not allowed to edit this itinerary. Please contact the owner.',
     loginRequired: 'You must be logged in.',
     accessDenied: 'Access denied.',
-
-    scenicLoadFailed: 'Failed to load scenic spots.',
-    scenicSaveFailed: 'Failed to save. Please try again.',
 
     pphsUpdateSuccess: 'PPHS record updated successfully.',
     pphsUpdateFailed: 'Failed to update PPHS record.',

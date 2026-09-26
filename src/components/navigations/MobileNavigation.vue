@@ -31,12 +31,10 @@ const handleLogout = () => {
 const publicModules = computed(() => [
   { label: t('workbench.tiles.pphs.label'),   path: '/pphs' },
   { label: t('workbench.tiles.flat.label'),   path: '/flat' },
-  { label: t('workbench.tiles.scenic.label'), path: '/scenic' },
 ])
 
 const personalModules = computed(() => [
   { label: t('workbench.tiles.travel.label'),      path: '/travel' },
-  { label: t('workbench.tiles.telegram.label'),    path: '/telegram' },
   { label: t('workbench.tiles.marketplace.label'), path: '/llm' },
 ])
 </script>

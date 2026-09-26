@@ -2,7 +2,6 @@
 export enum StorageKey {
   EXISTING_SESSION = 'sessionId',
   ITINERARY_IDEMPOTENCY_KEY = 'itineraryIdempotencyKey',
-  SCENIC_CHECKLIST = 'scenicChecklist',
   SS_API_KEY = 'ssApiKey',
 }
 

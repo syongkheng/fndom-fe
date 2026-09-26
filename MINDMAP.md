@@ -357,9 +357,6 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   └── HomeView.vue           — sleep log + AI screenshot parsing
 │   │
 │   │
-│   ├── TELEGRAM  /telegram  — auth + feature
-│   │   └── HomeView.vue           — media management
-│   │
 │   ├── IMAGE CDN  /imghost  — SYSTEM_R5
 │   │   └── HomeView.vue           — drag-drop upload → shareable Telegram CDN URL
 │   │
@@ -553,17 +550,24 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │       ├── /api/auth/admin/*  — user list, role update
 │       ├── /api/meal/*        — log, range, photo
 │       ├── /api/sleep/*       — log, bulk, parse-screenshot
-│       ├── /api/telegram/*    — link status, media management
 │       ├── /api/iot-key/*     — IoT device API key generate/status/revoke
 │       ├── /api/garmin/*      — today (intraday), summary?days=N (history)
 │       ├── /api/suggestion/packing, /api/suggestion/note — Things-to-bring/
 │       │         Things-to-note suggestions (Packing/Note sub-features only —
 │       │         Suggestion activity/place + /api/places were removed
 │       │         2026-09-22 with the Trip Recommendation admin feature)
-│       └── /api/llm/models    — the only surviving MARKETPLACE route; the
+│       └── /v1/llm/models    — the only surviving MARKETPLACE route; the
 │                 rest (wallet/chat/api-key/admin pricing) were never backed
 │                 by a real qindom endpoint — admin pricing UI removed
-│                 2026-09-22, consumer chat/wallet UI left as-is (out of scope)
+│                 2026-09-22, consumer chat/wallet UI left as-is (out of scope).
+│                 2026-09-26: qindom moved this router from a bare /api/llm
+│                 mount to /v1/llm (matching /v1/ss versioning) — ApiRoute.ts
+│                 and HttpClient.ts's CHAT_ENDPOINTS matcher updated to match.
+│                 Telegram Storage (/telegram) and Scenic Spots (/scenic)
+│                 modules removed from fndom entirely the same day — their
+│                 qindom backends (src/telegram, src/scenic) no longer exist
+│                 (not moved, deleted), so the frontend routes/views/store/
+│                 workbench tiles/locale strings were dead code hitting 404s.
 │
 ├── UTILITIES (src/utilities/)
 │   ├── StorageUtils.ts        — localStorage wrapper; getVisitorSessionId() used by analytics
