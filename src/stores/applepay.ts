@@ -24,10 +24,24 @@ export const useApplePayStore = defineStore('applepay', () => {
     return true
   }
 
+  // A card label is keyed by card_last4, not by transaction — one save
+  // applies to every row sharing that card_last4, so patch them all
+  // locally instead of refetching the whole list.
+  async function setCardLabel(cardLast4: string, label: string | null): Promise<boolean> {
+    const res = await HttpClient.post(ApiRoute.APPLEPAY.SET_CARD_LABEL(cardLast4), { label }).catch(() => null)
+    const updated = res?.data?.data as { cardLast4: string; label: string | null } | undefined
+    if (!updated) return false
+    transactions.value.forEach((t) => {
+      if (t.cardLast4 === cardLast4) t.cardLabel = updated.label
+    })
+    return true
+  }
+
   return {
     transactions,
     isLoading,
     fetchTransactions,
     updateCategory,
+    setCardLabel,
   }
 })

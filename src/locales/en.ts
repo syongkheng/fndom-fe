@@ -999,6 +999,8 @@ export default {
     noTransactions: 'No transactions yet.',
     setCategory: 'Set category',
     saveFailed: 'Failed to save category',
+    addLabel: 'Add label',
+    cardLabelSaveFailed: 'Failed to save card label',
     sourceNfc: 'NFC',
     sourceSms: 'SMS',
     col: {
@@ -1008,6 +1010,22 @@ export default {
       source: 'Source',
       amount: 'Amount',
       category: 'Category',
+    },
+    tabs: {
+      transactions: 'Transactions',
+      statistics: 'Statistics',
+    },
+    stats: {
+      byCategory: 'By Category',
+      byCard: 'By Card',
+      total: 'Total',
+      transactions: 'Transactions',
+      dailyAverage: 'Daily avg',
+      other: 'Other',
+      uncategorized: 'Uncategorized',
+      noData: 'No data',
+      close: 'Close',
+      amountsIn: 'Amounts in {currency}',
     },
   },
   admin: {

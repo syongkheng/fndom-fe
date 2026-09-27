@@ -10,6 +10,8 @@ export interface ApplePayTransaction {
   source: string
   /** Last 3-4 digits of the card — only ever set on 'v2' rows. */
   cardLast4: string | null
+  /** User-assigned nickname for this card_last4 (e.g. "DBS Debit"), shared across every row with the same card_last4. */
+  cardLabel: string | null
   occurredDt: number
   createdDt: number
 }

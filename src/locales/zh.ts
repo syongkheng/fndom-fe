@@ -998,6 +998,8 @@ export default {
     noTransactions: '暂无交易记录。',
     setCategory: '设置分类',
     saveFailed: '保存分类失败',
+    addLabel: '添加标签',
+    cardLabelSaveFailed: '保存卡片标签失败',
     sourceNfc: 'NFC',
     sourceSms: '短信',
     col: {
@@ -1007,6 +1009,22 @@ export default {
       source: '来源',
       amount: '金额',
       category: '分类',
+    },
+    tabs: {
+      transactions: '交易',
+      statistics: '统计',
+    },
+    stats: {
+      byCategory: '按分类',
+      byCard: '按卡片',
+      total: '总计',
+      transactions: '交易笔数',
+      dailyAverage: '日均',
+      other: '其他',
+      uncategorized: '未分类',
+      noData: '暂无数据',
+      close: '关闭',
+      amountsIn: '金额单位：{currency}',
     },
   },
   admin: {
