@@ -2,8 +2,8 @@
 import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { CopyDocument } from '@element-plus/icons-vue'
-import { useSsApiKeyStore } from '@/stores/ssApiKey'
+import { CopyDocument, Edit, Check, Close } from '@element-plus/icons-vue'
+import { useSsApiKeyStore, type SsApiKeyStatus } from '@/stores/ssApiKey'
 
 const store = useSsApiKeyStore()
 const { t } = useI18n()
@@ -11,19 +11,46 @@ const { t } = useI18n()
 const serverBaseUrl = import.meta.env.VITE_SERVER_BASE_URL as string
 
 const statusLoading = ref(false)
-const apiKeyStatus = ref<{ hasKey: boolean; createdDt: number | null; keyHint: string | null }>({ hasKey: false, createdDt: null, keyHint: null })
+const apiKeyStatus = ref<SsApiKeyStatus>({ hasKey: false, name: null, createdDt: null, keyHint: null })
 const keyGenerating = ref(false)
 const keyRevoking = ref(false)
 const freshlyGeneratedKey = ref('')
+
+const isEditingName = ref(false)
+const nameDraft = ref('')
+const nameSaving = ref(false)
 
 async function refreshApiKeyStatus() {
   statusLoading.value = true
   try {
     apiKeyStatus.value = await store.fetchApiKeyStatus()
   } catch {
-    apiKeyStatus.value = { hasKey: false, createdDt: null, keyHint: null }
+    apiKeyStatus.value = { hasKey: false, name: null, createdDt: null, keyHint: null }
   } finally {
     statusLoading.value = false
+  }
+}
+
+function startEditName() {
+  nameDraft.value = apiKeyStatus.value.name ?? ''
+  isEditingName.value = true
+}
+
+function cancelEditName() {
+  isEditingName.value = false
+}
+
+async function saveName() {
+  const trimmed = nameDraft.value.trim()
+  if (!trimmed) return
+  nameSaving.value = true
+  try {
+    apiKeyStatus.value = await store.renameApiKey(trimmed)
+    isEditingName.value = false
+  } catch {
+    ElMessage.error(t('ssKey.renameFailed'))
+  } finally {
+    nameSaving.value = false
   }
 }
 
@@ -74,7 +101,7 @@ async function handleRevokeKey() {
     keyRevoking.value = true
     await store.revokeApiKey()
     freshlyGeneratedKey.value = ''
-    apiKeyStatus.value = { hasKey: false, createdDt: null, keyHint: null }
+    apiKeyStatus.value = { hasKey: false, name: null, createdDt: null, keyHint: null }
     ElMessage.success(t('toast.ssKeyRevoked'))
   } catch {
     // ElMessageBox cancel throws — ignore
@@ -121,7 +148,18 @@ onMounted(refreshApiKeyStatus)
           {{ t('ssKey.createdOn', { date: apiKeyStatus.createdDt ? formatDate(apiKeyStatus.createdDt) : '' }) }}
         </p>
 
-        <div class="key-field-label">{{ t('ssKey.keyHintLabel') }}</div>
+        <div class="key-field-label">{{ t('ssKey.nameLabel') }}</div>
+        <div v-if="!isEditingName" class="key-name-row">
+          <span class="key-name-display">{{ apiKeyStatus.name ?? t('ssKey.unnamed') }}</span>
+          <el-button text size="small" :icon="Edit" @click="startEditName">{{ t('ssKey.rename') }}</el-button>
+        </div>
+        <div v-else class="key-name-row">
+          <el-input v-model="nameDraft" size="small" maxlength="100" class="key-name-input" @keyup.enter="saveName" />
+          <el-button text size="small" type="primary" :icon="Check" :loading="nameSaving" @click="saveName" />
+          <el-button text size="small" :icon="Close" :disabled="nameSaving" @click="cancelEditName" />
+        </div>
+
+        <div class="key-field-label" style="margin-top: 14px;">{{ t('ssKey.keyHintLabel') }}</div>
         <div class="key-hint-display">ss_{{ apiKeyStatus.keyHint ?? '?????' }}…</div>
 
         <div class="key-actions" style="margin-top: 16px;">
@@ -238,6 +276,23 @@ onMounted(refreshApiKeyStatus)
   color: var(--color-heading);
   letter-spacing: 0.04em;
   margin-bottom: 4px;
+}
+
+.key-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.key-name-display {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.key-name-input {
+  max-width: 220px;
 }
 
 .fresh-key-banner {

@@ -105,6 +105,7 @@ export const ApiRoute = {
   },
   SS_KEY: {
     API_KEY:  `/ss-key/api-key`,
+    RENAME_API_KEY: `/ss-key/api-key/name`,
   },
   IOT: {
     API_KEY: `/iot-key/api-key`,

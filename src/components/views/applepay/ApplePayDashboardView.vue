@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { ArrowLeft, ArrowRight, CopyDocument } from '@element-plus/icons-vue'
 import { Pie } from 'vue-chartjs'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import { useNav } from '@/hooks/useNav'
 import { useApplePayStore } from '@/stores/applepay'
 import { useThemeStore } from '@/stores/theme'
+import { useSsApiKeyStore, type SsApiKeyStatus } from '@/stores/ssApiKey'
 import { useToast } from '@/composables/useToast'
 import { storeToRefs } from 'pinia'
 import { DEFAULT_APPLEPAY_CATEGORIES } from '@/constants/ApplePayCategories'
@@ -18,13 +20,59 @@ const { t } = useI18n()
 const nav = useNav()
 const store = useApplePayStore()
 const themeStore = useThemeStore()
+const ssKeyStore = useSsApiKeyStore()
 const toast = useToast()
 const { transactions, isLoading } = storeToRefs(store)
 const { isDark } = storeToRefs(themeStore)
 
+const serverBaseUrl = import.meta.env.VITE_SERVER_BASE_URL as string
+
 onMounted(() => {
   store.fetchTransactions()
+  refreshKeyStatus()
 })
+
+// ── Onboarding: SS API key + the "how to set this up" guide ────────────────
+
+const setupGuideOpen = ref<string[]>([])
+const keyStatusLoading = ref(false)
+const ssKeyStatus = ref<SsApiKeyStatus>({ hasKey: false, name: null, createdDt: null, keyHint: null })
+const keyGenerating = ref(false)
+const freshlyGeneratedKey = ref('')
+
+async function refreshKeyStatus() {
+  keyStatusLoading.value = true
+  try {
+    ssKeyStatus.value = await ssKeyStore.fetchApiKeyStatus()
+    // Open the guide by default only until the user has a key — once set
+    // up, it stays collapsed (but is still there for reference/a 2nd device).
+    if (!ssKeyStatus.value.hasKey) setupGuideOpen.value = ['guide']
+  } catch {
+    ssKeyStatus.value = { hasKey: false, name: null, createdDt: null, keyHint: null }
+  } finally {
+    keyStatusLoading.value = false
+  }
+}
+
+async function handleGenerateKey() {
+  keyGenerating.value = true
+  try {
+    const key = await ssKeyStore.generateApiKey()
+    freshlyGeneratedKey.value = key
+    await refreshKeyStatus()
+    ElMessage({ type: 'warning', message: t('toast.ssKeyWarning'), duration: 6000 })
+  } catch {
+    toast.error(t('toast.ssKeyFailed'))
+  } finally {
+    keyGenerating.value = false
+  }
+}
+
+async function copyGeneratedKey() {
+  await navigator.clipboard.writeText(freshlyGeneratedKey.value)
+  toast.success(t('toast.ssKeyCopied'))
+  freshlyGeneratedKey.value = ''
+}
 
 const activeTab = ref<'transactions' | 'statistics'>('transactions')
 
@@ -274,6 +322,64 @@ const pieOptions = {
 
     <el-tabs v-model="activeTab">
       <el-tab-pane :label="t('applepay.tabs.transactions')" name="transactions">
+        <el-collapse v-model="setupGuideOpen" class="setup-guide" v-loading="keyStatusLoading">
+          <el-collapse-item name="guide">
+            <template #title>
+              <span class="setup-guide-title">{{ t('applepay.setup.title') }}</span>
+              <el-tag v-if="!ssKeyStatus.hasKey" type="warning" size="small" effect="light" class="setup-guide-badge">
+                {{ t('applepay.setup.badgeRequired') }}
+              </el-tag>
+              <el-tag v-else type="success" size="small" effect="plain" class="setup-guide-badge">
+                {{ t('applepay.setup.badgeDone') }}
+              </el-tag>
+            </template>
+
+            <ol class="setup-steps">
+              <li>
+                <strong>{{ t('applepay.setup.step1Title') }}</strong>
+                <p>{{ t('applepay.setup.step1Desc') }}</p>
+
+                <el-button v-if="!ssKeyStatus.hasKey" type="primary" size="small" :loading="keyGenerating" @click="handleGenerateKey">
+                  {{ t('applepay.setup.generateKey') }}
+                </el-button>
+                <span v-else class="setup-step-done">
+                  ✓ {{ t('applepay.setup.keyReady', { name: ssKeyStatus.name ?? t('ssKey.unnamed'), hint: ssKeyStatus.keyHint ?? '?????' }) }}
+                  <a class="setup-manage-link" @click="nav.redirectTo('/ss-key')">{{ t('applepay.setup.manageKey') }}</a>
+                </span>
+
+                <div v-if="freshlyGeneratedKey" class="fresh-key-banner">
+                  <div class="fresh-key-warning">{{ t('toast.ssKeyWarning') }}</div>
+                  <div class="key-reveal-row">
+                    <el-input :model-value="freshlyGeneratedKey" readonly class="key-input" />
+                    <el-button type="primary" :icon="CopyDocument" @click="copyGeneratedKey">{{ t('ssKey.copy') }}</el-button>
+                  </div>
+                </div>
+              </li>
+
+              <li>
+                <strong>{{ t('applepay.setup.step2Title') }}</strong>
+                <p>{{ t('applepay.setup.step2Desc') }}</p>
+                <div class="endpoint-row">
+                  <span class="endpoint-method">POST</span>
+                  <code class="endpoint-path">{{ serverBaseUrl }}/v2/ss/ap/sms</code>
+                </div>
+                <p class="setup-substep">{{ t('applepay.setup.step2Header') }} <code>x-api-key: &lt;{{ t('applepay.setup.yourKey') }}&gt;</code></p>
+                <p class="setup-substep">{{ t('applepay.setup.step2Body') }} <code>{ "smsBody": "..." }</code></p>
+              </li>
+
+              <li>
+                <strong>{{ t('applepay.setup.step3Title') }}</strong>
+                <p>{{ t('applepay.setup.step3Desc') }}</p>
+              </li>
+
+              <li>
+                <strong>{{ t('applepay.setup.step4Title') }}</strong>
+                <p>{{ t('applepay.setup.step4Desc') }}</p>
+              </li>
+            </ol>
+          </el-collapse-item>
+        </el-collapse>
+
         <div class="total-banner">
           <div class="total-banner-text">
             <span class="total-banner-label">{{ categoryFilter ? t('applepay.filteredTotal') : t('applepay.total') }}</span>
@@ -527,6 +633,152 @@ const pieOptions = {
   color: var(--color-text);
   opacity: 0.6;
   margin-top: 4px;
+}
+
+/* ── Onboarding / setup guide ───────────────────────────────────────── */
+
+.setup-guide {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.setup-guide :deep(.el-collapse-item__header) {
+  padding: 0 16px;
+  border-bottom: none;
+  background: var(--color-background-soft);
+}
+
+.setup-guide :deep(.el-collapse-item__wrap) {
+  border-bottom: none;
+  background: var(--color-background-soft);
+}
+
+.setup-guide :deep(.el-collapse-item__content) {
+  padding: 0 16px 16px;
+}
+
+.setup-guide-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-heading);
+}
+
+.setup-guide-badge {
+  margin-left: 10px;
+}
+
+.setup-steps {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.setup-steps li strong {
+  font-size: 0.85rem;
+  color: var(--color-heading);
+}
+
+.setup-steps li p {
+  font-size: 0.8rem;
+  color: var(--color-text);
+  opacity: 0.7;
+  line-height: 1.5;
+  margin: 4px 0 8px;
+}
+
+.setup-substep {
+  font-size: 0.78rem;
+  color: var(--color-text);
+  opacity: 0.65;
+  margin: 4px 0 0;
+}
+
+.setup-substep code,
+.setup-steps li p code {
+  background: var(--color-background-mute);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.75rem;
+  word-break: break-all;
+}
+
+.setup-step-done {
+  font-size: 0.82rem;
+  color: var(--el-color-success);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.setup-manage-link {
+  font-weight: 500;
+  color: var(--el-color-primary);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.setup-manage-link:hover {
+  text-decoration: underline;
+}
+
+.endpoint-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.endpoint-method {
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  border-radius: 4px;
+  padding: 2px 6px;
+  flex-shrink: 0;
+}
+
+.endpoint-path {
+  font-size: 0.78rem;
+  word-break: break-all;
+  background: var(--color-background-mute);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.fresh-key-banner {
+  background: var(--el-color-warning-light-9);
+  border: 1px solid var(--el-color-warning-light-5);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-top: 10px;
+}
+
+.fresh-key-warning {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--el-color-warning-dark-2);
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.key-reveal-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.key-input {
+  font-family: monospace;
+  flex: 1;
+  min-width: 160px;
 }
 
 /* Headline stat for the tab — full-width and left-aligned instead of a
