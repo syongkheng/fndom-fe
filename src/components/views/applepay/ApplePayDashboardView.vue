@@ -36,10 +36,10 @@ const formatAmount = (n: number) =>
 const formatDate = (ts: number) =>
   new Date(ts).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
-// V1 rows (NFC taps) carry an Apple Pay device name; V2 rows (bank email
+// V1 rows (NFC taps) carry an Apple Pay device name; V2 rows (bank SMS
 // forwarding) carry a card number instead — surface whichever the row has.
 const formatDetail = (tx: ApplePayTransaction) => tx.name ?? (tx.cardLast4 ? `•• ${tx.cardLast4}` : '—')
-const sourceLabel = (source: string) => (source === 'v2' ? t('applepay.sourceEmail') : t('applepay.sourceNfc'))
+const sourceLabel = (source: string) => (source === 'v2' ? t('applepay.sourceSms') : t('applepay.sourceNfc'))
 
 const savingId = ref<string | null>(null)
 
