@@ -114,6 +114,8 @@ watch(authenticationStep, (step) => {
   if (step === 'verify') {
     verifyDigits.value = ['', '', '', '', '', '']
     nextTick(() => otpRef.value?.focus())
+    // Dev: no email is actually sent — backend accepts a fixed 111111 code
+    if (import.meta.env.DEV) ElMessage.info(t('auth.verify.devHint'))
   }
 })
 

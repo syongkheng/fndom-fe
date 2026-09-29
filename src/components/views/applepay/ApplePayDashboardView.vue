@@ -406,22 +406,6 @@ const pieOptions = {
               <li>
                 <strong>{{ t('applepay.setup.step2Title') }}</strong>
                 <p>{{ t('applepay.setup.step2Desc') }}</p>
-                <div class="endpoint-row">
-                  <span class="endpoint-method">POST</span>
-                  <code class="endpoint-path">{{ serverBaseUrl }}/v2/ss/ap/sms</code>
-                </div>
-                <p class="setup-substep">{{ t('applepay.setup.step2Header') }} <code>x-api-key: &lt;{{ t('applepay.setup.yourKey') }}&gt;</code></p>
-                <p class="setup-substep">{{ t('applepay.setup.step2Body') }} <code>{ "smsBody": "..." }</code></p>
-
-                <figure class="setup-guide-image">
-                  <img :src="apiKeyHeaderImage" :alt="t('applepay.setup.apiKeyImageCaption')" />
-                  <figcaption>{{ t('applepay.setup.apiKeyImageCaption') }}</figcaption>
-                </figure>
-              </li>
-
-              <li>
-                <strong>{{ t('applepay.setup.step3Title') }}</strong>
-                <p>{{ t('applepay.setup.step3Desc') }}</p>
 
                 <el-radio-group v-model="selectedBankKey" size="small" class="bank-guide-selector">
                   <el-radio-button v-for="bank in bankGuides" :key="bank.key" :value="bank.key">
@@ -442,6 +426,22 @@ const pieOptions = {
                     {{ t('applepay.setup.bankShortcutLink', { bank: selectedBank.name }) }}
                   </a>
                 </div>
+              </li>
+
+              <li>
+                <strong>{{ t('applepay.setup.step3Title') }}</strong>
+                <p>{{ t('applepay.setup.step3Desc') }}</p>
+                <div class="endpoint-row">
+                  <span class="endpoint-method">POST</span>
+                  <code class="endpoint-path">{{ serverBaseUrl }}/v2/ss/ap/sms</code>
+                </div>
+                <p class="setup-substep">{{ t('applepay.setup.step3Header') }} <code>x-api-key: &lt;{{ t('applepay.setup.yourKey') }}&gt;</code></p>
+                <p class="setup-substep">{{ t('applepay.setup.step3Body') }} <code>{ "smsBody": "..." }</code></p>
+
+                <figure class="setup-guide-image">
+                  <img :src="apiKeyHeaderImage" :alt="t('applepay.setup.apiKeyImageCaption')" />
+                  <figcaption>{{ t('applepay.setup.apiKeyImageCaption') }}</figcaption>
+                </figure>
               </li>
 
               <li>

@@ -222,6 +222,11 @@ export const useAuthenticationStore = defineStore('authentication', () => {
 
   // ── Resend code ───────────────────────────────────────────────────────────────
   const handleResendCode = async () => {
+    // Dev: skip the real send — backend accepts a fixed 111111 code instead
+    if (import.meta.env.DEV) {
+      ElMessage.info(t('auth.verify.devHint'))
+      return
+    }
     try {
       await HttpClient.post(ApiRoute.AUTHENTICATE.RESEND_VERIFY, {
         email: form.email,
