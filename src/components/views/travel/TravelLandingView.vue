@@ -12,11 +12,7 @@ const authStore = useAuthenticationStore()
 const { isAuthenticated } = storeToRefs(authStore)
 const nav = useNav()
 
-// Touch devices have no hover — click/tap toggles the same floating state
-// that :hover drives on desktop, so tapping the figure works the same way.
-const isFloating = ref(false)
 const handleActivate = () => {
-  isFloating.value = !isFloating.value
   // Logged-in: the character is the entry point to the (currently empty,
   // more to come later) dashboard. Logged-out: it's the login prompt.
   if (isAuthenticated.value) {
@@ -55,7 +51,7 @@ interface FogWisp {
 }
 
 const MAX_WISPS = 6
-const BURST_LEVELS = [0.25, 0.3, 0.5]
+const BURST_LEVELS = [0.4, 0.55, 0.75]
 let wisps: FogWisp[] = []
 
 const randRange = (min: number, max: number) => min + Math.random() * (max - min)
@@ -88,7 +84,7 @@ const drawWisp = (ctx: CanvasRenderingContext2D, wisp: FogWisp, alpha: number) =
 
   const gradient = ctx.createRadialGradient(x, y, 0, x, y, wisp.size)
   gradient.addColorStop(0, `rgba(255, 255, 255, ${alpha})`)
-  gradient.addColorStop(0.55, `rgba(255, 255, 255, ${alpha * 0.45})`)
+  gradient.addColorStop(0.45, `rgba(255, 255, 255, ${alpha * 0.65})`)
   gradient.addColorStop(1, 'rgba(255, 255, 255, 0)')
 
   ctx.save()
@@ -156,7 +152,11 @@ const resizeCanvas = () => {
   canvas.width = logicalWidth * dpr
   canvas.height = logicalHeight * dpr
   fogCtx = canvas.getContext('2d')
-  fogCtx?.scale(dpr, dpr)
+  // setTransform (not scale) — resizeCanvas can run more than once (e.g. the
+  // ResizeObserver fires its own initial callback right after onMounted's
+  // explicit call), and getContext('2d') returns the same persistent context
+  // each time, so repeated .scale() calls would compound instead of reset.
+  fogCtx?.setTransform(dpr, 0, 0, dpr, 0, 0)
 
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     drawStaticFrame()
@@ -197,7 +197,6 @@ onBeforeUnmount(() => {
     <img
       src="/main-character-transparent.png"
       class="art-character"
-      :class="{ 'is-floating': isFloating }"
       :alt="t('travel.landing.heroImageAlt')"
       role="button"
       tabindex="0"
@@ -250,14 +249,13 @@ onBeforeUnmount(() => {
   max-width: 260px;
   height: auto;
   transform: translateX(-50%) translateY(0);
-  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1), filter 0.9s ease;
+  transition: filter 0.9s ease;
   cursor: pointer;
   filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.25));
+  animation: art-character-float 3.2s ease-in-out infinite;
 }
 
-.art-character:hover,
-.art-character.is-floating {
-  animation: art-character-float 3.2s ease-in-out infinite;
+.art-character:hover {
   filter: drop-shadow(0 34px 22px rgba(0, 0, 0, 0.16));
 }
 
