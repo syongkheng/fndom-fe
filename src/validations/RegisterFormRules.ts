@@ -1,4 +1,5 @@
 import type { FormRules } from 'element-plus'
+import { isPasswordValid } from '@/utilities/PasswordUtils'
 
 export function getRegisterFormRules(form: { password: string }, t: (key: string) => string): FormRules {
   return {
@@ -19,7 +20,16 @@ export function getRegisterFormRules(form: { password: string }, t: (key: string
     ],
     password: [
       { required: true, message: t('auth.validation.password_required'), trigger: 'blur' },
-      { min: 8, message: t('auth.validation.password_min'), trigger: 'blur' },
+      {
+        validator: (_, value, callback) => {
+          if (value && !isPasswordValid(value)) {
+            callback(new Error(t('auth.validation.password_requirements')))
+          } else {
+            callback()
+          }
+        },
+        trigger: ['blur', 'change'],
+      },
     ],
     confirmPassword: [
       { required: true, message: t('auth.validation.confirm_password_required'), trigger: 'blur' },

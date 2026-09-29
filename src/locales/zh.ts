@@ -579,7 +579,6 @@ export default {
       mismatch: '两次输入的密码不一致',
       updated: '密码已修改',
       failed: '修改密码失败',
-      requirement: '至少 12 位，包含大写字母、数字和特殊字符',
     },
 
     logout: {
@@ -618,10 +617,18 @@ export default {
 
     password: {
       placeholder: '密码',
+      requirements: {
+        length: '至少 8 个字符',
+        lowercase: '至少一个小写字母',
+        uppercase: '至少一个大写字母',
+        number: '至少一个数字',
+        special: '至少一个特殊字符',
+      },
     },
 
     verify: {
       hint: '6 位验证码已发送至',
+      spamHint: '没收到？请检查您的垃圾邮件或垃圾箱文件夹。',
       resend: '没有收到？',
       resendAction: '重新发送',
     },
@@ -654,7 +661,7 @@ export default {
       email_not_verified: '请先验证邮箱后再登录。',
       email_already_registered: '该邮箱已被注册。',
       username_already_taken: '该用户名已被占用。',
-      weak_password: '密码强度不足，请使用至少 8 位字母与数字的组合。',
+      weak_password: '密码强度不足，请使用至少 8 位字符，并包含大写字母、小写字母、数字和特殊字符。',
       registration_failed: '注册失败，请重试。',
       code_expired: '验证码已过期，请点击"重新发送"获取新验证码。',
       max_verify_attempts: '尝试次数过多，请点击"重新发送"获取新验证码。',
@@ -673,7 +680,7 @@ export default {
 
     validation: {
       password_required: '请输入密码',
-      password_min: '密码至少需要 8 个字符',
+      password_requirements: '密码至少需要 8 个字符，并包含大写字母、小写字母、数字和特殊字符',
       identity_required: '请输入用户名或邮箱',
       identity_min: '用户名至少需要 3 个字符',
       email_required: '请输入邮箱地址',
@@ -1044,8 +1051,19 @@ export default {
       step2Header: '请求头：',
       step2Body: '请求体：',
       yourKey: '你的密钥',
+      apiKeyImageCaption: '将生成的密钥粘贴到捷径中 x-api-key 请求头的值里。',
       step3Title: '调低银行短信提醒的门槛',
-      step3Desc: '大多数银行只有在超过一定金额时才会发送短信。请在银行 App 的通知设置中，将交易提醒门槛设为 $0.01（或允许的最低值），这样无论金额多小的消费都会发送短信并被记录到这里。',
+      step3Desc: '大多数银行只有在超过一定金额时才会发送短信。请在银行 App 的通知设置中，将交易提醒门槛设为 $0.01（或允许的最低值），这样无论金额多小的消费都会发送短信并被记录到这里。以下是各银行的通知设置位置，以及各自现成的 Shortcut：',
+      bankImagePending: '截图即将上传',
+      bankShortcutLink: '获取 {bank} Shortcut ↗',
+      bankImages: {
+        dbs1: '在 DBS App 中，进入更多 → 通知管理设置。',
+        dbs2: '选择你的卡片，在"本地卡片交易"中开启短信提醒，并将最低金额设为 0.01。',
+        dbs3: '向下滚动，对"网上卡片交易"做同样的设置 —— 最低金额同样设为 0.01。',
+        uob1: '在 UOB App 中，进入服务 → 通知设置。',
+        uob2: '点击"卡片活动"。',
+        uob3: '在"卡片扣款"中选择短信，并将最低交易金额设为 0.01。',
+      },
       step4Title: '测试一下',
       step4Desc: '进行一笔小额消费，等待银行发送短信，一两分钟内查看下方是否出现该笔交易。如果没有出现，请检查自动化是否转发了完整的短信原文，并设置了 x-api-key 请求头。',
     },

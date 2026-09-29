@@ -580,7 +580,6 @@ export default {
       mismatch: 'Passwords do not match.',
       updated: 'Password changed.',
       failed: 'Failed to change password.',
-      requirement: 'Min. 12 chars, upper, number, special',
     },
 
     logout: {
@@ -619,10 +618,18 @@ export default {
 
     password: {
       placeholder: 'Password',
+      requirements: {
+        length: 'At least 8 characters',
+        lowercase: 'One lowercase letter',
+        uppercase: 'One uppercase letter',
+        number: 'One number',
+        special: 'One special character',
+      },
     },
 
     verify: {
       hint: 'A 6-digit code was sent to',
+      spamHint: "Don't see it? Check your spam or junk folder.",
       resend: "Didn't receive it?",
       resendAction: 'Resend code',
     },
@@ -655,7 +662,7 @@ export default {
       email_not_verified: 'Please verify your email before logging in.',
       email_already_registered: 'This email is already registered.',
       username_already_taken: 'This username is already taken.',
-      weak_password: 'Password is too weak. Use at least 8 characters with a mix of letters and numbers.',
+      weak_password: 'Password is too weak. Use at least 8 characters with uppercase, lowercase, a number, and a special character.',
       registration_failed: 'Registration failed. Please try again.',
       code_expired: "Your code has expired. Click 'Resend code' to get a new one.",
       max_verify_attempts: "Too many incorrect attempts. Click 'Resend code' for a new code.",
@@ -674,7 +681,7 @@ export default {
 
     validation: {
       password_required: 'Please input password',
-      password_min: 'Password must be at least 8 characters',
+      password_requirements: 'Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number, and a special character',
       identity_required: 'Please input username or email',
       identity_min: 'Username must be at least 3 characters',
       email_required: 'Please input email address',
@@ -1045,8 +1052,19 @@ export default {
       step2Header: 'Header:',
       step2Body: 'Body:',
       yourKey: 'your key',
+      apiKeyImageCaption: 'Paste your generated key into the x-api-key header value in the Shortcut.',
       step3Title: 'Lower your bank\'s SMS alert threshold',
-      step3Desc: 'Most banks only text you above a set amount. Open your banking app\'s notification settings and set the transaction alert threshold to $0.01 (or the lowest allowed) so every purchase — no matter how small — sends an SMS and gets logged here.',
+      step3Desc: 'Most banks only text you above a set amount. Open your banking app\'s notification settings and set the transaction alert threshold to $0.01 (or the lowest allowed) so every purchase — no matter how small — sends an SMS and gets logged here. Below is where to manage this per bank, along with each bank\'s ready-made Shortcut:',
+      bankImagePending: 'Screenshots coming soon',
+      bankShortcutLink: 'Get the {bank} Shortcut ↗',
+      bankImages: {
+        dbs1: 'In the DBS app, go to More → Manage Notifications.',
+        dbs2: 'Select your card, then under Local card transactions enable SMS and set the minimum amount to 0.01.',
+        dbs3: 'Scroll down and do the same for Online card transactions — minimum amount 0.01.',
+        uob1: 'In the UOB app, go to Services → Notification settings.',
+        uob2: 'Tap Card activity.',
+        uob3: 'Under Card charges, select SMS and set the minimum transaction amount to 0.01.',
+      },
       step4Title: 'Test it',
       step4Desc: 'Make a small purchase, wait for your bank\'s SMS, and check it shows up below within a minute or two. If nothing appears, double-check the automation is forwarding the raw SMS text with the x-api-key header set.',
     },

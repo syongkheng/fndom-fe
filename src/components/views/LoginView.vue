@@ -7,6 +7,7 @@ import { storeToRefs } from 'pinia'
 import { computed, ref, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import OtpInput from '@/components/common/OtpInput.vue'
+import PasswordChecklist from '@/components/common/PasswordChecklist.vue'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
@@ -184,9 +185,14 @@ const handleOnClose = () => {
         </button>
 
         <!-- Verify hint -->
-        <p v-if="authenticationStep === 'verify'" class="verify-hint">
-          {{ t('auth.verify.hint') }} <strong>{{ form.email }}</strong>
-        </p>
+        <template v-if="authenticationStep === 'verify'">
+          <p class="verify-hint">
+            {{ t('auth.verify.hint') }} <strong>{{ form.email }}</strong>
+          </p>
+          <p class="verify-spam-hint">
+            {{ t('auth.verify.spamHint') }}
+          </p>
+        </template>
       </div>
 
       <!-- Form -->
@@ -223,7 +229,7 @@ const handleOnClose = () => {
               size="large"
             />
           </el-form-item>
-          <p class="pw-req">{{ t('profile.password.requirement') }}</p>
+          <PasswordChecklist :password="form.password" class="pw-req" />
         </template>
 
         <!-- LOGIN -->
@@ -427,6 +433,14 @@ const handleOnClose = () => {
   line-height: 1.5;
 }
 
+.verify-spam-hint {
+  font-size: 0.76rem;
+  color: var(--color-text);
+  opacity: 0.5;
+  margin: 4px 0 0;
+  line-height: 1.4;
+}
+
 /* ── Form ───────────────────────────────────────────────── */
 .dlg-form {
   display: flex;
@@ -438,12 +452,17 @@ const handleOnClose = () => {
   margin-bottom: 12px;
 }
 
+.dlg-form :deep(.el-form-item__error) {
+  position: static;
+  margin-top: 4px;
+}
+
 /* Password requirement hint */
 .pw-req {
   font-size: 0.72rem;
   color: var(--color-text);
   opacity: 0.4;
-  margin: -6px 0 10px;
+  margin: 0 0 10px;
   line-height: 1.4;
 }
 

@@ -6,6 +6,7 @@ import HttpClient from '@/interceptors/HttpClient'
 import type { LoginForm } from '@/interfaces/forms/LoginForm.model'
 import { getLoginFormRules } from '@/validations/LoginFormRules'
 import { getRegisterFormRules } from '@/validations/RegisterFormRules'
+import { isPasswordValid } from '@/utilities/PasswordUtils'
 import type { AxiosError } from 'axios'
 import { i18n } from '@/i18n'
 import { Analytics } from '@/analytics/events'
@@ -128,8 +129,8 @@ export const useAuthenticationStore = defineStore('authentication', () => {
         registerError.value = t('auth.validation.username_min')
         return false
       }
-      if (form.password.length < 8) {
-        registerError.value = t('auth.validation.password_min')
+      if (!isPasswordValid(form.password)) {
+        registerError.value = t('auth.validation.password_requirements')
         return false
       }
       const res = await HttpClient.post(ApiRoute.AUTHENTICATE.REGISTER, {

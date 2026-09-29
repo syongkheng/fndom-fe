@@ -13,6 +13,13 @@ import { useToast } from '@/composables/useToast'
 import { storeToRefs } from 'pinia'
 import { DEFAULT_APPLEPAY_CATEGORIES } from '@/constants/ApplePayCategories'
 import type { ApplePayTransaction } from '@/interfaces/ApplePayTransaction.model'
+import apiKeyHeaderImage from '@/assets/applepay-setup/shortcut-api-key-header.jpg'
+import dbsManageNotificationsImage from '@/assets/applepay-setup/dbs-1-manage-notifications.jpg'
+import dbsLocalTransactionsImage from '@/assets/applepay-setup/dbs-2-local-transactions.jpg'
+import dbsOnlineTransactionsImage from '@/assets/applepay-setup/dbs-3-online-transactions.jpg'
+import uobNotificationSettingsImage from '@/assets/applepay-setup/uob-1-notification-settings.jpg'
+import uobCardActivityImage from '@/assets/applepay-setup/uob-2-card-activity.jpg'
+import uobCardChargesImage from '@/assets/applepay-setup/uob-3-card-charges.jpg'
 
 ChartJS.register(ArcElement, Tooltip, Legend)
 
@@ -73,6 +80,46 @@ async function copyGeneratedKey() {
   toast.success(t('toast.ssKeyCopied'))
   freshlyGeneratedKey.value = ''
 }
+
+interface BankGuideImage {
+  src: string
+  captionKey: string
+}
+
+interface BankGuide {
+  key: string
+  name: string
+  shortcutUrl: string
+  images: BankGuideImage[]
+}
+
+const bankGuides: BankGuide[] = [
+  {
+    key: 'dbs',
+    name: 'DBS/POSB',
+    shortcutUrl: 'https://www.icloud.com/shortcuts/817102d6ed7e49c1bfafe778618578b4',
+    images: [
+      { src: dbsManageNotificationsImage, captionKey: 'applepay.setup.bankImages.dbs1' },
+      { src: dbsLocalTransactionsImage, captionKey: 'applepay.setup.bankImages.dbs2' },
+      { src: dbsOnlineTransactionsImage, captionKey: 'applepay.setup.bankImages.dbs3' },
+    ],
+  },
+  {
+    key: 'uob',
+    name: 'UOB',
+    shortcutUrl: 'https://www.icloud.com/shortcuts/3c74ab6d2cd14966ad6eaf6893afebfe',
+    images: [
+      { src: uobNotificationSettingsImage, captionKey: 'applepay.setup.bankImages.uob1' },
+      { src: uobCardActivityImage, captionKey: 'applepay.setup.bankImages.uob2' },
+      { src: uobCardChargesImage, captionKey: 'applepay.setup.bankImages.uob3' },
+    ],
+  },
+]
+
+const selectedBankKey = ref(bankGuides[0].key)
+const selectedBank = computed(() =>
+  bankGuides.find((bank) => bank.key === selectedBankKey.value) ?? bankGuides[0]
+)
 
 const activeTab = ref<'transactions' | 'statistics'>('transactions')
 
@@ -365,11 +412,36 @@ const pieOptions = {
                 </div>
                 <p class="setup-substep">{{ t('applepay.setup.step2Header') }} <code>x-api-key: &lt;{{ t('applepay.setup.yourKey') }}&gt;</code></p>
                 <p class="setup-substep">{{ t('applepay.setup.step2Body') }} <code>{ "smsBody": "..." }</code></p>
+
+                <figure class="setup-guide-image">
+                  <img :src="apiKeyHeaderImage" :alt="t('applepay.setup.apiKeyImageCaption')" />
+                  <figcaption>{{ t('applepay.setup.apiKeyImageCaption') }}</figcaption>
+                </figure>
               </li>
 
               <li>
                 <strong>{{ t('applepay.setup.step3Title') }}</strong>
                 <p>{{ t('applepay.setup.step3Desc') }}</p>
+
+                <el-radio-group v-model="selectedBankKey" size="small" class="bank-guide-selector">
+                  <el-radio-button v-for="bank in bankGuides" :key="bank.key" :value="bank.key">
+                    {{ bank.name }}
+                  </el-radio-button>
+                </el-radio-group>
+
+                <div class="bank-guide">
+                  <template v-if="selectedBank.images.length">
+                    <figure v-for="image in selectedBank.images" :key="image.captionKey" class="setup-guide-image">
+                      <img :src="image.src" :alt="t(image.captionKey)" />
+                      <figcaption>{{ t(image.captionKey) }}</figcaption>
+                    </figure>
+                  </template>
+                  <p v-else class="bank-guide-image-pending">{{ t('applepay.setup.bankImagePending') }}</p>
+
+                  <a :href="selectedBank.shortcutUrl" target="_blank" rel="noopener" class="bank-guide-shortcut-link">
+                    {{ t('applepay.setup.bankShortcutLink', { bank: selectedBank.name }) }}
+                  </a>
+                </div>
               </li>
 
               <li>
@@ -750,6 +822,61 @@ const pieOptions = {
   background: var(--color-background-mute);
   border-radius: 4px;
   padding: 1px 5px;
+}
+
+.bank-guide-selector {
+  margin: 4px 0 10px;
+}
+
+.bank-guide {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 320px;
+}
+
+.setup-guide-image {
+  margin: 8px 0 0;
+  max-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.setup-guide-image img {
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+}
+
+.setup-guide-image figcaption {
+  font-size: 0.75rem;
+  color: var(--color-text);
+  opacity: 0.6;
+  line-height: 1.4;
+}
+
+.bank-guide-image-pending {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-text);
+  opacity: 0.5;
+  font-style: italic;
+}
+
+.bank-guide-shortcut-link {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--el-color-primary);
+  text-decoration: none;
+  align-self: flex-start;
+}
+
+.bank-guide-shortcut-link:hover {
+  text-decoration: underline;
 }
 
 .fresh-key-banner {

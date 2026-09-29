@@ -6,8 +6,10 @@ import { useAuthenticationStore } from '@/stores/authentication'
 import { CountryList } from '@/constants/Country'
 import useProfileManager from '@/hooks/useProfileManager'
 import { FileUtils } from '@/utilities/FileUtils'
+import { isPasswordValid } from '@/utilities/PasswordUtils'
 import { useNav } from '@/hooks/useNav'
 import { useI18n } from 'vue-i18n'
+import PasswordChecklist from '@/components/common/PasswordChecklist.vue'
 
 const { t } = useI18n()
 
@@ -131,6 +133,11 @@ const handleChangePassword = async () => {
     passwordForm.value.newPassword !== passwordForm.value.confirmPassword
   ) {
     ElMessage.error(t('profile.password.mismatch'))
+    return
+  }
+
+  if (!isPasswordValid(passwordForm.value.newPassword)) {
+    ElMessage.error(t('auth.validation.password_requirements'))
     return
   }
 
@@ -311,7 +318,8 @@ onMounted(async () => {
           <div class="step-body">
             <label>{{ t('profile.password.new') }}</label>
             <el-input v-model="passwordForm.newPassword" show-password
-              :placeholder="t('profile.password.requirement')" />
+              :placeholder="t('auth.password.placeholder')" />
+            <PasswordChecklist :password="passwordForm.newPassword" />
 
             <label>{{ t('profile.password.confirm') }}</label>
             <el-input v-model="passwordForm.confirmPassword" show-password />
