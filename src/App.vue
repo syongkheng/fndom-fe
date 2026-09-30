@@ -114,7 +114,7 @@ footer {
 }
 
 @media (max-width: 800px) {
-  .wrapper {
+  .wrapper:not(.wrapper--fullbleed) {
     padding: 0.5em;
   }
 }

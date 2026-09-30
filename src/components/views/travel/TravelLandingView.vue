@@ -694,9 +694,11 @@ onBeforeUnmount(() => {
 
 @media (max-width: 640px) {
   .art-hero {
-    /* Mobile keeps the snug, no-scroll fit — only desktop pushes the footer
-       below the fold. */
-    height: calc(100vh - 80px - 220px);
+    /* Portrait 9:16 on phones; capped so a short/landscape viewport doesn't
+       end up with a hero taller than the screen. */
+    height: auto;
+    aspect-ratio: 9 / 16;
+    max-height: calc(100svh - 80px);
   }
 
   .art-figure {
