@@ -4,6 +4,13 @@ import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
 import type { ApplePayTransaction } from '@/interfaces/ApplePayTransaction.model'
 
+export interface NewTransactionBody {
+  amount: number
+  merchant: string
+  occurredDt: number
+  category: string | null
+}
+
 export const useApplePayStore = defineStore('applepay', () => {
   const transactions = ref<ApplePayTransaction[]>([])
   const isLoading = ref(false)
@@ -37,10 +44,27 @@ export const useApplePayStore = defineStore('applepay', () => {
     return true
   }
 
+  async function addTransaction(body: NewTransactionBody): Promise<boolean> {
+    const res = await HttpClient.post(ApiRoute.APPLEPAY.CREATE, body).catch(() => null)
+    const created = res?.data?.data as ApplePayTransaction | undefined
+    if (!created) return false
+    transactions.value = [...transactions.value, created].sort((a, b) => b.occurredDt - a.occurredDt)
+    return true
+  }
+
+  async function deleteTransaction(transactionId: string): Promise<boolean> {
+    const res = await HttpClient.delete(ApiRoute.APPLEPAY.DELETE(transactionId)).catch(() => null)
+    if (!res?.data?.data?.deleted) return false
+    transactions.value = transactions.value.filter((t) => t.id !== transactionId)
+    return true
+  }
+
   return {
     transactions,
     isLoading,
     fetchTransactions,
+    addTransaction,
+    deleteTransaction,
     updateCategory,
     setCardLabel,
   }

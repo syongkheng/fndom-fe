@@ -12,16 +12,17 @@ import { usePermission } from '@/composables/usePermission'
 const { t } = useI18n()
 const { hasRole } = usePermission()
 
-type WidgetId = 'recentTransactions' | 'travelPlanning' | 'budget' | 'adminPanel' | 'logSearch'
+// The expense tracker is rendered as a fixed hero above this grid, not as a
+// widget — stale 'recentTransactions' ids in localStorage are dropped by loadOrder.
+type WidgetId = 'travelPlanning' | 'budget' | 'adminPanel' | 'logSearch'
 
 const WIDGETS: Record<WidgetId, { component: unknown; requiresRole?: string }> = {
-  recentTransactions: { component: markRaw(RecentTransactionsCard) },
   travelPlanning: { component: markRaw(TravelPlanningCard) },
   budget: { component: markRaw(BudgetCard) },
   adminPanel: { component: markRaw(AdminPanelCard), requiresRole: 'SYSTEM_R5' },
   logSearch: { component: markRaw(LogSearchCard), requiresRole: 'SYSTEM_R5' },
 }
-const DEFAULT_ORDER: WidgetId[] = ['recentTransactions', 'travelPlanning', 'budget', 'adminPanel', 'logSearch']
+const DEFAULT_ORDER: WidgetId[] = ['travelPlanning', 'budget', 'adminPanel', 'logSearch']
 const DEFAULT_SPAN = 1
 const MIN_SPAN = 1
 
@@ -209,6 +210,9 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="page-container">
+    <RecentTransactionsCard class="dash-hero" />
+
+    <p class="dash-section-label">{{ t('dashboard.moreTools') }}</p>
     <TransitionGroup tag="div" class="dash-widgets" :name="transitionName">
       <div
         v-for="id in visibleWidgets"
@@ -248,11 +252,25 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.dash-hero {
+  margin-top: 24px;
+}
+
+.dash-section-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text);
+  opacity: 0.45;
+  margin: 28px 0 0;
+}
+
 .dash-widgets {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
-  margin-top: 24px;
+  margin-top: 10px;
   align-items: stretch;
 }
 

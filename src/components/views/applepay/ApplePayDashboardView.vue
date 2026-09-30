@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, ArrowRight, CopyDocument } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowRight, CopyDocument, Delete, Download, Plus } from '@element-plus/icons-vue'
 import { Pie } from 'vue-chartjs'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import { useNav } from '@/hooks/useNav'
@@ -23,7 +23,7 @@ import uobCardChargesImage from '@/assets/applepay-setup/uob-3-card-charges.jpg'
 
 ChartJS.register(ArcElement, Tooltip, Legend)
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const nav = useNav()
 const store = useApplePayStore()
 const themeStore = useThemeStore()
@@ -116,6 +116,51 @@ const bankGuides: BankGuide[] = [
   },
 ]
 
+// ── Connection status: how long since the Shortcut last delivered a payment ──
+
+const STALE_AFTER_DAYS = 3
+const STALE_AFTER_MS = STALE_AFTER_DAYS * 24 * 60 * 60 * 1000
+
+const now = ref(Date.now())
+let nowTimer: ReturnType<typeof setInterval> | undefined
+onMounted(() => { nowTimer = setInterval(() => (now.value = Date.now()), 60_000) })
+onBeforeUnmount(() => clearInterval(nowTimer))
+
+const lastReceivedDt = computed(() =>
+  transactions.value.reduce<number | null>((max, tx) => (max === null || tx.createdDt > max ? tx.createdDt : max), null),
+)
+
+type ConnectionState = 'notConnected' | 'waiting' | 'active' | 'stale'
+
+const connectionState = computed<ConnectionState | null>(() => {
+  if (isLoading.value || keyStatusLoading.value) return null
+  if (lastReceivedDt.value !== null) {
+    return now.value - lastReceivedDt.value > STALE_AFTER_MS ? 'stale' : 'active'
+  }
+  return ssKeyStatus.value.hasKey ? 'waiting' : 'notConnected'
+})
+
+const relativeTimeFormat = computed(() => new Intl.RelativeTimeFormat(locale.value, { numeric: 'auto' }))
+
+const lastReceivedAgo = computed(() => {
+  if (lastReceivedDt.value === null) return ''
+  const diffSec = Math.round((lastReceivedDt.value - now.value) / 1000)
+  const units: Array<[Intl.RelativeTimeFormatUnit, number]> = [
+    ['day', 86_400],
+    ['hour', 3_600],
+    ['minute', 60],
+  ]
+  for (const [unit, secs] of units) {
+    if (Math.abs(diffSec) >= secs) return relativeTimeFormat.value.format(Math.round(diffSec / secs), unit)
+  }
+  return t('applepay.connection.justNow')
+})
+
+const openSetupGuide = () => {
+  activeTab.value = 'transactions'
+  setupGuideOpen.value = ['guide']
+}
+
 const selectedBankKey = ref(bankGuides[0].key)
 const selectedBank = computed(() =>
   bankGuides.find((bank) => bank.key === selectedBankKey.value) ?? bankGuides[0]
@@ -130,10 +175,114 @@ const categoryOptions = computed(() => {
   return Array.from(new Set([...DEFAULT_APPLEPAY_CATEGORIES, ...used]))
 })
 
-const filteredTransactions = computed(() => {
-  if (!categoryFilter.value) return transactions.value
-  return transactions.value.filter((tx) => (tx.category ?? '') === categoryFilter.value)
+// ── Likely duplicates: one Apple Pay tap can be logged by both the NFC
+// automation (v1) and the bank SMS (v2). Pair each v1 row with the closest
+// unmatched v2 row of the same amount within the window.
+const DUPLICATE_WINDOW_MS = 10 * 60 * 1000
+
+const duplicateIds = computed(() => {
+  const toCents = (n: number) => Math.round(n * 100)
+  const smsRows = transactions.value.filter((tx) => tx.source === 'v2')
+  const matched = new Set<string>()
+  for (const tap of transactions.value) {
+    if (tap.source !== 'v1') continue
+    let best: ApplePayTransaction | null = null
+    for (const sms of smsRows) {
+      if (matched.has(sms.id) || toCents(sms.amount) !== toCents(tap.amount)) continue
+      const gap = Math.abs(sms.occurredDt - tap.occurredDt)
+      if (gap <= DUPLICATE_WINDOW_MS && (!best || gap < Math.abs(best.occurredDt - tap.occurredDt))) best = sms
+    }
+    if (best) {
+      matched.add(best.id)
+      matched.add(tap.id)
+    }
+  }
+  return matched
 })
+
+const duplicatePairCount = computed(() => duplicateIds.value.size / 2)
+const showDuplicatesOnly = ref(false)
+
+const filteredTransactions = computed(() => {
+  let rows = transactions.value
+  if (showDuplicatesOnly.value) rows = rows.filter((tx) => duplicateIds.value.has(tx.id))
+  if (categoryFilter.value) rows = rows.filter((tx) => (tx.category ?? '') === categoryFilter.value)
+  return rows
+})
+
+// ── Remove a transaction (soft delete server-side) ──
+const deletingId = ref<string | null>(null)
+
+const onDeleteTransaction = async (tx: ApplePayTransaction) => {
+  deletingId.value = tx.id
+  const ok = await store.deleteTransaction(tx.id)
+  deletingId.value = null
+  if (!ok) return toast.error(t('applepay.deleteFailed'))
+  toast.success(t('applepay.deleted'))
+  if (showDuplicatesOnly.value && duplicatePairCount.value === 0) showDuplicatesOnly.value = false
+}
+
+// ── Manual entry (cash, missed alerts) ──
+const addDialogVisible = ref(false)
+const addSaving = ref(false)
+const addForm = ref({ amount: undefined as number | undefined, merchant: '', occurredAt: new Date(), category: '' })
+
+const openAddDialog = () => {
+  addForm.value = { amount: undefined, merchant: '', occurredAt: new Date(), category: '' }
+  addDialogVisible.value = true
+}
+
+const canSubmitAdd = computed(
+  () => !!addForm.value.amount && addForm.value.amount > 0 && !!addForm.value.merchant.trim() && !!addForm.value.occurredAt,
+)
+
+const disableFutureDates = (d: Date) => d.getTime() > Date.now()
+
+const submitAdd = async () => {
+  if (!canSubmitAdd.value) return
+  addSaving.value = true
+  const ok = await store.addTransaction({
+    amount: addForm.value.amount!,
+    merchant: addForm.value.merchant.trim(),
+    occurredDt: addForm.value.occurredAt.getTime(),
+    category: addForm.value.category.trim() || null,
+  })
+  addSaving.value = false
+  if (!ok) return toast.error(t('applepay.add.failed'))
+  toast.success(t('applepay.add.success'))
+  addDialogVisible.value = false
+}
+
+// ── CSV export of whatever the list currently shows ──
+// Leading = + - @ would be evaluated as formulas by Excel/Sheets; merchant text
+// comes from bank SMS, so neutralise it with a leading apostrophe.
+const csvCell = (value: string | number) => {
+  let s = String(value)
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+}
+
+const exportCsv = () => {
+  const header = ['Date', 'Merchant', 'Amount', 'Currency', 'Category', 'Card / Device', 'Source']
+  const rows = filteredTransactions.value.map((tx) => [
+    new Date(tx.occurredDt).toISOString(),
+    tx.merchant,
+    tx.amount.toFixed(2),
+    CURRENCY,
+    tx.category ?? '',
+    tx.name ?? tx.cardLabel ?? (tx.cardLast4 ? `•• ${tx.cardLast4}` : ''),
+    sourceLabel(tx.source),
+  ])
+  const csv = [header, ...rows].map((r) => r.map(csvCell).join(',')).join('\r\n')
+  // BOM so Excel opens UTF-8 merchant names correctly
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `transactions-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 const totalAmount = computed(() => filteredTransactions.value.reduce((acc, tx) => acc + tx.amount, 0))
 
@@ -156,7 +305,9 @@ const formatDate = (ts: number) =>
 // is only ever shown before a label has been set.
 const formatDetail = (tx: ApplePayTransaction) => tx.name ?? (tx.cardLast4 ? `•• ${tx.cardLast4}` : '—')
 const isCardRow = (tx: ApplePayTransaction) => !tx.name && !!tx.cardLast4
-const sourceLabel = (source: string) => (source === 'v2' ? t('applepay.sourceSms') : t('applepay.sourceNfc'))
+const sourceLabel = (source: string) =>
+  source === 'v2' ? t('applepay.sourceSms') : source === 'manual' ? t('applepay.sourceManual') : t('applepay.sourceNfc')
+const sourceTagType = (source: string) => (source === 'v2' ? 'success' : source === 'manual' ? 'warning' : 'info')
 
 const savingId = ref<string | null>(null)
 
@@ -312,7 +463,9 @@ function buildBreakdown(items: ApplePayTransaction[], labelFor: (tx: ApplePayTra
 
 const categoryLabelFor = (tx: ApplePayTransaction) => tx.category?.trim() || t('applepay.stats.uncategorized')
 const cardLabelFor = (tx: ApplePayTransaction) =>
-  tx.name ?? tx.cardLabel ?? (tx.cardLast4 ? `•• ${tx.cardLast4}` : t('applepay.stats.uncategorized'))
+  tx.name ??
+  tx.cardLabel ??
+  (tx.cardLast4 ? `•• ${tx.cardLast4}` : tx.source === 'manual' ? t('applepay.sourceManual') : t('applepay.stats.uncategorized'))
 
 const categoryBreakdown = computed(() => buildBreakdown(monthTransactions.value, categoryLabelFor))
 const cardBreakdown = computed(() => buildBreakdown(monthTransactions.value, cardLabelFor))
@@ -365,6 +518,27 @@ const pieOptions = {
         <h1 class="list-title">{{ t('applepay.title') }}</h1>
         <p class="list-subtitle">{{ t('applepay.subtitle') }}</p>
       </div>
+
+      <button
+        v-if="connectionState"
+        type="button"
+        class="connection-status"
+        :class="`connection-status--${connectionState}`"
+        :title="t('applepay.connection.openGuide')"
+        @click="openSetupGuide"
+      >
+        <span class="connection-dot" aria-hidden="true" />
+        <span class="connection-text">
+          <span class="connection-label">{{ t(`applepay.connection.${connectionState}`) }}</span>
+          <span v-if="connectionState === 'stale'" class="connection-sub">
+            {{ t('applepay.connection.lastReceivedStale', { days: STALE_AFTER_DAYS }) }}
+          </span>
+          <span v-else-if="lastReceivedDt !== null" class="connection-sub">
+            {{ t('applepay.connection.lastReceived', { ago: lastReceivedAgo }) }}
+          </span>
+          <span v-else class="connection-sub">{{ t(`applepay.connection.${connectionState}Hint`) }}</span>
+        </span>
+      </button>
     </header>
 
     <el-tabs v-model="activeTab">
@@ -460,10 +634,25 @@ const pieOptions = {
           <span class="total-banner-count">{{ t('applepay.transactionCount', { n: filteredTransactions.length }) }}</span>
         </div>
 
+        <div v-if="duplicatePairCount > 0" class="duplicate-banner">
+          <span>{{ t('applepay.duplicates.found', duplicatePairCount) }}</span>
+          <el-button size="small" link type="warning" @click="showDuplicatesOnly = !showDuplicatesOnly">
+            {{ showDuplicatesOnly ? t('applepay.duplicates.showAll') : t('applepay.duplicates.review') }}
+          </el-button>
+        </div>
+
         <div class="filter-row">
           <el-select v-model="categoryFilter" clearable :placeholder="t('applepay.allCategories')" class="category-filter">
             <el-option v-for="opt in categoryOptions" :key="opt" :label="opt" :value="opt" />
           </el-select>
+          <div class="filter-actions">
+            <el-button :icon="Download" :disabled="filteredTransactions.length === 0" @click="exportCsv">
+              {{ t('applepay.exportCsv') }}
+            </el-button>
+            <el-button type="primary" :icon="Plus" @click="openAddDialog">
+              {{ t('applepay.add.button') }}
+            </el-button>
+          </div>
         </div>
 
         <div v-if="isLoading" class="loading-state">
@@ -499,9 +688,14 @@ const pieOptions = {
                 <span v-else>{{ formatDetail(row) }}</span>
               </template>
             </el-table-column>
-            <el-table-column :label="t('applepay.col.source')" width="90">
+            <el-table-column :label="t('applepay.col.source')" width="110">
               <template #default="{ row }">
-                <el-tag size="small" :type="row.source === 'v2' ? 'success' : 'info'">{{ sourceLabel(row.source) }}</el-tag>
+                <div class="source-cell">
+                  <el-tag size="small" :type="sourceTagType(row.source)">{{ sourceLabel(row.source) }}</el-tag>
+                  <el-tag v-if="duplicateIds.has(row.id)" size="small" type="warning" effect="plain">
+                    {{ t('applepay.duplicates.tag') }}
+                  </el-tag>
+                </div>
               </template>
             </el-table-column>
             <el-table-column :label="t('applepay.col.amount')" width="120" align="right">
@@ -522,6 +716,29 @@ const pieOptions = {
                 >
                   <el-option v-for="opt in categoryOptions" :key="opt" :label="opt" :value="opt" />
                 </el-select>
+              </template>
+            </el-table-column>
+            <el-table-column width="56" align="center">
+              <template #default="{ row }">
+                <el-popconfirm
+                  :title="t('applepay.deleteConfirm')"
+                  :confirm-button-text="t('applepay.deleteAction')"
+                  :cancel-button-text="t('common.cancel')"
+                  confirm-button-type="danger"
+                  width="220"
+                  @confirm="onDeleteTransaction(row)"
+                >
+                  <template #reference>
+                    <el-button
+                      :icon="Delete"
+                      size="small"
+                      text
+                      circle
+                      :loading="deletingId === row.id"
+                      :aria-label="t('applepay.deleteAction')"
+                    />
+                  </template>
+                </el-popconfirm>
               </template>
             </el-table-column>
           </el-table>
@@ -551,21 +768,44 @@ const pieOptions = {
               </div>
               <div class="tx-card-date">
                 {{ formatDate(row.occurredDt) }}
-                <el-tag size="small" :type="row.source === 'v2' ? 'success' : 'info'" class="tx-card-source">{{ sourceLabel(row.source) }}</el-tag>
+                <el-tag size="small" :type="sourceTagType(row.source)" class="tx-card-source">{{ sourceLabel(row.source) }}</el-tag>
+                <el-tag v-if="duplicateIds.has(row.id)" size="small" type="warning" effect="plain">
+                  {{ t('applepay.duplicates.tag') }}
+                </el-tag>
               </div>
-              <el-select
-                v-model="row.category"
-                class="category-select"
-                filterable
-                allow-create
-                default-first-option
-                clearable
-                :loading="savingId === row.id"
-                :placeholder="t('applepay.setCategory')"
-                @change="onCategoryChange(row)"
-              >
-                <el-option v-for="opt in categoryOptions" :key="opt" :label="opt" :value="opt" />
-              </el-select>
+              <div class="tx-card-bottom">
+                <el-select
+                  v-model="row.category"
+                  class="category-select"
+                  filterable
+                  allow-create
+                  default-first-option
+                  clearable
+                  :loading="savingId === row.id"
+                  :placeholder="t('applepay.setCategory')"
+                  @change="onCategoryChange(row)"
+                >
+                  <el-option v-for="opt in categoryOptions" :key="opt" :label="opt" :value="opt" />
+                </el-select>
+                <el-popconfirm
+                  :title="t('applepay.deleteConfirm')"
+                  :confirm-button-text="t('applepay.deleteAction')"
+                  :cancel-button-text="t('common.cancel')"
+                  confirm-button-type="danger"
+                  width="220"
+                  @confirm="onDeleteTransaction(row)"
+                >
+                  <template #reference>
+                    <el-button
+                      :icon="Delete"
+                      text
+                      circle
+                      :loading="deletingId === row.id"
+                      :aria-label="t('applepay.deleteAction')"
+                    />
+                  </template>
+                </el-popconfirm>
+              </div>
             </li>
           </ul>
         </template>
@@ -668,6 +908,56 @@ const pieOptions = {
         </div>
       </el-tab-pane>
     </el-tabs>
+
+    <el-dialog v-model="addDialogVisible" :title="t('applepay.add.title')" width="min(420px, 92vw)" append-to-body>
+      <el-form label-position="top" @submit.prevent="submitAdd">
+        <el-form-item :label="t('applepay.add.amount')" required>
+          <el-input-number
+            v-model="addForm.amount"
+            :min="0.01"
+            :max="99999999.99"
+            :precision="2"
+            :step="1"
+            :controls="false"
+            class="add-amount-input"
+            :placeholder="'0.00'"
+          />
+        </el-form-item>
+        <el-form-item :label="t('applepay.add.merchant')" required>
+          <el-input v-model="addForm.merchant" maxlength="255" :placeholder="t('applepay.add.merchantPlaceholder')" />
+        </el-form-item>
+        <el-form-item :label="t('applepay.add.date')" required>
+          <el-date-picker
+            v-model="addForm.occurredAt"
+            type="datetime"
+            :clearable="false"
+            :disabled-date="disableFutureDates"
+            format="DD MMM YYYY HH:mm"
+            class="add-date-input"
+          />
+        </el-form-item>
+        <el-form-item :label="t('applepay.col.category')">
+          <el-select
+            v-model="addForm.category"
+            filterable
+            allow-create
+            default-first-option
+            clearable
+            :placeholder="t('applepay.setCategory')"
+            class="add-category-input"
+          >
+            <el-option v-for="opt in categoryOptions" :key="opt" :label="opt" :value="opt" />
+          </el-select>
+        </el-form-item>
+        <p class="add-hint">{{ t('applepay.add.hint') }}</p>
+      </el-form>
+      <template #footer>
+        <el-button @click="addDialogVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" :loading="addSaving" :disabled="!canSubmitAdd" @click="submitAdd">
+          {{ t('applepay.add.save') }}
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -705,6 +995,67 @@ const pieOptions = {
   color: var(--color-text);
   opacity: 0.6;
   margin-top: 4px;
+}
+
+/* ── Connection status chip ─────────────────────────────────────────── */
+
+.connection-status {
+  --status-color: var(--el-color-info);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px 8px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-background-soft);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.connection-status:hover {
+  border-color: var(--status-color);
+}
+
+.connection-status--active { --status-color: var(--el-color-success); }
+.connection-status--waiting { --status-color: var(--el-color-primary); }
+.connection-status--stale { --status-color: var(--el-color-warning); }
+.connection-status--notConnected { --status-color: var(--el-color-info); }
+
+.connection-status--stale {
+  border-color: var(--el-color-warning-light-5);
+  background: var(--el-color-warning-light-9);
+}
+
+.connection-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--status-color);
+  flex-shrink: 0;
+}
+
+.connection-status--active .connection-dot {
+  box-shadow: 0 0 0 3px var(--el-color-success-light-8);
+}
+
+.connection-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.connection-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-heading);
+}
+
+.connection-sub {
+  font-size: 0.74rem;
+  opacity: 0.65;
 }
 
 /* ── Onboarding / setup guide ───────────────────────────────────────── */
@@ -962,6 +1313,76 @@ const pieOptions = {
   gap: 12px;
   margin-bottom: 16px;
   flex-wrap: wrap;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.filter-actions .el-button + .el-button {
+  margin-left: 0;
+}
+
+.duplicate-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--el-color-warning-light-5);
+  background: var(--el-color-warning-light-9);
+  font-size: 0.82rem;
+  color: var(--color-heading);
+}
+
+.source-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.tx-card-bottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tx-card-bottom .category-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.add-amount-input,
+.add-date-input,
+.add-category-input {
+  width: 100%;
+}
+
+.add-amount-input :deep(.el-input__inner) {
+  text-align: left;
+}
+
+.add-hint {
+  font-size: 0.78rem;
+  color: var(--color-text);
+  opacity: 0.6;
+  margin: 0;
+}
+
+@media (max-width: 500px) {
+  .filter-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .filter-actions .el-button {
+    flex: 1;
+  }
 }
 
 .category-filter {

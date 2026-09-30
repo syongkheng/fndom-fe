@@ -8,6 +8,7 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: () => import('../components/views/travel/TravelLandingView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().landingGuard({ from, next }),
     },
     {
       path: '/workbench',

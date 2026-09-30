@@ -46,9 +46,10 @@ const nav = useNav()
 }
 
 .travel-planning-desc {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-heading);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-text);
+  opacity: 0.75;
   margin: 0;
 }
 
