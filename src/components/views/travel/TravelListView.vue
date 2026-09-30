@@ -12,6 +12,7 @@ import { useI18n } from 'vue-i18n'
 import { EditPen, ArrowRight, View, Link, Delete } from '@element-plus/icons-vue'
 import { CATEGORY_ICON_SVG } from '@/constants/TravelIconSvg'
 import TravelIcon from '@/components/icons/TravelIcon.vue'
+import PageBackButton from '@/components/common/PageBackButton.vue'
 import CreateTripDialog, { type CreateTripPayload } from '@/components/views/travel/CreateTripDialog.vue'
 
 const nav = useNav()
@@ -146,10 +147,13 @@ const deleteTrip = async (sessionId: string) => {
 
     <template v-else>
     <header class="list-header">
-      <div>
-        <p class="list-eyebrow"><TravelIcon :svg="CATEGORY_ICON_SVG.flight" /> Travel Planner</p>
-        <h1 class="list-title">{{ t('travel.list.title') }}</h1>
-        <p class="list-subtitle">{{ t('travel.list.subtitle') }}</p>
+      <div class="page-heading">
+        <PageBackButton />
+        <div>
+          <p class="list-eyebrow"><TravelIcon :svg="CATEGORY_ICON_SVG.flight" /> Travel Planner</p>
+          <h1 class="list-title">{{ t('travel.list.title') }}</h1>
+          <p class="list-subtitle">{{ t('travel.list.subtitle') }}</p>
+        </div>
       </div>
       <el-button type="primary" :loading="creating" @click="handleCreate">{{ t('travel.list.newTrip') }}</el-button>
     </header>
@@ -256,6 +260,13 @@ const deleteTrip = async (sessionId: string) => {
   align-items: flex-start;
   margin-bottom: 28px;
   gap: 12px;
+}
+
+.page-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
 }
 
 .list-eyebrow {

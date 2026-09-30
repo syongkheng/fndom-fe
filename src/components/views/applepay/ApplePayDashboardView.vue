@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, CopyDocument, Delete, Download, Plus } from '@el
 import { Pie } from 'vue-chartjs'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import { useNav } from '@/hooks/useNav'
+import PageBackButton from '@/components/common/PageBackButton.vue'
 import { useApplePayStore } from '@/stores/applepay'
 import { useThemeStore } from '@/stores/theme'
 import { useSsApiKeyStore, type SsApiKeyStatus } from '@/stores/ssApiKey'
@@ -225,6 +226,57 @@ const filteredTransactions = computed(() =>
     ? byCategory(transactions.value.filter((tx) => duplicateIds.value.has(tx.id)))
     : byCategory(monthTransactions.value),
 )
+
+// ── Mobile list: rows grouped by day; tapping a row opens an edit sheet ──
+
+const dayHeading = (key: string) => {
+  const now = new Date()
+  if (key === dayKey(now)) return t('applepay.day.today')
+  if (key === dayKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1))) return t('applepay.day.yesterday')
+  const [y, m, d] = key.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString(locale.value, { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+// Relies on filteredTransactions already being newest-first (server ORDER BY
+// occurred_dt DESC; the store re-sorts after a manual add).
+const transactionsByDay = computed(() => {
+  const groups: Array<{ key: string; label: string; total: number; items: ApplePayTransaction[] }> = []
+  for (const tx of filteredTransactions.value) {
+    const key = dayKey(new Date(tx.occurredDt))
+    let group = groups[groups.length - 1]
+    if (!group || group.key !== key) {
+      group = { key, label: dayHeading(key), total: 0, items: [] }
+      groups.push(group)
+    }
+    group.items.push(tx)
+    group.total += tx.amount
+  }
+  return groups
+})
+
+const formatTime = (ts: number) => new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+
+const cardText = (tx: ApplePayTransaction) => {
+  if (tx.name) return tx.name
+  if (tx.cardLast4) return tx.cardLabel ? `${tx.cardLabel} ••${tx.cardLast4}` : `••${tx.cardLast4}`
+  return ''
+}
+
+const rowMeta = (tx: ApplePayTransaction) =>
+  [cardText(tx), formatTime(tx.occurredDt), sourceLabel(tx.source)].filter(Boolean).join(' · ')
+
+const sheetTxId = ref<string | null>(null)
+const sheetTx = computed(() => transactions.value.find((tx) => tx.id === sheetTxId.value) ?? null)
+// Closes by itself once the row is gone (e.g. after removing it from the sheet)
+const sheetOpen = computed({
+  get: () => sheetTx.value !== null,
+  set: (open: boolean) => {
+    if (!open) sheetTxId.value = null
+  },
+})
+const openSheet = (tx: ApplePayTransaction) => {
+  sheetTxId.value = tx.id
+}
 
 // ── Remove a transaction (soft delete server-side) ──
 const deletingId = ref<string | null>(null)
@@ -584,9 +636,7 @@ const pieOptions = {
   <div class="page-container">
     <header class="list-header">
       <div class="list-heading">
-        <el-button circle size="small" class="list-back" :aria-label="t('common.back')" @click="nav.redirectToDashboard()">
-          <el-icon><ArrowLeft /></el-icon>
-        </el-button>
+        <PageBackButton class="list-back" />
         <div>
           <p class="list-eyebrow">{{ t('applepay.eyebrow') }}</p>
           <h1 class="list-title">{{ t('applepay.title') }}</h1>
@@ -882,71 +932,36 @@ const pieOptions = {
             </el-table-column>
           </el-table>
 
-          <!-- Mobile: cards -->
-          <ul class="transactions-cards card-view">
-            <li v-for="row in filteredTransactions" :key="row.id" class="tx-card">
-              <div class="tx-card-top">
-                <div class="tx-card-main">
-                  <span class="tx-card-merchant">{{ row.merchant }}</span>
-                  <el-input
-                    v-if="isCardRow(row)"
-                    v-model="row.cardLabel"
-                    size="small"
-                    class="card-label-input tx-card-name-input"
-                    :placeholder="t('applepay.addLabel')"
-                    @blur="onCardLabelChange(row)"
-                    @keyup.enter="onCardLabelChange(row)"
-                  >
-                    <template #suffix>
-                      <span class="card-last4-suffix">•• {{ row.cardLast4 }}</span>
-                    </template>
-                  </el-input>
-                  <span v-else class="tx-card-name">{{ formatDetail(row) }}</span>
-                </div>
-                <span class="tx-card-amount">{{ formatAmount(row.amount) }}</span>
-              </div>
-              <div class="tx-card-date">
-                {{ formatDate(row.occurredDt) }}
-                <el-tag size="small" :type="sourceTagType(row.source)" class="tx-card-source">{{ sourceLabel(row.source) }}</el-tag>
-                <el-tag v-if="duplicateIds.has(row.id)" size="small" type="warning" effect="plain">
-                  {{ t('applepay.duplicates.tag') }}
-                </el-tag>
-              </div>
-              <div class="tx-card-bottom">
-                <el-select
-                  v-model="row.category"
-                  class="category-select"
-                  filterable
-                  allow-create
-                  default-first-option
-                  clearable
-                  :loading="savingId === row.id"
-                  :placeholder="t('applepay.setCategory')"
-                  @change="onCategoryChange(row)"
-                >
-                  <el-option v-for="opt in categoryOptions" :key="opt" :label="opt" :value="opt" />
-                </el-select>
-                <el-popconfirm
-                  :title="t('applepay.deleteConfirm')"
-                  :confirm-button-text="t('applepay.deleteAction')"
-                  :cancel-button-text="t('common.cancel')"
-                  confirm-button-type="danger"
-                  width="220"
-                  @confirm="onDeleteTransaction(row)"
-                >
-                  <template #reference>
-                    <el-button
-                      :icon="Delete"
-                      text
-                      circle
-                      :loading="deletingId === row.id"
-                      :aria-label="t('applepay.deleteAction')"
-                    />
-                  </template>
-                </el-popconfirm>
-              </div>
-            </li>
-          </ul>
+          <!-- Mobile: compact rows grouped by day; tap to edit in a sheet -->
+          <div class="tx-days card-view">
+            <section v-for="group in transactionsByDay" :key="group.key" class="tx-day">
+              <header class="tx-day-header">
+                <span>{{ group.label }}</span>
+                <span class="tx-day-total">{{ formatAmount(group.total) }}</span>
+              </header>
+              <ul class="tx-rows">
+                <li v-for="tx in group.items" :key="tx.id">
+                  <button type="button" class="tx-row" @click="openSheet(tx)">
+                    <span class="tx-row-line">
+                      <span class="tx-row-merchant">{{ tx.merchant }}</span>
+                      <span class="tx-row-amount">{{ formatAmount(tx.amount) }}</span>
+                    </span>
+                    <span class="tx-row-line">
+                      <span class="tx-row-meta">{{ rowMeta(tx) }}</span>
+                      <span class="tx-row-chips">
+                        <span v-if="duplicateIds.has(tx.id)" class="tx-chip tx-chip--warning">
+                          {{ t('applepay.duplicates.tag') }}
+                        </span>
+                        <span class="tx-chip" :class="{ 'tx-chip--empty': !tx.category }">
+                          {{ tx.category || t('applepay.row.addCategory') }}
+                        </span>
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              </ul>
+            </section>
+          </div>
         </template>
       </el-tab-pane>
 
@@ -1048,6 +1063,85 @@ const pieOptions = {
       </el-tab-pane>
     </el-tabs>
 
+    <el-drawer
+      v-model="sheetOpen"
+      direction="btt"
+      size="auto"
+      :with-header="false"
+      class="tx-sheet"
+      append-to-body
+    >
+      <div v-if="sheetTx" class="tx-sheet-body">
+        <div class="tx-sheet-grip" aria-hidden="true" />
+        <div class="tx-sheet-head">
+          <div class="tx-sheet-title">
+            <span class="tx-sheet-merchant">{{ sheetTx.merchant }}</span>
+            <span class="tx-sheet-date">{{ formatDate(sheetTx.occurredDt) }}</span>
+          </div>
+          <span class="tx-sheet-amount">{{ formatAmount(sheetTx.amount) }}</span>
+        </div>
+
+        <div class="tx-sheet-tags">
+          <el-tag size="small" :type="sourceTagType(sheetTx.source)">{{ sourceLabel(sheetTx.source) }}</el-tag>
+          <span v-if="cardText(sheetTx)" class="tx-sheet-card">{{ cardText(sheetTx) }}</span>
+        </div>
+
+        <p v-if="duplicateIds.has(sheetTx.id)" class="tx-sheet-duplicate">
+          {{ t('applepay.sheet.duplicateNote') }}
+        </p>
+
+        <label class="tx-sheet-field">
+          <span class="tx-sheet-label">{{ t('applepay.col.category') }}</span>
+          <el-select
+            v-model="sheetTx.category"
+            class="category-select"
+            filterable
+            allow-create
+            default-first-option
+            clearable
+            :loading="savingId === sheetTx.id"
+            :placeholder="t('applepay.setCategory')"
+            @change="onCategoryChange(sheetTx)"
+          >
+            <el-option v-for="opt in categoryOptions" :key="opt" :label="opt" :value="opt" />
+          </el-select>
+        </label>
+
+        <label v-if="isCardRow(sheetTx)" class="tx-sheet-field">
+          <span class="tx-sheet-label">{{ t('applepay.sheet.cardLabel') }}</span>
+          <el-input
+            v-model="sheetTx.cardLabel"
+            :placeholder="t('applepay.addLabel')"
+            @blur="onCardLabelChange(sheetTx)"
+            @keyup.enter="onCardLabelChange(sheetTx)"
+          >
+            <template #suffix>
+              <span class="card-last4-suffix">•• {{ sheetTx.cardLast4 }}</span>
+            </template>
+          </el-input>
+          <span class="tx-sheet-hint">{{ t('applepay.sheet.cardLabelHint') }}</span>
+        </label>
+
+        <div class="tx-sheet-actions">
+          <el-popconfirm
+            :title="t('applepay.deleteConfirm')"
+            :confirm-button-text="t('applepay.deleteAction')"
+            :cancel-button-text="t('common.cancel')"
+            confirm-button-type="danger"
+            width="220"
+            @confirm="onDeleteTransaction(sheetTx)"
+          >
+            <template #reference>
+              <el-button type="danger" plain :icon="Delete" :loading="deletingId === sheetTx.id">
+                {{ t('applepay.deleteAction') }}
+              </el-button>
+            </template>
+          </el-popconfirm>
+          <el-button type="primary" @click="sheetOpen = false">{{ t('applepay.sheet.done') }}</el-button>
+        </div>
+      </div>
+    </el-drawer>
+
     <el-dialog v-model="addDialogVisible" :title="t('applepay.add.title')" width="min(420px, 92vw)" append-to-body>
       <el-form label-position="top" @submit.prevent="submitAdd">
         <el-form-item :label="t('applepay.add.amount')" required>
@@ -1106,11 +1200,6 @@ const pieOptions = {
   align-items: flex-start;
   gap: 12px;
   min-width: 0;
-}
-
-.list-back {
-  flex-shrink: 0;
-  margin-top: 2px;
 }
 
 .list-header {
@@ -1580,17 +1669,6 @@ const pieOptions = {
   gap: 4px;
 }
 
-.tx-card-bottom {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.tx-card-bottom .category-select {
-  flex: 1;
-  min-width: 0;
-}
-
 .add-amount-input,
 .add-date-input,
 .add-category-input {
@@ -1651,10 +1729,6 @@ const pieOptions = {
   max-width: 200px;
 }
 
-.tx-card-name-input {
-  max-width: 170px;
-}
-
 .card-last4-suffix {
   font-size: 0.72rem;
   color: var(--color-text);
@@ -1690,39 +1764,87 @@ const pieOptions = {
   }
 }
 
-.transactions-cards {
+/* ── Mobile: day-grouped rows ───────────────────────────────────────── */
+
+.tx-days {
   flex-direction: column;
+  gap: 14px;
+}
+
+.tx-day {
+  border-radius: 12px;
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.tx-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
   gap: 12px;
+  padding: 8px 14px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text);
+  background: var(--color-background-mute);
+}
+
+.tx-day-header > span:first-child {
+  opacity: 0.7;
+}
+
+.tx-day-total {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-heading);
+}
+
+.tx-rows {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.tx-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px 16px;
-  border-radius: 12px;
-  background: var(--color-background-soft);
-  border: 1px solid var(--color-border);
+.tx-rows li + li .tx-row {
+  border-top: 1px solid var(--color-border);
 }
 
-.tx-card-top {
+.tx-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tx-row:active {
+  background: var(--color-background-mute);
+}
+
+.tx-row:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: -2px;
+}
+
+.tx-row-line {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.tx-card-main {
-  display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
 }
 
-.tx-card-merchant {
-  font-size: 0.92rem;
+.tx-row-merchant {
+  font-size: 0.88rem;
   font-weight: 700;
   color: var(--color-heading);
   white-space: nowrap;
@@ -1730,33 +1852,165 @@ const pieOptions = {
   text-overflow: ellipsis;
 }
 
-.tx-card-name {
-  font-size: 0.78rem;
+.tx-row-amount {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--color-heading);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.tx-row-meta {
+  font-size: 0.72rem;
   color: var(--color-text);
   opacity: 0.6;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
-.tx-card-amount {
-  font-size: 0.95rem;
+.tx-row-chips {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.tx-chip {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--el-color-primary-light-7);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tx-chip--empty {
+  border-style: dashed;
+  border-color: var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  opacity: 0.6;
+}
+
+.tx-chip--warning {
+  border-color: var(--el-color-warning-light-5);
+  background: var(--el-color-warning-light-9);
+  color: var(--el-color-warning-dark-2);
+}
+
+/* ── Mobile: edit sheet (slot content, so scoped styles apply) ──────── */
+
+.tx-sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 4px calc(8px + env(safe-area-inset-bottom, 0px));
+}
+
+.tx-sheet-grip {
+  width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-border);
+  align-self: center;
+}
+
+.tx-sheet-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.tx-sheet-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tx-sheet-merchant {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-heading);
+  overflow-wrap: anywhere;
+}
+
+.tx-sheet-date {
+  font-size: 0.78rem;
+  color: var(--color-text);
+  opacity: 0.6;
+}
+
+.tx-sheet-amount {
+  font-size: 1.25rem;
   font-weight: 800;
   color: var(--color-heading);
   flex-shrink: 0;
 }
 
-.tx-card-date {
+.tx-sheet-tags {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.75rem;
-  color: var(--color-text);
-  opacity: 0.5;
+  flex-wrap: wrap;
 }
 
-.tx-card-source {
-  opacity: 1;
+.tx-sheet-card {
+  font-size: 0.8rem;
+  color: var(--color-text);
+  opacity: 0.75;
+}
+
+.tx-sheet-duplicate {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  border: 1px solid var(--el-color-warning-light-5);
+  background: var(--el-color-warning-light-9);
+  color: var(--color-heading);
+}
+
+.tx-sheet-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tx-sheet-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--color-text);
+  opacity: 0.7;
+}
+
+.tx-sheet-hint {
+  font-size: 0.72rem;
+  color: var(--color-text);
+  opacity: 0.55;
+}
+
+.tx-sheet-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.tx-sheet-actions .el-button {
+  flex: 1;
+}
+
+.tx-sheet-actions .el-button + .el-button {
+  margin-left: 0;
 }
 
 /* ── Statistics tab ─────────────────────────────────────────────────── */
@@ -2175,5 +2429,17 @@ const pieOptions = {
   .day-detail-item {
     padding: 8px;
   }
+}
+</style>
+
+<!-- The drawer panel is teleported to <body>, outside this component's scope -->
+<style>
+.el-drawer.tx-sheet {
+  max-height: 85vh;
+  border-radius: 16px 16px 0 0;
+}
+
+.el-drawer.tx-sheet .el-drawer__body {
+  padding: 10px 18px 14px;
 }
 </style>

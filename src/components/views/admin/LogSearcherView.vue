@@ -7,6 +7,7 @@ import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
 import { useToast } from '@/composables/useToast'
 import { logStatusIcon } from '@/utilities/LogStatusIcon'
+import PageBackButton from '@/components/common/PageBackButton.vue'
 
 interface RequestLogMatch {
   raw: string
@@ -92,8 +93,11 @@ onMounted(() => {
 <template>
   <div class="page-container log-searcher-page">
     <header class="ls-header">
-      <h1 class="ls-title">{{ t('admin.logSearcher.title') }}</h1>
-      <p class="ls-subtitle">{{ t('admin.logSearcher.subtitle') }}</p>
+      <PageBackButton />
+      <div>
+        <h1 class="ls-title">{{ t('admin.logSearcher.title') }}</h1>
+        <p class="ls-subtitle">{{ t('admin.logSearcher.subtitle') }}</p>
+      </div>
     </header>
 
     <div class="ls-search-bar">
@@ -141,6 +145,9 @@ onMounted(() => {
 }
 
 .ls-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
   padding: 24px 0 20px;
 }
 

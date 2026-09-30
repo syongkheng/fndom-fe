@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
+import PageBackButton from '@/components/common/PageBackButton.vue'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -34,8 +35,11 @@ onMounted(async () => {
   <div class="admin-root">
 
     <div class="admin-header">
-      <h1 class="admin-title">Admin</h1>
-      <p class="admin-subtitle">Manage users, roles, and system settings.</p>
+      <PageBackButton />
+      <div>
+        <h1 class="admin-title">Admin</h1>
+        <p class="admin-subtitle">Manage users, roles, and system settings.</p>
+      </div>
     </div>
 
     <div class="admin-cards" v-loading="loading">
@@ -97,6 +101,9 @@ onMounted(async () => {
 }
 
 .admin-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
   padding: 24px 0 28px;
 }
 

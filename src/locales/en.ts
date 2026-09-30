@@ -1039,6 +1039,19 @@ export default {
     sourceNfc: 'NFC',
     sourceSms: 'SMS',
     sourceManual: 'Manual',
+    day: {
+      today: 'Today',
+      yesterday: 'Yesterday',
+    },
+    row: {
+      addCategory: '+ Category',
+    },
+    sheet: {
+      cardLabel: 'Card name',
+      cardLabelHint: 'Applies to every payment on this card.',
+      duplicateNote: 'This looks like the same payment logged twice — once by the Apple Pay tap and once by the bank SMS. Remove one to keep your totals right.',
+      done: 'Done',
+    },
     summary: {
       spent: 'Total spent',
       spentOn: 'Spent on {category}',

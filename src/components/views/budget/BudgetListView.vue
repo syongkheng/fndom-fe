@@ -10,6 +10,7 @@ import { storeToRefs } from 'pinia'
 import { BUDGET_TEMPLATES, BUDGET_TEMPLATE_LIST, type BudgetTemplateKey } from '@/constants/BudgetTemplates'
 import { BUDGET_ICON_SVG } from '@/constants/BudgetIconSvg'
 import TravelIcon from '@/components/icons/TravelIcon.vue'
+import PageBackButton from '@/components/common/PageBackButton.vue'
 
 const { t } = useI18n()
 const nav = useNav()
@@ -70,10 +71,13 @@ const confirmDelete = (sessionId: string, name: string) => {
 <template>
   <div class="page-container">
     <header class="list-header">
-      <div>
-        <p class="list-eyebrow"><TravelIcon :svg="BUDGET_ICON_SVG.wallet" /> {{ t('budget.list.eyebrow') }}</p>
-        <h1 class="list-title">{{ t('budget.list.title') }}</h1>
-        <p class="list-subtitle">{{ t('budget.list.subtitle') }}</p>
+      <div class="page-heading">
+        <PageBackButton />
+        <div>
+          <p class="list-eyebrow"><TravelIcon :svg="BUDGET_ICON_SVG.wallet" /> {{ t('budget.list.eyebrow') }}</p>
+          <h1 class="list-title">{{ t('budget.list.title') }}</h1>
+          <p class="list-subtitle">{{ t('budget.list.subtitle') }}</p>
+        </div>
       </div>
       <el-button type="primary" :loading="creating" @click="handleCreate">{{ t('budget.list.newTable') }}</el-button>
     </header>
@@ -192,6 +196,13 @@ const confirmDelete = (sessionId: string, name: string) => {
   align-items: flex-start;
   margin-bottom: 28px;
   gap: 12px;
+}
+
+.page-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
 }
 
 .list-eyebrow {

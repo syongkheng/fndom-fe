@@ -1038,6 +1038,19 @@ export default {
     sourceNfc: 'NFC',
     sourceSms: '短信',
     sourceManual: '手动',
+    day: {
+      today: '今天',
+      yesterday: '昨天',
+    },
+    row: {
+      addCategory: '+ 分类',
+    },
+    sheet: {
+      cardLabel: '卡片名称',
+      cardLabelHint: '将应用于这张卡的所有消费。',
+      duplicateNote: '这笔消费可能被记录了两次 —— 一次来自 Apple Pay 付款，一次来自银行短信。移除其中一笔以保持总额准确。',
+      done: '完成',
+    },
     summary: {
       spent: '总支出',
       spentOn: '{category} 支出',
