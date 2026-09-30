@@ -53,7 +53,7 @@ export const useApplePayStore = defineStore('applepay', () => {
   }
 
   async function deleteTransaction(transactionId: string): Promise<boolean> {
-    const res = await HttpClient.delete(ApiRoute.APPLEPAY.DELETE(transactionId)).catch(() => null)
+    const res = await HttpClient.post(ApiRoute.APPLEPAY.DELETE(transactionId), {}).catch(() => null)
     if (!res?.data?.data?.deleted) return false
     transactions.value = transactions.value.filter((t) => t.id !== transactionId)
     return true
