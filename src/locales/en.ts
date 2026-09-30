@@ -222,6 +222,7 @@ export default {
       newDraft: 'New Draft →',
       signIn: 'Sign In',
       heroImageAlt: 'A traveler in flowing robes walking a misty mountain ridge, ink-wash painting',
+      inscriptionLabel: 'Sign in — a journey of a thousand miles begins with a single step',
       cta: {
         heading: 'Ready to start planning?',
         sub: 'Free to use. No account needed to create a draft.',

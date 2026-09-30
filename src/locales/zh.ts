@@ -221,6 +221,7 @@ export default {
       newDraft: '新建草稿 →',
       signIn: '登录',
       heroImageAlt: '水墨画风格：一位身着长袍的旅人行走在云雾缭绕的山脊上',
+      inscriptionLabel: '登录 —— 千里之行，始于足下',
       cta: {
         heading: '准备好开始规划了吗？',
         sub: '免费使用，无需账户即可创建草稿。',
