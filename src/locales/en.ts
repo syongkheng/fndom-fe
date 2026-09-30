@@ -800,6 +800,7 @@ export default {
   common: {
     comingSoon: 'Page coming soon.',
     cancel: 'Cancel',
+    back: 'Back',
   },
 
   toast: {
@@ -1038,6 +1039,16 @@ export default {
     sourceNfc: 'NFC',
     sourceSms: 'SMS',
     sourceManual: 'Manual',
+    summary: {
+      spent: 'Total spent',
+      spentOn: 'Spent on {category}',
+      payments: '{n} payment | {n} payments',
+      vsLast: '{pct}% vs {month}',
+      sparkLabel: 'Daily spending for the selected month',
+      prevMonth: 'Previous month',
+      nextMonth: 'Next month',
+      emptyMonth: 'No transactions in {month}.',
+    },
     exportCsv: 'Export CSV',
     deleteAction: 'Remove',
     deleteConfirm: 'Remove this transaction? It will no longer count towards your totals.',

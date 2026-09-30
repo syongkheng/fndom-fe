@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, ArrowRight, CopyDocument, Delete, Download, Plus } from '@element-plus/icons-vue'
@@ -156,9 +156,21 @@ const lastReceivedAgo = computed(() => {
   return t('applepay.connection.justNow')
 })
 
-const openSetupGuide = () => {
+// Once connected, the guide is hidden from the list and only reachable via the
+// status chip — it stays mounted while expanded so it can be read/collapsed.
+const showSetupGuide = computed(
+  () =>
+    !keyStatusLoading.value &&
+    (!ssKeyStatus.value.hasKey || !!freshlyGeneratedKey.value || setupGuideOpen.value.includes('guide')),
+)
+
+const setupGuideEl = ref<HTMLElement | null>(null)
+
+const openSetupGuide = async () => {
   activeTab.value = 'transactions'
   setupGuideOpen.value = ['guide']
+  await nextTick()
+  setupGuideEl.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 const selectedBankKey = ref(bankGuides[0].key)
@@ -203,12 +215,16 @@ const duplicateIds = computed(() => {
 const duplicatePairCount = computed(() => duplicateIds.value.size / 2)
 const showDuplicatesOnly = ref(false)
 
-const filteredTransactions = computed(() => {
-  let rows = transactions.value
-  if (showDuplicatesOnly.value) rows = rows.filter((tx) => duplicateIds.value.has(tx.id))
-  if (categoryFilter.value) rows = rows.filter((tx) => (tx.category ?? '') === categoryFilter.value)
-  return rows
-})
+const byCategory = (rows: ApplePayTransaction[]) =>
+  categoryFilter.value ? rows.filter((tx) => (tx.category ?? '') === categoryFilter.value) : rows
+
+// The list follows the month picked in the summary card; duplicate review
+// ignores the month since the banner counts pairs across all of them.
+const filteredTransactions = computed(() =>
+  showDuplicatesOnly.value
+    ? byCategory(transactions.value.filter((tx) => duplicateIds.value.has(tx.id)))
+    : byCategory(monthTransactions.value),
+)
 
 // ── Remove a transaction (soft delete server-side) ──
 const deletingId = ref<string | null>(null)
@@ -279,12 +295,12 @@ const exportCsv = () => {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `transactions-${new Date().toISOString().slice(0, 10)}.csv`
+  const scope = showDuplicatesOnly.value ? 'duplicates' : dayKey(calendarMonth.value).slice(0, 7)
+  a.download = `transactions-${scope}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }
 
-const totalAmount = computed(() => filteredTransactions.value.reduce((acc, tx) => acc + tx.amount, 0))
 
 const CURRENCY = 'SGD'
 
@@ -393,6 +409,66 @@ const calendarCells = computed(() => {
 })
 
 const monthTotal = computed(() => monthTransactions.value.reduce((sum, tx) => sum + tx.amount, 0))
+
+// ── Summary card (Transactions tab): month total, change vs last month, and
+// a daily-spend sparkline — all respecting the category filter.
+const sumAmounts = (rows: ApplePayTransaction[]) => rows.reduce((sum, tx) => sum + tx.amount, 0)
+
+const summaryRows = computed(() => byCategory(monthTransactions.value))
+const summaryTotal = computed(() => sumAmounts(summaryRows.value))
+
+const previousMonthTotal = computed(() => {
+  const prev = new Date(calendarMonth.value.getFullYear(), calendarMonth.value.getMonth() - 1, 1)
+  const rows = transactions.value.filter((tx) => {
+    const d = new Date(tx.occurredDt)
+    return d.getFullYear() === prev.getFullYear() && d.getMonth() === prev.getMonth()
+  })
+  return sumAmounts(byCategory(rows))
+})
+
+const previousMonthShortLabel = computed(() =>
+  new Date(calendarMonth.value.getFullYear(), calendarMonth.value.getMonth() - 1, 1).toLocaleDateString(locale.value, {
+    month: 'short',
+  }),
+)
+
+// null when there's nothing to compare against (no spend last month)
+const monthDeltaPct = computed(() => {
+  if (previousMonthTotal.value <= 0) return null
+  return Math.round(((summaryTotal.value - previousMonthTotal.value) / previousMonthTotal.value) * 100)
+})
+
+const isCurrentMonth = computed(() => {
+  const today = new Date()
+  return (
+    calendarMonth.value.getFullYear() === today.getFullYear() && calendarMonth.value.getMonth() === today.getMonth()
+  )
+})
+
+const sparkDays = computed(() => {
+  const y = calendarMonth.value.getFullYear()
+  const m = calendarMonth.value.getMonth()
+  const todayKey = dayKey(new Date())
+  const totals = new Map<string, number>()
+  for (const tx of summaryRows.value) {
+    const key = dayKey(new Date(tx.occurredDt))
+    totals.set(key, (totals.get(key) ?? 0) + tx.amount)
+  }
+  const max = Math.max(0, ...totals.values())
+  return Array.from({ length: daysInCalendarMonth.value }, (_, i) => {
+    const date = new Date(y, m, i + 1)
+    const key = dayKey(date)
+    const total = totals.get(key) ?? 0
+    return {
+      key,
+      total,
+      heightPct: max > 0 ? (total / max) * 100 : 0,
+      isToday: key === todayKey,
+      isFuture: date.getTime() > Date.now(),
+      label: `${date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}: ${formatAmount(total)}`,
+    }
+  })
+})
 const daysInCalendarMonth = computed(
   () => new Date(calendarMonth.value.getFullYear(), calendarMonth.value.getMonth() + 1, 0).getDate(),
 )
@@ -506,17 +582,16 @@ const pieOptions = {
 
 <template>
   <div class="page-container">
-    <div class="page-nav">
-      <el-button circle size="small" @click="nav.redirectToDashboard()">
-        <el-icon><ArrowLeft /></el-icon>
-      </el-button>
-    </div>
-
     <header class="list-header">
-      <div>
-        <p class="list-eyebrow">{{ t('applepay.eyebrow') }}</p>
-        <h1 class="list-title">{{ t('applepay.title') }}</h1>
-        <p class="list-subtitle">{{ t('applepay.subtitle') }}</p>
+      <div class="list-heading">
+        <el-button circle size="small" class="list-back" :aria-label="t('common.back')" @click="nav.redirectToDashboard()">
+          <el-icon><ArrowLeft /></el-icon>
+        </el-button>
+        <div>
+          <p class="list-eyebrow">{{ t('applepay.eyebrow') }}</p>
+          <h1 class="list-title">{{ t('applepay.title') }}</h1>
+          <p class="list-subtitle">{{ t('applepay.subtitle') }}</p>
+        </div>
       </div>
 
       <button
@@ -543,7 +618,8 @@ const pieOptions = {
 
     <el-tabs v-model="activeTab">
       <el-tab-pane :label="t('applepay.tabs.transactions')" name="transactions">
-        <el-collapse v-model="setupGuideOpen" class="setup-guide" v-loading="keyStatusLoading">
+        <div v-if="showSetupGuide" ref="setupGuideEl" class="setup-guide-anchor">
+        <el-collapse v-model="setupGuideOpen" class="setup-guide">
           <el-collapse-item name="guide">
             <template #title>
               <span class="setup-guide-title">{{ t('applepay.setup.title') }}</span>
@@ -625,14 +701,65 @@ const pieOptions = {
             </ol>
           </el-collapse-item>
         </el-collapse>
-
-        <div class="total-banner">
-          <div class="total-banner-text">
-            <span class="total-banner-label">{{ categoryFilter ? t('applepay.filteredTotal') : t('applepay.total') }}</span>
-            <span class="total-banner-value">{{ formatAmount(totalAmount) }}</span>
-          </div>
-          <span class="total-banner-count">{{ t('applepay.transactionCount', { n: filteredTransactions.length }) }}</span>
         </div>
+
+        <section class="month-summary">
+          <div class="month-summary-nav">
+            <el-button circle size="small" text :aria-label="t('applepay.summary.prevMonth')" @click="shiftMonth(-1)">
+              <el-icon><ArrowLeft /></el-icon>
+            </el-button>
+            <span class="month-summary-month">{{ monthLabel }}</span>
+            <el-button
+              circle
+              size="small"
+              text
+              :disabled="isCurrentMonth"
+              :aria-label="t('applepay.summary.nextMonth')"
+              @click="shiftMonth(1)"
+            >
+              <el-icon><ArrowRight /></el-icon>
+            </el-button>
+          </div>
+
+          <div class="month-summary-figures">
+            <div class="month-summary-main">
+              <span class="month-summary-label">
+                {{ categoryFilter ? t('applepay.summary.spentOn', { category: categoryFilter }) : t('applepay.summary.spent') }}
+              </span>
+              <span class="month-summary-value">{{ formatAmount(summaryTotal) }}</span>
+            </div>
+            <div class="month-summary-meta">
+              <span>{{ t('applepay.summary.payments', summaryRows.length) }}</span>
+              <span
+                v-if="monthDeltaPct !== null"
+                class="month-summary-delta"
+                :class="monthDeltaPct > 0 ? 'month-summary-delta--up' : monthDeltaPct < 0 ? 'month-summary-delta--down' : ''"
+              >
+                {{ monthDeltaPct > 0 ? '▲' : monthDeltaPct < 0 ? '▼' : '' }}
+                {{ t('applepay.summary.vsLast', { pct: Math.abs(monthDeltaPct), month: previousMonthShortLabel }) }}
+              </span>
+            </div>
+          </div>
+
+          <div class="month-spark" role="img" :aria-label="t('applepay.summary.sparkLabel')">
+            <div
+              v-for="day in sparkDays"
+              :key="day.key"
+              class="month-spark-col"
+              :title="day.isFuture ? undefined : day.label"
+            >
+              <span
+                class="month-spark-bar"
+                :class="{
+                  'month-spark-bar--today': day.isToday,
+                  'month-spark-bar--empty': day.total === 0,
+                  'month-spark-bar--future': day.isFuture,
+                }"
+                :style="day.total > 0 ? { height: `max(3px, ${day.heightPct}%)` } : undefined"
+              />
+            </div>
+          </div>
+        </section>
 
         <div v-if="duplicatePairCount > 0" class="duplicate-banner">
           <span>{{ t('applepay.duplicates.found', duplicatePairCount) }}</span>
@@ -646,11 +773,23 @@ const pieOptions = {
             <el-option v-for="opt in categoryOptions" :key="opt" :label="opt" :value="opt" />
           </el-select>
           <div class="filter-actions">
-            <el-button :icon="Download" :disabled="filteredTransactions.length === 0" @click="exportCsv">
-              {{ t('applepay.exportCsv') }}
+            <el-button
+              :icon="Download"
+              :disabled="filteredTransactions.length === 0"
+              :title="t('applepay.exportCsv')"
+              :aria-label="t('applepay.exportCsv')"
+              @click="exportCsv"
+            >
+              <span class="filter-action-text">{{ t('applepay.exportCsv') }}</span>
             </el-button>
-            <el-button type="primary" :icon="Plus" @click="openAddDialog">
-              {{ t('applepay.add.button') }}
+            <el-button
+              type="primary"
+              :icon="Plus"
+              :title="t('applepay.add.button')"
+              :aria-label="t('applepay.add.button')"
+              @click="openAddDialog"
+            >
+              <span class="filter-action-text">{{ t('applepay.add.button') }}</span>
             </el-button>
           </div>
         </div>
@@ -660,7 +799,7 @@ const pieOptions = {
         </div>
 
         <div v-else-if="filteredTransactions.length === 0" class="empty-text">
-          {{ t('applepay.noTransactions') }}
+          {{ transactions.length === 0 ? t('applepay.noTransactions') : t('applepay.summary.emptyMonth', { month: monthLabel }) }}
         </div>
 
         <template v-else>
@@ -962,8 +1101,16 @@ const pieOptions = {
 </template>
 
 <style scoped>
-.page-nav {
-  margin-bottom: 12px;
+.list-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.list-back {
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .list-header {
@@ -1259,52 +1406,139 @@ const pieOptions = {
   min-width: 160px;
 }
 
-/* Headline stat for the tab — full-width and left-aligned instead of a
-   small card stranded on its own row at the right, so it reads as "here's
-   your total" rather than an odd floating box, and can't run into the
-   mobile overflow issues a right-aligned fixed-width card is prone to. */
-.total-banner {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-  padding: 16px 20px;
+/* ── Month summary (Transactions tab) ───────────────────────────────── */
+
+.month-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas:
+    'nav   nav'
+    'figs  spark';
+  align-items: end;
+  gap: 8px 20px;
+  padding: 12px 16px 14px;
   border-radius: 14px;
-  margin-bottom: 16px;
-  background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--color-background-soft));
+  margin-bottom: 14px;
+  background: var(--color-background-soft);
   border: 1px solid var(--el-color-primary-light-7);
 }
 
-.total-banner-text {
+.month-summary-nav {
+  grid-area: nav;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: -6px;
+}
+
+.month-summary-nav .el-button + .el-button {
+  margin-left: 0;
+}
+
+.month-summary-month {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  min-width: 118px;
+  text-align: center;
+}
+
+.month-summary-figures {
+  grid-area: figs;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
 }
 
-.total-banner-label {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--el-color-primary);
+.month-summary-main {
+  display: flex;
+  flex-direction: column;
 }
 
-.total-banner-value {
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: var(--color-heading);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.total-banner-count {
-  font-size: 0.8rem;
+.month-summary-label {
+  font-size: 0.74rem;
   color: var(--color-text);
   opacity: 0.65;
+}
+
+.month-summary-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--color-heading);
   white-space: nowrap;
+}
+
+.month-summary-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  font-size: 0.76rem;
+  color: var(--color-text);
+}
+
+.month-summary-meta > span:first-child {
+  opacity: 0.65;
+}
+
+.month-summary-delta {
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+/* Spending up is the cautionary direction; the arrow + words carry the
+   meaning so colour is never the only cue. */
+.month-summary-delta--up {
+  color: var(--el-color-danger);
+  opacity: 1;
+}
+
+.month-summary-delta--down {
+  color: var(--el-color-success);
+  opacity: 1;
+}
+
+.month-spark {
+  grid-area: spark;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 44px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.month-spark-col {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.month-spark-bar {
+  display: block;
+  width: 100%;
+  border-radius: 2px 2px 0 0;
+  background: var(--el-color-primary-light-5);
+}
+
+.month-spark-bar--today {
+  background: var(--el-color-primary);
+}
+
+.month-spark-bar--empty {
+  height: 2px;
+  background: var(--color-border);
+}
+
+.month-spark-bar--future {
+  height: 2px;
+  background: transparent;
+}
+
+.month-spark-col:hover .month-spark-bar:not(.month-spark-bar--empty):not(.month-spark-bar--future) {
+  background: var(--el-color-primary);
 }
 
 .filter-row {
@@ -1374,14 +1608,33 @@ const pieOptions = {
   margin: 0;
 }
 
-@media (max-width: 500px) {
-  .filter-actions {
-    margin-left: 0;
-    width: 100%;
+.setup-guide-anchor {
+  scroll-margin-top: 80px;
+}
+
+@media (max-width: 640px) {
+  .filter-row {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .category-filter {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+  }
+
+  /* Icon-only on phones — label stays as title/aria-label */
+  .filter-action-text {
+    display: none;
   }
 
   .filter-actions .el-button {
-    flex: 1;
+    padding: 8px 11px;
+  }
+
+  .filter-actions .el-button :deep([class*='el-icon'] + span) {
+    margin-left: 0;
   }
 }
 
@@ -1801,15 +2054,73 @@ const pieOptions = {
   flex-shrink: 0;
 }
 
-@media (max-width: 540px) {
+@media (max-width: 640px) {
+  /* One compact row: back · title · status chip */
   .list-header {
-    flex-direction: column;
-    align-items: stretch;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 10px;
   }
 
-  .total-banner {
-    flex-direction: column;
-    align-items: flex-start;
+  .list-heading {
+    align-items: center;
+    gap: 10px;
+  }
+
+  .list-back {
+    margin-top: 0;
+  }
+
+  .list-eyebrow,
+  .list-subtitle {
+    display: none;
+  }
+
+  .list-title {
+    font-size: 1.3rem;
+    line-height: 1.2;
+  }
+
+  .connection-status {
+    margin-left: auto;
+    padding: 6px 10px;
+    gap: 8px;
+    border-radius: 10px;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  .connection-label {
+    font-size: 0.76rem;
+  }
+
+  .connection-sub {
+    font-size: 0.68rem;
+  }
+
+  /* Healthy: the dot + "Connected" is enough; keep the detail line only
+     when it asks the user to act. */
+  .connection-status--active .connection-sub {
+    display: none;
+  }
+
+  .month-summary {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'nav'
+      'figs'
+      'spark';
+    gap: 6px;
+    padding: 10px 12px 12px;
+  }
+
+  .month-summary-value {
+    font-size: 1.35rem;
+  }
+
+  .month-spark {
+    height: 32px;
+    margin-top: 4px;
   }
 }
 

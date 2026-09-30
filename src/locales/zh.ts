@@ -799,6 +799,7 @@ export default {
   common: {
     comingSoon: '页面即将上线。',
     cancel: '取消',
+    back: '返回',
   },
 
   toast: {
@@ -1037,6 +1038,16 @@ export default {
     sourceNfc: 'NFC',
     sourceSms: '短信',
     sourceManual: '手动',
+    summary: {
+      spent: '总支出',
+      spentOn: '{category} 支出',
+      payments: '{n} 笔消费',
+      vsLast: '较{month} {pct}%',
+      sparkLabel: '所选月份的每日支出',
+      prevMonth: '上个月',
+      nextMonth: '下个月',
+      emptyMonth: '{month}没有交易记录。',
+    },
     exportCsv: '导出 CSV',
     deleteAction: '移除',
     deleteConfirm: '确定移除这笔交易？移除后将不再计入总额。',
