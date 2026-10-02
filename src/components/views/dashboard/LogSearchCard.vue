@@ -25,7 +25,8 @@ function search() {
   const id = requestId.value.trim()
   if (!id) return
 
-  if (!/^req_[0-9a-f]{5}$/i.test(id)) {
+  // 12 hex = current ids; 5 hex = ids in older log files
+  if (!/^req_([0-9a-f]{12}|[0-9a-f]{5})$/i.test(id)) {
     toast.error(t('admin.logSearcher.invalidFormat'))
     return
   }

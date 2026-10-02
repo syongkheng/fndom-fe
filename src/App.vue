@@ -105,6 +105,9 @@ main {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  /* Flex item: without min-width 0, wide content (code blocks, tables)
+     stretches <main> past the viewport and gets clipped on mobile */
+  min-width: 0;
   /* important to allow children to scroll properly */
 }
 
