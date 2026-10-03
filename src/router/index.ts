@@ -91,18 +91,6 @@ const router = createRouter({
       beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
     },
     {
-      path: '/iot-key',
-      name: 'iot-key',
-      component: () => import('../components/views/iot/IotDeviceKeyView.vue'),
-      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
-    },
-    {
-      path: '/health',
-      name: 'health',
-      component: () => import('../components/views/health/GarminHealthView.vue'),
-      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
-    },
-    {
       path: '/ippt',
       name: 'ippt',
       component: () => import('../components/views/ippt/HomeView.vue'),

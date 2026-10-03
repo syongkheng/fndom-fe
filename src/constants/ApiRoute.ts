@@ -96,13 +96,6 @@ export const ApiRoute = {
     API_KEY:  `/ss-key/api-key`,
     RENAME_API_KEY: `/ss-key/api-key/name`,
   },
-  IOT: {
-    API_KEY: `/iot-key/api-key`,
-  },
-  GARMIN: {
-    TODAY: `/garmin/today`,
-    SUMMARY: (days: number) => `/garmin/summary?days=${days}`,
-  },
   DATA_GOV_SG: {
     // HDB Resale Flat Prices (Jan 2017 onwards) — update resource ID here if dataset changes
     HDB_RESALE_PRICES: `https://data.gov.sg/api/action/datastore_search`,

@@ -66,22 +66,6 @@ const personalModules = computed(() => [
         </span>
       </template>
 
-      <!-- IoT Device Key — any logged-in user -->
-      <template v-if="isAuthenticated">
-        <el-divider class="menu-divider" />
-        <span class="menu-item" @click="handleMenuClick(() => navigate.redirectTo('/iot-key'))">
-          <span class="menu-label">{{ t('nav.iotDevice') }}</span>
-        </span>
-      </template>
-
-      <!-- Health Dashboard — any logged-in user -->
-      <template v-if="isAuthenticated">
-        <el-divider class="menu-divider" />
-        <span class="menu-item" @click="handleMenuClick(() => navigate.redirectTo('/health'))">
-          <span class="menu-label">{{ t('nav.health') }}</span>
-        </span>
-      </template>
-
       <!-- Budget Tracker — any logged-in user -->
       <template v-if="isAuthenticated">
         <el-divider class="menu-divider" />
