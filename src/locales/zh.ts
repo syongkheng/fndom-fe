@@ -9,11 +9,6 @@ export default {
       desc: '按天规划行程，与旅伴实时协作，探索目的地。',
       cta: '开始 →',
     },
-    ai: {
-      label: 'AI 市场',
-      desc: '通过单一钱包按需访问 Claude、GPT-4o、Gemini 等前沿模型。',
-      cta: '开始 →',
-    },
   },
   nav: {
     login: '登录',
@@ -37,11 +32,9 @@ export default {
     badge2: '无需注册',
     highlights: {
       h1: '旅行规划工具 — 免费，无需注册',
-      h2: 'AI 市场 — Claude、GPT-4o、Gemini 等',
     },
     trust: {
       travel: '✈ 旅行规划',
-      ai: '🤖 AI 市场',
     },
     features: {
       eyebrow: '您的工具箱',
@@ -49,10 +42,6 @@ export default {
       planning: {
         title: '旅行规划',
         desc: '按天构建行程，添加活动和住宿，并与旅伴分享链接实时协作。',
-      },
-      ai: {
-        title: 'AI 市场',
-        desc: '一个账户，多个前沿模型。通过单一钱包按需使用 Claude、GPT-4o 和 Gemini。',
       },
       tools: {
         title: '生活工具',
@@ -72,8 +61,6 @@ export default {
       walletBalance: '钱包余额',
       topUp: '充值 →',
       actions: {
-        marketplace: 'AI 市场',
-        marketplaceDesc: '与顶尖大模型对话',
         wallet: '充值钱包',
         walletDesc: '为账户添加余额',
         apiKey: 'API 密钥',
@@ -95,7 +82,6 @@ export default {
       home: '首页',
       profile: '个人资料',
       workbench: '工作台',
-      aiMarketplace: 'AI 市场',
     },
   },
   workbench: {
@@ -108,7 +94,6 @@ export default {
       travel:      { label: '旅行',             desc: '行程规划与协作' },
       imghost:     { label: '图片 CDN',         desc: '上传图片 · 获取可分享的 CDN 链接' },
       ippt:        { label: 'IPPT · 训练',      desc: '追踪俯卧撑、仰卧起坐和 2.4 公里跑' },
-      marketplace: { label: '市场',             desc: '浏览并与 AI 服务对话' },
       bus:         { label: '公交时刻',         desc: '查找最近的公交站与实时到站时间' },
       admin:       { label: '管理',             desc: '管理用户、角色和系统设置' },
     },
@@ -703,99 +688,6 @@ export default {
     },
   },
 
-  marketplace: {
-    public: {
-      notice: '登录后即可与模型对话并管理钱包。',
-      signIn: '登录',
-    },
-    hero: {
-      eyebrow: 'Awense 市场',
-      beta: 'Beta',
-      heading: '通往前沿 AI 的入口。',
-      sub1: '一个 API，多家服务商，按需付费。',
-      sub2: '通过单一集成，访问全球最强大的语言模型。',
-      stats: {
-        models: '模型',
-        providers: '服务商',
-        maxContext: '最大上下文',
-        from: '起 / MTok',
-      },
-    },
-    filter: {
-      all: '全部',
-      count: '{n} 个模型',
-    },
-    card: {
-      context: '上下文',
-      maxOutput: '最大输出',
-      input: '输入',
-      output: '输出',
-      perMtok: '/ MTok',
-      tryChat: '开始对话',
-      badges: { popular: '热门', bestValue: '最超值', fastest: '最快速', new: '新上线' },
-    },
-    chat: {
-      empty: '发送消息以预览此模型。',
-      placeholder: '发送消息...',
-      send: '发送',
-      hint: '↵ 发送',
-      clear: '清除',
-      clearConfirm: '清除与 {name} 的对话？',
-      cancel: '取消',
-    },
-    chatPage: {
-      back: '← 市场',
-      clear: '清除',
-      clearConfirm: '清除此对话？',
-      cancel: '取消',
-      lockedTooltip: '返回市场以预览此模型',
-      empty: '发送消息以开始对话。',
-      placeholder: '发送消息...',
-      send: '发送',
-      hint: '↵ 发送',
-    },
-    models: {
-      'claude-sonnet-4-6': { description: '大多数任务的推荐模型。在编程、分析与推理方面表现卓越，兼顾速度与能力。' },
-      'claude-opus-4-8':   { description: 'Anthropic 最智能的模型。凭借卓越推理能力与深度理解，处理最复杂的任务。' },
-      'claude-haiku-4-5':  { description: 'Anthropic 最快速的模型。专为近实时响应、轻量分类和高吞吐量生产工作负载而设计。' },
-      'gpt-4o':            { description: 'OpenAI 旗舰多模态模型。在文本、视觉和音频理解方面表现出色，具备广泛的通用智能。' },
-      'gpt-4o-mini':       { description: '小巧且经济实惠。专为快速聚焦型任务设计 — 抽取、分类、摘要与结构化输出。' },
-      'gemini-2-flash':    { description: 'Google 下一代多模态模型。速度卓越，内置原生音频、图像和视频理解能力。' },
-      'gemini-1-5-pro':    { description: 'Google 长上下文专家模型。支持高达 200 万 token — 适合完整代码库、书籍和大规模数据集。' },
-      'llama-3-3-70b':     { description: 'Meta 开源旗舰模型。性能出众且完全透明 — 可通过 API 调用或在您自己的基础设施上部署。' },
-    },
-    back: '← 市场',
-    accountBar: {
-      balance: '余额',
-      topUp: '充值',
-      apiKey: 'API 密钥',
-    },
-    wallet: {
-      title: '钱包',
-      balance: '可用余额',
-      topUp: '充值',
-      customPlaceholder: '自定义金额（如 30）',
-      payCard: '银行卡',
-      payPaynow: 'PayNow',
-      mockNotice: '支付流程为模拟 — 不会产生真实扣费。',
-    },
-    apiKey: {
-      title: 'API 密钥',
-      cardTitle: '您的 API 密钥',
-      reveal: '显示',
-      hide: '隐藏',
-      rotateTitle: '轮换密钥',
-      rotateDesc: '生成新密钥，当前密钥将立即失效。',
-      rotateBtn: '轮换 API 密钥',
-      rotateConfirmTitle: '轮换 API 密钥',
-      rotateConfirmBody: '轮换密钥后，当前密钥将立即失效，所有使用旧密钥的集成将停止工作。',
-      rotateConfirmBtn: '轮换',
-      usageTitle: '使用说明',
-      usageDesc: 'API 密钥用于验证 Awense 市场的请求，请妥善保管，如有泄露请立即轮换。',
-      usageNote: '外部 API 访问即将上线。',
-      copy: '复制',
-    },
-  },
 
   common: {
     comingSoon: '页面即将上线。',

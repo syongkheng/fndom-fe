@@ -36,18 +36,6 @@ const { isAuthenticated } = storeToRefs(authStore)
         </el-button>
       </div>
 
-      <!-- AI Marketplace -->
-      <div class="service-card" @click="router.push('/llm')">
-        <div class="service-icon">🤖</div>
-        <div class="service-body">
-          <h2 class="service-name">{{ t('home.ai.label') }}</h2>
-          <p class="service-desc">{{ t('home.ai.desc') }}</p>
-        </div>
-        <el-button type="primary" size="large" class="service-cta">
-          {{ t('home.ai.cta') }}
-        </el-button>
-      </div>
-
     </div>
 
   </div>

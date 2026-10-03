@@ -5,13 +5,6 @@ const t = (key: string) => i18n.global.t(key)
 import { useAuthenticationStore } from '@/stores/authentication'
 import { useLayoutStateStore } from '@/stores/layoutState'
 
-// Holds the active X-API-Key (personal key takes priority over trial key).
-// Updated by the marketplace store whenever the key changes.
-let _activeApiKey: string | null = null
-export function setActiveApiKey(key: string | null): void {
-  _activeApiKey = key
-}
-
 const HttpClient = axios.create({
   baseURL: import.meta.env.VITE_SERVER_BASE_URL,
   withCredentials: true,
@@ -28,13 +21,6 @@ HttpClient.interceptors.request.use(
     if (config.method && config.method.toUpperCase() !== 'GET') {
       const csrfToken = getCsrfCookie()
       if (csrfToken) config.headers['X-CSRF-Token'] = csrfToken
-    }
-
-    // Inject X-API-Key only on chat endpoints — not on wallet, sessions, models, etc.
-    const url = config.url ?? ''
-    const CHAT_ENDPOINTS = ['/v1/llm/chat', '/v1/llm/trial/chat']
-    if (CHAT_ENDPOINTS.some(p => url.startsWith(p))) {
-      if (_activeApiKey) config.headers['X-API-Key'] = _activeApiKey
     }
 
     return config

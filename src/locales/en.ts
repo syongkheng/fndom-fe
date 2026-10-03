@@ -9,11 +9,6 @@ export default {
       desc: 'Plan day-by-day itineraries, share with companions, and explore destinations.',
       cta: 'Explore →',
     },
-    ai: {
-      label: 'AI Marketplace',
-      desc: 'Access Claude, GPT-4o, Gemini and more on a single pay-per-use wallet.',
-      cta: 'Explore →',
-    },
   },
   nav: {
     login: 'Login',
@@ -38,11 +33,9 @@ export default {
     badge2: 'No account needed',
     highlights: {
       h1: 'Travel planner — free, no account required',
-      h2: 'AI marketplace — Claude, GPT-4o, Gemini and more',
     },
     trust: {
       travel: '✈ Travel Planner',
-      ai: '🤖 AI Marketplace',
     },
     features: {
       eyebrow: 'Your toolkit',
@@ -50,10 +43,6 @@ export default {
       planning: {
         title: 'Travel Planning',
         desc: 'Build day-by-day itineraries, add activities and accommodation, and share with travel companions.',
-      },
-      ai: {
-        title: 'AI Marketplace',
-        desc: 'One account. Multiple frontier models. Access Claude, GPT-4o, and Gemini on a single pay-per-use wallet.',
       },
       tools: {
         title: 'Lifestyle Tools',
@@ -73,8 +62,6 @@ export default {
       walletBalance: 'Wallet balance',
       topUp: 'Top Up →',
       actions: {
-        marketplace: 'AI Marketplace',
-        marketplaceDesc: 'Chat with leading LLMs',
         wallet: 'Top Up Wallet',
         walletDesc: 'Add credits to your account',
         apiKey: 'API Key',
@@ -96,7 +83,6 @@ export default {
       home: 'Home',
       profile: 'Profile',
       workbench: 'Workbench',
-      aiMarketplace: 'AI Marketplace',
     },
   },
   workbench: {
@@ -109,7 +95,6 @@ export default {
       travel:      { label: 'Travel',            desc: 'Itinerary planning and collaboration' },
       imghost:     { label: 'Image CDN',         desc: 'Upload an image · Get a shareable CDN link' },
       ippt:        { label: 'IPPT · Strider',    desc: 'Track push-ups, sit-ups and 2.4km run · Project your score' },
-      marketplace: { label: 'Marketplace',       desc: 'Browse and chat with AI-powered services' },
       bus:         { label: 'Bus Timings',       desc: 'Find your nearest bus stop and live arrival times' },
       admin:       { label: 'Admin',             desc: 'Manage users, roles, and system settings' },
     },
@@ -704,99 +689,6 @@ export default {
     },
   },
 
-  marketplace: {
-    public: {
-      notice: 'Sign in to chat with models and manage your wallet.',
-      signIn: 'Sign In',
-    },
-    hero: {
-      eyebrow: 'Awense Marketplace',
-      beta: 'Beta',
-      heading: 'Your gateway to frontier AI.',
-      sub1: 'One API. Multiple providers. Pay-per-use.',
-      sub2: "Access the world's most capable language models with a single integration.",
-      stats: {
-        models: 'Models',
-        providers: 'Providers',
-        maxContext: 'Max Context',
-        from: 'From / MTok',
-      },
-    },
-    filter: {
-      all: 'All',
-      count: '{n} models',
-    },
-    card: {
-      context: 'Context',
-      maxOutput: 'Max output',
-      input: 'Input',
-      output: 'Output',
-      perMtok: '/ MTok',
-      tryChat: 'Try in Chat',
-      badges: { popular: 'Popular', bestValue: 'Best Value', fastest: 'Fastest', new: 'New' },
-    },
-    chat: {
-      empty: 'Send a message to preview this model.',
-      placeholder: 'Message...',
-      send: 'Send',
-      hint: '↵ send',
-      clear: 'Clear',
-      clearConfirm: 'Clear chat with {name}?',
-      cancel: 'Cancel',
-    },
-    chatPage: {
-      back: '← Marketplace',
-      clear: 'Clear',
-      clearConfirm: 'Clear this conversation?',
-      cancel: 'Cancel',
-      lockedTooltip: 'Return to Marketplace to preview this model',
-      empty: 'Send a message to start the conversation.',
-      placeholder: 'Message...',
-      send: 'Send',
-      hint: '↵ send',
-    },
-    models: {
-      'claude-sonnet-4-6': { description: 'The recommended model for most tasks. Excellent at coding, analysis and nuanced reasoning with a strong balance of speed and capability.' },
-      'claude-opus-4-8':   { description: "Anthropic's most intelligent model. Handles the most complex tasks with superior reasoning, nuanced understanding and extended thinking." },
-      'claude-haiku-4-5':  { description: "Anthropic's fastest model. Built for near-instant responses, lightweight classification, and high-throughput production workloads." },
-      'gpt-4o':            { description: "OpenAI's flagship multimodal model. Strong across text, vision and audio understanding with broad general intelligence." },
-      'gpt-4o-mini':       { description: 'Small and affordable. Designed for fast, focused tasks — extraction, classification, summarisation and structured outputs.' },
-      'gemini-2-flash':    { description: "Google's next-generation multimodal model. Exceptional speed with native audio, image and video understanding built in." },
-      'gemini-1-5-pro':    { description: "Google's long-context specialist. Handles up to 2 million tokens — ideal for entire codebases, books and large datasets." },
-      'llama-3-3-70b':     { description: "Meta's open-source powerhouse. Competitive performance with full transparency — run via API or on your own infrastructure." },
-    },
-    back: '← Marketplace',
-    accountBar: {
-      balance: 'Balance',
-      topUp: 'Top Up',
-      apiKey: 'API Key',
-    },
-    wallet: {
-      title: 'Wallet',
-      balance: 'Available Balance',
-      topUp: 'Top Up',
-      customPlaceholder: 'Custom amount (e.g. 30)',
-      payCard: 'Card',
-      payPaynow: 'PayNow',
-      mockNotice: 'Payment processing is mocked — no real charge will be made.',
-    },
-    apiKey: {
-      title: 'API Key',
-      cardTitle: 'Your API Key',
-      reveal: 'Reveal',
-      hide: 'Hide',
-      rotateTitle: 'Rotate Key',
-      rotateDesc: 'Generate a new API key. Your current key will be immediately invalidated.',
-      rotateBtn: 'Rotate API Key',
-      rotateConfirmTitle: 'Rotate API Key',
-      rotateConfirmBody: 'Rotating your API key will immediately invalidate the current one. Any integrations using the old key will stop working.',
-      rotateConfirmBtn: 'Rotate',
-      usageTitle: 'How to use',
-      usageDesc: 'Your API key authenticates requests to the Awense Marketplace. Keep it secret and rotate it immediately if compromised.',
-      usageNote: 'External API access is coming soon.',
-      copy: 'Copy',
-    },
-  },
 
   common: {
     comingSoon: 'Page coming soon.',

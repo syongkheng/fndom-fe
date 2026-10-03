@@ -48,8 +48,8 @@ export default function useProfileManager() {
     })
   }
 
-  async function updatePassword(newPassword: string) {
-    return await HttpClient.post(ApiRoute.PROFILE.UPDATE_PASSWORD, { newPassword }).then((res) => {
+  async function updatePassword(currentPassword: string, newPassword: string) {
+    return await HttpClient.post(ApiRoute.PROFILE.UPDATE_PASSWORD, { currentPassword, newPassword }).then((res) => {
       return res.data.code === 200
     })
   }

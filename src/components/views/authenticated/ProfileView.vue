@@ -141,7 +141,10 @@ const handleChangePassword = async () => {
     return
   }
 
-  const result = await updatePassword(passwordForm.value.newPassword)
+  const result = await updatePassword(
+    passwordForm.value.currentPassword,
+    passwordForm.value.newPassword,
+  )
 
   if (result) {
     passwordForm.value = { currentPassword: '', newPassword: '', confirmPassword: '' }

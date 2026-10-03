@@ -66,10 +66,10 @@ watch(() => route.name, () => {
       <!-- <SideNavigation /> -->
       <MobileNavigation />
       <main>
-        <div class="wrapper" :class="{ 'wrapper--fullbleed': ['llm', 'llm-chat', 'home'].includes(route.name as string) }">
+        <div class="wrapper" :class="{ 'wrapper--fullbleed': ['home'].includes(route.name as string) }">
           <RouterView />
         </div>
-        <footer v-if="route.name !== 'llm-chat'">
+        <footer>
           <FooterNavigation />
         </footer>
       </main>

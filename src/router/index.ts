@@ -109,29 +109,6 @@ const router = createRouter({
       beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
     },
     {
-      path: '/llm',
-      name: 'llm',
-      component: () => import('../components/views/marketplace/MarketplaceView.vue'),
-    },
-    {
-      path: '/llm/chat',
-      name: 'llm-chat',
-      component: () => import('../components/views/marketplace/ChatView.vue'),
-      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
-    },
-    {
-      path: '/llm/wallet',
-      name: 'llm-wallet',
-      component: () => import('../components/views/marketplace/WalletView.vue'),
-      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
-    },
-    {
-      path: '/llm/api-key',
-      name: 'llm-api-key',
-      component: () => import('../components/views/marketplace/ApiKeyView.vue'),
-      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
-    },
-    {
       path: '/admin',
       name: 'admin',
       component: () => import('../components/views/admin/AdminView.vue'),

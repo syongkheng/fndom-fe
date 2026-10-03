@@ -10,13 +10,13 @@ const { t } = useI18n()
 
 const MODULE_ICONS: Record<string, string> = {
   pphs: '🏢', flat: '🏠', travel: '✈️',
-  imghost: '🖼️', ippt: '🪖', marketplace: '🛒', bus: '🚌',
+  imghost: '🖼️', ippt: '🪖', bus: '🚌',
 }
 const MODULE_PATHS: Record<string, string> = {
   pphs: '/pphs', flat: '/flat', travel: '/travel',
-  imghost: '/imghost', ippt: '/ippt', marketplace: '/llm', bus: '/bus',
+  imghost: '/imghost', ippt: '/ippt', bus: '/bus',
 }
-const MODULE_KEYS = ['pphs', 'flat', 'travel', 'imghost', 'ippt', 'marketplace', 'bus'] as const
+const MODULE_KEYS = ['pphs', 'flat', 'travel', 'imghost', 'ippt', 'bus'] as const
 
 const modules = computed(() =>
   MODULE_KEYS.map(key => ({
