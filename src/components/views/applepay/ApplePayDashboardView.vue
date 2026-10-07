@@ -290,6 +290,78 @@ const onDeleteTransaction = async (tx: ApplePayTransaction) => {
   if (showDuplicatesOnly.value && duplicatePairCount.value === 0) showDuplicatesOnly.value = false
 }
 
+// ── Mobile swipe-left to delete: short swipe reveals the Delete button,
+// a long swipe (past SWIPE_FULL_RATIO of the row) deletes straight away ──
+const SWIPE_ACTION_WIDTH = 88
+const SWIPE_FULL_RATIO = 0.6
+const SWIPE_LOCK_PX = 8
+
+const revealedId = ref<string | null>(null)
+const swipe = ref({ id: null as string | null, startX: 0, startY: 0, base: 0, offset: 0, rowWidth: 0, axis: null as 'x' | 'y' | null })
+let suppressNextClick = false
+
+const rowOffset = (tx: ApplePayTransaction) => {
+  if (swipe.value.id === tx.id && swipe.value.axis === 'x') return swipe.value.offset
+  return revealedId.value === tx.id ? -SWIPE_ACTION_WIDTH : 0
+}
+
+const onSwipeStart = (e: PointerEvent, tx: ApplePayTransaction) => {
+  if (deletingId.value) return
+  const wasRevealed = revealedId.value === tx.id
+  if (!wasRevealed) revealedId.value = null
+  swipe.value = {
+    id: tx.id,
+    startX: e.clientX,
+    startY: e.clientY,
+    base: wasRevealed ? -SWIPE_ACTION_WIDTH : 0,
+    offset: wasRevealed ? -SWIPE_ACTION_WIDTH : 0,
+    rowWidth: (e.currentTarget as HTMLElement).offsetWidth,
+    axis: null,
+  }
+}
+
+const onSwipeMove = (e: PointerEvent) => {
+  const s = swipe.value
+  if (!s.id || s.axis === 'y') return
+  const dx = e.clientX - s.startX
+  const dy = e.clientY - s.startY
+  if (!s.axis) {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_LOCK_PX) return
+    s.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'
+    if (s.axis === 'x') (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  }
+  if (s.axis === 'x') s.offset = Math.min(0, Math.max(-s.rowWidth, s.base + dx))
+}
+
+const onSwipeEnd = (tx: ApplePayTransaction) => {
+  const s = swipe.value
+  if (s.id !== tx.id) return
+  const wasHorizontal = s.axis === 'x'
+  const offset = s.offset
+  const rowWidth = s.rowWidth
+  swipe.value = { ...s, id: null, axis: null }
+  if (!wasHorizontal) return
+  suppressNextClick = true
+  if (offset < -rowWidth * SWIPE_FULL_RATIO) {
+    revealedId.value = null
+    void onDeleteTransaction(tx)
+  } else {
+    revealedId.value = offset < -SWIPE_ACTION_WIDTH / 2 ? tx.id : null
+  }
+}
+
+const onRowClick = (tx: ApplePayTransaction) => {
+  if (suppressNextClick) {
+    suppressNextClick = false
+    return
+  }
+  if (revealedId.value) {
+    revealedId.value = null
+    return
+  }
+  openSheet(tx)
+}
+
 // ── Manual entry (cash, missed alerts) ──
 const addDialogVisible = ref(false)
 const addSaving = ref(false)
@@ -940,8 +1012,30 @@ const pieOptions = {
                 <span class="tx-day-total">{{ formatAmount(group.total) }}</span>
               </header>
               <ul class="tx-rows">
-                <li v-for="tx in group.items" :key="tx.id">
-                  <button type="button" class="tx-row" @click="openSheet(tx)">
+                <li v-for="tx in group.items" :key="tx.id" class="tx-swipe">
+                  <button
+                    type="button"
+                    class="tx-swipe-action"
+                    :style="{ width: `${SWIPE_ACTION_WIDTH}px` }"
+                    :disabled="deletingId === tx.id"
+                    :tabindex="revealedId === tx.id ? 0 : -1"
+                    :aria-label="t('applepay.deleteAction')"
+                    @click="onDeleteTransaction(tx)"
+                  >
+                    <el-icon><Delete /></el-icon>
+                    <span>{{ t('applepay.deleteAction') }}</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="tx-row"
+                    :class="{ 'tx-row--dragging': swipe.id === tx.id && swipe.axis === 'x' }"
+                    :style="{ transform: `translateX(${rowOffset(tx)}px)` }"
+                    @click="onRowClick(tx)"
+                    @pointerdown="onSwipeStart($event, tx)"
+                    @pointermove="onSwipeMove"
+                    @pointerup="onSwipeEnd(tx)"
+                    @pointercancel="onSwipeEnd(tx)"
+                  >
                     <span class="tx-row-line">
                       <span class="tx-row-merchant">{{ tx.merchant }}</span>
                       <span class="tx-row-amount">{{ formatAmount(tx.amount) }}</span>
@@ -1811,19 +1905,55 @@ const pieOptions = {
   border-top: 1px solid var(--color-border);
 }
 
+.tx-swipe {
+  position: relative;
+  overflow: hidden;
+}
+
+.tx-swipe-action {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: none;
+  background: var(--el-color-danger);
+  color: #fff;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tx-swipe-action:disabled {
+  opacity: 0.6;
+}
+
 .tx-row {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
   width: 100%;
   padding: 10px 14px;
   border: none;
-  background: transparent;
+  background: var(--color-background-soft);
   color: inherit;
   font: inherit;
   text-align: left;
   cursor: pointer;
+  touch-action: pan-y;
+  transition: transform 0.2s ease;
   -webkit-tap-highlight-color: transparent;
+}
+
+.tx-row--dragging {
+  transition: none;
 }
 
 .tx-row:active {
