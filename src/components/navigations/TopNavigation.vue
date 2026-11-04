@@ -1,108 +1,106 @@
 <script lang="ts" setup>
 import { Star, User } from '@element-plus/icons-vue'
 import { useNav } from '@/hooks/useNav'
-import { Grid } from '@element-plus/icons-vue'
 import { useLayoutStateStore } from '@/stores/layoutState'
 import { useAuthenticationStore } from '@/stores/authentication'
 import { storeToRefs } from 'pinia'
-import { useBreakpointManager } from '@/hooks/useBreakpointManager'
-import { Breakpoint } from '@/constants/Breakpoint'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useThemeStore } from '@/stores/theme'
 import { useLocale } from '@/composables/useLocale'
+import { usePermission } from '@/composables/usePermission'
 import StableWidth from '@/components/common/StableWidth.vue'
 
 const { redirectTo, redirectToProfile } = useNav()
 const themeStore = useThemeStore()
+const { t } = useI18n()
 
 const layoutStore = useLayoutStateStore()
 const authStore = useAuthenticationStore()
 const { isAuthenticated } = storeToRefs(authStore) // Preserves reactivity
-const { isScreensizeBelow } = useBreakpointManager()
-const mobileDropdownMenu = computed(() => isScreensizeBelow(Breakpoint.M))
+const { hasModuleAccess } = usePermission()
+const isInternal = computed(() => hasModuleAccess('SYSTEM', 5))
 
 const { locale, setLocale } = useLocale()
 
-defineProps<{ hidden?: boolean }>()
-
-// position:sticky is silently inert here: #app/body set overflow-x:hidden
-// without overflow-y, and per spec that forces overflow-y to compute as auto
-// on both — so .header's nearest "scroll container" ancestor for sticky
-// purposes becomes #app (which never itself scrolls, being content-sized),
-// not the real scrolling element (<html>). Sticky then just behaves like
-// static positioning once content exceeds one screen. Only the home hero
-// currently has taller-than-viewport content, so only there do we need a
-// real viewport-fixed header — everywhere else this bug is latent/harmless
-// (content has always fit in one screen) and left alone rather than fixing
-// site-wide positioning as a side effect of this feature.
 const route = useRoute()
-const isHomeRoute = computed(() => route.name === 'home')
 
-const isAdminViewEnabled = computed({
-  get() {
-    return !authStore.turnOffAdminFeatures
-  },
-  set(value: boolean) {
-    authStore.turnOffAdminFeatures = !value
-  }
-})
+// Primary navigation — the two hero modules first, then account-level tools.
+// (position:sticky works here now that main.css uses overflow-x:clip.)
+const links = computed(() => [
+  { key: 'workbench', label: t('nav.workbench'), path: '/', show: true },
+  { key: 'house', label: t('nav.house'), path: '/house', show: true },
+  { key: 'budget', label: t('nav.budget'), path: '/budget', show: true },
+  { key: 'todo', label: t('nav.todo'), path: '/todo', show: true },
+  { key: 'trips', label: t('nav.trips'), path: '/travel/trips', show: true },
+  { key: 'applePay', label: t('nav.applePay'), path: '/apple-pay', show: isAuthenticated.value },
+  { key: 'admin', label: t('nav.admin'), path: '/admin', show: isInternal.value },
+].filter((l) => l.show))
 
-const handleMenuExpansion = () => {
-  if (!mobileDropdownMenu.value) {
-    layoutStore.sideNav.toggle()
-  } else {
-    layoutStore.mobileNavMenu.toggle()
-  }
-}
-
-
-
+const isActive = (path: string) =>
+  path === '/' ? route.path === '/' : route.path === path || route.path.startsWith(`${path}/`)
 </script>
 
 <template>
-  <header class="header" :class="{ 'header--hidden': hidden, 'header--overlay': isHomeRoute }">
+  <header class="header">
     <nav class="nav-container">
-      <div class="engagement-container">
-        <div class="clickable toggle-menu-expansion" @click="handleMenuExpansion">
-          <!-- <el-icon :size="25">
-            <Grid />
-          </el-icon>
-          <span>Menu</span> -->
-        </div>
-        <div class="logo-env clickable" @click="redirectTo('/')">
-          <div>
-            <img src="../../../public/awense-logo.png" width="50px" />
-          </div>
-          <div class="clock-wrapper">
-
-            <!-- <div>
-              <RouterLink to="/">{{ 'Awense' }}</RouterLink>
-            </div> -->
-            <!-- <div class="clock">
-              <UtcClock />
-            </div> -->
-          </div>
-        </div>
+      <div class="brand clickable" role="link" tabindex="0" @click="redirectTo('/')" @keydown.enter="redirectTo('/')">
+        <svg class="brand-mark" viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">
+          <rect width="32" height="32" rx="10" fill="var(--color-primary)" />
+          <path d="M8 16.2 16 9l8 7.2V23a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 8 23z" fill="#fff" />
+          <circle cx="16" cy="18" r="2.6" fill="var(--color-accent)" />
+        </svg>
+        <span class="brand-name">AWENSE</span>
       </div>
+
+      <div class="primary-links">
+        <button
+          v-for="l in links"
+          :key="l.key"
+          type="button"
+          class="primary-link"
+          :class="{ active: isActive(l.path) }"
+          @click="redirectTo(l.path)"
+        >
+          {{ l.label }}
+        </button>
+      </div>
+
       <div class="nav-links">
         <div class="lang-toggle">
           <button type="button" :class="{ active: locale === 'en' }" @click="setLocale('en')">EN</button>
           <button type="button" :class="{ active: locale === 'zh' }" @click="setLocale('zh')">中</button>
         </div>
-        <el-button circle size="small" class="theme-toggle" @click="themeStore.toggle()">
-          <span>{{ themeStore.isDark ? '☀️' : '🌙' }}</span>
-        </el-button>
-        <span v-if="!isAuthenticated">
+        <button type="button" class="icon-btn" :aria-label="t('nav.toggleTheme')" @click="themeStore.toggle()">
+          <svg v-if="themeStore.isDark" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.6" />
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="1.6" />
+          </svg>
+          <svg v-else viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="1.6" />
+          </svg>
+        </button>
+        <span v-if="!isAuthenticated" class="auth-btn">
           <el-button @click="layoutStore.loginDialog.toggle()" type="primary" :icon="Star" size="small">
             <StableWidth path="nav.login" />
           </el-button>
         </span>
-        <span v-else>
+        <span v-else class="auth-btn">
           <el-button @click="redirectToProfile()" type="primary" :icon="User" size="small">
             <StableWidth path="nav.profile" />
           </el-button>
         </span>
+        <button
+          type="button"
+          class="icon-btn menu-btn"
+          :aria-label="t('nav.menu')"
+          @click="layoutStore.mobileNavMenu.toggle()"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="1.6" />
+          </svg>
+        </button>
       </div>
     </nav>
   </header>
@@ -113,169 +111,134 @@ const handleMenuExpansion = () => {
   position: sticky;
   top: 0;
   z-index: 9999;
-  padding: 1em;
-  background-color: var(--color-background-soft);
-  border-bottom: 1px solid var(--color-border);
-  height: 80px;
+  padding: 0 1em;
+  background-color: color-mix(in srgb, var(--color-background-soft) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-divider);
+  height: 64px;
   display: flex;
-  flex-direction: row;
-  flex: 1;
   align-items: center;
-  justify-content: space-between;
-  width: 100vw;
-  transition: transform 0.28s ease;
-}
-
-.header--hidden {
-  transform: translateY(-100%);
-}
-
-.header--overlay {
-  /* position:sticky is inert once content is taller than one viewport (see
-     the comment in the script block) — use a real viewport-fixed overlay
-     here so hide/show-on-scroll actually tracks the browser window. */
-  position: fixed;
-  top: 0;
-  left: 0;
-}
-
-.clock-wrapper {
-  display: flex;
-  flex-direction: column;
-}
-
-.clock {
-  font-size: 0.65rem;
-  padding: 0.3rem 0.5rem;
-  border-radius: 0.1rem;
-  background-color: var(--color-background);
+  width: 100%;
 }
 
 .nav-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1.5rem;
   margin: 0 auto;
   flex: 1;
   max-width: 1200px;
 }
 
-/* Logo & Menu Toggle */
-.logo-env {
+/* Brand */
+.brand {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-
-  a {
-    font: bold 1.5em sans-serif;
-    color: var(--color-heading);
-    text-decoration: none;
-  }
+  gap: 0.55rem;
+  color: var(--color-primary);
+}
+.brand-name {
+  font-weight: 800;
+  font-size: 1.15rem;
+  letter-spacing: 0.04em;
+  color: var(--color-heading);
 }
 
-/* Navigation Links */
+/* Primary links */
+.primary-links {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex: 1;
+}
+.primary-link {
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 0.45rem 0.95rem;
+  background: none;
+  border: none;
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.primary-link:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+.primary-link.active {
+  color: #fff;
+  background: var(--color-primary);
+}
+
 .nav-links {
-  gap: 2em;
-  margin: 0;
-  padding: 0;
-  list-style: none;
   display: flex;
-  flex-direction: row;
   align-items: center;
-
-  a {
-    color: var(--color-heading);
-    font-weight: 500;
-    text-decoration: none;
-    transition: color 0.3s ease;
-
-    &:hover,
-    &.active {
-      color: var(--el-color-primary);
-    }
-
-    &.active {
-      border-bottom: 2px solid var(--el-color-primary);
-    }
-  }
+  gap: 0.75rem;
 }
 
-/* Utility Classes */
-.clickable {
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  color: var(--color-text);
   cursor: pointer;
 }
-
-.toggle-menu-expansion {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: var(--color-text);
-  opacity: 0.5;
+.icon-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
-
-.theme-toggle {
-  font-size: 0.85rem;
+.menu-btn {
+  display: none;
 }
 
 .lang-toggle {
   display: flex;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: 999px;
   overflow: hidden;
 }
-
 .lang-toggle button {
-  padding: 4px 9px;
-  font-size: 0.72rem;
-  font-weight: 600;
+  padding: 6px 9px;
+  font-size: 0.74rem;
+  font-weight: 800;
   background: transparent;
   border: none;
   cursor: pointer;
   color: var(--color-text);
-  opacity: 0.5;
+  opacity: 0.55;
   line-height: 1;
 }
-
 .lang-toggle button.active {
-  background: var(--el-color-primary);
+  background: var(--color-primary);
   color: #fff;
   opacity: 1;
 }
 
-/* Search & Engagement */
-.engagement-container {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+.clickable {
+  cursor: pointer;
 }
 
-.engagement-search-container {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  align-items: center;
-  justify-content: center;
-  padding: 0 1rem 0 0.25rem;
-  color: var(--white);
-  background-color: var(--success-color);
-  border-radius: 0 0.25rem 0.25rem 0;
-}
-
-/* Element Plus Overrides */
-:deep(.el-input__wrapper) {
-  padding-right: 0;
-}
-
-/* Responsive Behavior */
+/* Mobile: links move into the MobileNavigation dialog */
 @media (max-width: 800px) {
-
-  /* .engagement-container>*:not(.toggle-menu-expansion):not(.logo-env),
-  .nav-links>*:not(:has(.el-button--success)) {
+  .primary-links {
     display: none;
-  } */
-
-  .el-button--success {
-    display: inline-flex;
+  }
+  .menu-btn {
+    display: inline-grid;
+  }
+  .nav-container {
+    gap: 0.75rem;
+  }
+  .nav-links {
+    margin-left: auto;
+    gap: 0.5rem;
   }
 }
 </style>

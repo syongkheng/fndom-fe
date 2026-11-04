@@ -1,6 +1,6 @@
 <script lang="ts" setup>
+import { useToast } from '@/composables/useToast'
 import { computed } from 'vue'
-import { ElDialog, ElDivider, ElMessage } from 'element-plus'
 import { useLayoutStateStore } from '@/stores/layoutState'
 import { useNav } from '@/hooks/useNav'
 import { useAuthenticationStore } from '@/stores/authentication'
@@ -13,6 +13,7 @@ const layoutStore = useLayoutStateStore()
 const navigate = useNav()
 const { hasModuleAccess } = usePermission()
 const { t } = useI18n()
+const toast = useToast()
 
 const { isAuthenticated } = storeToRefs(authStore)
 const isInternal = computed(() => hasModuleAccess('SYSTEM', 5))
@@ -25,79 +26,33 @@ const handleMenuClick = (action: () => void) => {
 const handleLogout = () => {
   authStore.handleLogout()
   navigate.redirectToLanding()
-  ElMessage.success(t('toast.logoutSuccess'))
+  toast.success(t('toast.logoutSuccess'))
 }
 
-const publicModules = computed(() => [
-  { label: t('workbench.tiles.pphs.label'),   path: '/pphs' },
-  { label: t('workbench.tiles.flat.label'),   path: '/flat' },
-])
-
-const personalModules = computed(() => [
-  { label: t('workbench.tiles.travel.label'),      path: '/travel' },
-])
+// Mirrors TopNavigation's primary links, numbered like a drawing index.
+const items = computed(() => [
+  { key: 'home', label: t('nav.workbench'), path: '/', show: true },
+  { key: 'house', label: t('nav.house'), path: '/house', show: true },
+  { key: 'budget', label: t('nav.budget'), path: '/budget', show: true },
+  { key: 'todo', label: t('nav.todo'), path: '/todo', show: true },
+  { key: 'trips', label: t('nav.trips'), path: '/travel/trips', show: true },
+  { key: 'applePay', label: t('nav.applePay'), path: '/apple-pay', show: isAuthenticated.value },
+  { key: 'admin', label: t('nav.admin'), path: '/admin', show: isInternal.value },
+].filter((i) => i.show))
 </script>
 
 <template>
   <el-dialog v-model="layoutStore.mobileNavMenu.isVisible" width="280px" align-center class="mobile-menu-dialog">
     <div class="menu-container">
-
       <span class="menu-item" @click="handleMenuClick(() => layoutStore.loginDialog.toggle())" v-if="!isAuthenticated">
         <span class="menu-label">{{ t('nav.login') }}</span>
       </span>
 
-      <span class="menu-item" @click="handleMenuClick(() => navigate.redirectTo(isInternal ? '/workbench' : '/'))">
-        <span class="menu-label">{{ t('nav.home') }}</span>
+      <span v-for="(item, i) in items" :key="item.key" class="menu-item"
+        @click="handleMenuClick(() => navigate.redirectTo(item.path))">
+        <span class="menu-index">{{ String(i + 1).padStart(2, '0') }}</span>
+        <span class="menu-label">{{ item.label }}</span>
       </span>
-
-      <!-- Travel — visible to everyone -->
-      <template>
-        <el-divider class="menu-divider" />
-        <span class="menu-item" @click="handleMenuClick(() => navigate.redirectTo('/travel'))">
-          <span class="menu-label">{{ t('nav.travel') }}</span>
-        </span>
-      </template>
-
-      <!-- Siri Shortcuts API Key — any logged-in user -->
-      <template v-if="isAuthenticated">
-        <el-divider class="menu-divider" />
-        <span class="menu-item" @click="handleMenuClick(() => navigate.redirectTo('/ss-key'))">
-          <span class="menu-label">{{ t('nav.ssKey') }}</span>
-        </span>
-      </template>
-
-      <!-- Budget Tracker — any logged-in user -->
-      <template v-if="isAuthenticated">
-        <el-divider class="menu-divider" />
-        <span class="menu-item" @click="handleMenuClick(() => navigate.redirectTo('/budget'))">
-          <span class="menu-label">{{ t('nav.budget') }}</span>
-        </span>
-      </template>
-
-      <!-- Apple Pay Dashboard — any logged-in user -->
-      <template v-if="isAuthenticated">
-        <el-divider class="menu-divider" />
-        <span class="menu-item" @click="handleMenuClick(() => navigate.redirectTo('/apple-pay'))">
-          <span class="menu-label">{{ t('nav.applePay') }}</span>
-        </span>
-      </template>
-
-      <!-- Internal modules — SYSTEM_R5 only -->
-      <template v-if="isInternal">
-        <el-divider class="menu-divider" />
-        <span v-for="mod in publicModules" :key="mod.path" class="menu-item"
-          @click="handleMenuClick(() => navigate.redirectTo(mod.path))">
-          <span class="menu-label">{{ mod.label }}</span>
-        </span>
-      </template>
-
-      <template v-if="isInternal && isAuthenticated">
-        <el-divider class="menu-divider" />
-        <span v-for="mod in personalModules.filter(m => m.path !== '/travel')" :key="mod.path" class="menu-item"
-          @click="handleMenuClick(() => navigate.redirectTo(mod.path))">
-          <span class="menu-label">{{ mod.label }}</span>
-        </span>
-      </template>
 
       <template v-if="isAuthenticated">
         <el-divider class="menu-divider" />
@@ -108,7 +63,6 @@ const personalModules = computed(() => [
           <span class="menu-label">{{ t('nav.logout') }}</span>
         </span>
       </template>
-
     </div>
   </el-dialog>
 </template>
@@ -119,7 +73,6 @@ const personalModules = computed(() => [
   --menu-hover: var(--color-background-mute);
   --menu-active: var(--el-color-primary-light-9);
   --menu-text: var(--color-heading);
-  --menu-radius: 8px;
 
   .el-dialog__body {
     padding: 0;
@@ -136,6 +89,7 @@ const personalModules = computed(() => [
 .menu-item {
   display: flex;
   align-items: center;
+  gap: 12px;
   padding: 11px 20px;
   color: var(--menu-text);
   font-size: 0.95rem;
@@ -153,13 +107,22 @@ const personalModules = computed(() => [
 }
 
 .menu-item--danger {
-  color: var(--el-color-danger);
-  opacity: 0.8;
+  color: var(--color-danger);
+  opacity: 0.85;
+}
+
+.menu-index {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--color-text-tertiary);
 }
 
 .menu-label {
   flex: 1;
-  font-weight: 500;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .menu-divider {

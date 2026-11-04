@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppIcon from '@/components/common/AppIcon.vue'
 import { ApiRoute } from '@/constants/ApiRoute'
 import HttpClient from '@/interceptors/HttpClient'
 import type { BusRouteInformation } from '@/interfaces/BusRouteInformation.model'
@@ -102,7 +103,7 @@ onMounted(() => {
     <div class="card-top">
       <div class="card-main">
         <div class="name">{{ displayName }}</div>
-        <div class="address">📍 {{ result.ADDRESS }}</div>
+        <div class="address"><AppIcon name="pin" /> {{ result.ADDRESS }}</div>
         <div class="coords">{{ result.LATITUDE }}, {{ result.LONGITUDE }}</div>
       </div>
       <div class="card-side">

@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast'
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
@@ -8,6 +8,7 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const { t } = useI18n()
+const toast = useToast()
 
 interface AdminRecord {
   id: number
@@ -50,11 +51,11 @@ const submitAdd = async () => {
   const res = await HttpClient.post(ApiRoute.TG_IMG.ADMIN.ADD, { telegramUserId: userId }).catch(() => null)
   adding.value = false
   if (res?.data?.data?.added) {
-    ElMessage.success(t('toast.adminTgUserAdded', { userId }))
+    toast.success(t('toast.adminTgUserAdded', { userId }))
     addVisible.value = false
     await fetchAdmins()
   } else {
-    ElMessage.error(t('toast.adminTgAddFailed'))
+    toast.error(t('toast.adminTgAddFailed'))
   }
 }
 
@@ -64,9 +65,9 @@ const removeAdmin = async (record: AdminRecord) => {
   removing.value[record.id] = false
   if (res?.data?.data?.removed) {
     admins.value = admins.value.filter(a => a.id !== record.id)
-    ElMessage.success(t('toast.adminTgRemoved'))
+    toast.success(t('toast.adminTgRemoved'))
   } else {
-    ElMessage.error(t('toast.adminTgRemoveFailed'))
+    toast.error(t('toast.adminTgRemoveFailed'))
   }
 }
 </script>
@@ -200,7 +201,7 @@ const removeAdmin = async (record: AdminRecord) => {
   justify-content: space-between;
   padding: 14px 16px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--color-background-soft);
   transition: border-color 0.15s;
 }

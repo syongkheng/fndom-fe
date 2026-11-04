@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppIcon from '@/components/common/AppIcon.vue'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -45,7 +46,7 @@ onMounted(async () => {
     <div class="admin-cards" v-loading="loading">
 
       <div class="admin-card" @click="router.push('/admin/users')">
-        <div class="admin-card-icon">👤</div>
+        <div class="admin-card-icon"><AppIcon name="user" /></div>
         <div class="admin-card-body">
           <div class="admin-card-title">User Management</div>
           <div class="admin-card-desc">Grant and revoke module roles across all registered users.</div>
@@ -58,7 +59,7 @@ onMounted(async () => {
       </div>
 
       <div class="admin-card" @click="router.push('/admin/tg-image')">
-        <div class="admin-card-icon">🤖</div>
+        <div class="admin-card-icon"><AppIcon name="bot" /></div>
         <div class="admin-card-body">
           <div class="admin-card-title">Telegram Bot Admins</div>
           <div class="admin-card-desc">Manage who can use the bot's admin commands and onboard for Telegram log alerts.</div>
@@ -71,7 +72,7 @@ onMounted(async () => {
       </div>
 
       <div class="admin-card" @click="router.push('/admin/log-searcher')">
-        <div class="admin-card-icon">🔍</div>
+        <div class="admin-card-icon"><AppIcon name="search" /></div>
         <div class="admin-card-body">
           <div class="admin-card-title">{{ t('admin.logSearcher.cardTile') }}</div>
           <div class="admin-card-desc">{{ t('admin.logSearcher.cardDesc') }}</div>
@@ -80,7 +81,7 @@ onMounted(async () => {
       </div>
 
       <div class="admin-card" @click="router.push('/admin/telegram-log-subscriptions')">
-        <div class="admin-card-icon">🔔</div>
+        <div class="admin-card-icon"><AppIcon name="bell" /></div>
         <div class="admin-card-body">
           <div class="admin-card-title">{{ t('admin.telegramLogSubscriptions.cardTile') }}</div>
           <div class="admin-card-desc">{{ t('admin.telegramLogSubscriptions.cardDesc') }}</div>
@@ -133,7 +134,7 @@ onMounted(async () => {
   gap: 18px;
   padding: 22px 20px;
   border: 1px solid var(--color-border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--color-background-soft);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;

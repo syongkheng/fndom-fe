@@ -1,6 +1,7 @@
+import { useToast } from '@/composables/useToast'
 import { computed, reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { ElMessage, type FormInstance } from 'element-plus'
+import { type FormInstance } from 'element-plus'
 import { ApiRoute } from '@/constants/ApiRoute'
 import HttpClient from '@/interceptors/HttpClient'
 import type { LoginForm } from '@/interfaces/forms/LoginForm.model'
@@ -104,7 +105,7 @@ export const useAuthenticationStore = defineStore('authentication', () => {
       })
       if (!res) return false
 
-      ElMessage.success(t('auth.success.login'))
+      useToast().success(t('auth.success.login'))
       isAuthenticated.value = true
       Analytics.authLogin()
       return true
@@ -167,7 +168,7 @@ export const useAuthenticationStore = defineStore('authentication', () => {
       if (!res) return false
 
       authenticationStep.value = 'verify'
-      ElMessage.success(t('auth.success.register'))
+      useToast().success(t('auth.success.register'))
       Analytics.authRegister()
       return true
     } catch {
@@ -208,7 +209,7 @@ export const useAuthenticationStore = defineStore('authentication', () => {
       })
       if (!res) return false
 
-      ElMessage.success(t('auth.success.verified'))
+      useToast().success(t('auth.success.verified'))
       isAuthenticated.value = true
       Analytics.authVerified()
       return true
@@ -224,7 +225,7 @@ export const useAuthenticationStore = defineStore('authentication', () => {
   const handleResendCode = async () => {
     // Dev: skip the real send — backend accepts a fixed 111111 code instead
     if (import.meta.env.DEV) {
-      ElMessage.info(t('auth.verify.devHint'))
+      useToast().info(t('auth.verify.devHint'))
       return
     }
     try {
@@ -232,10 +233,10 @@ export const useAuthenticationStore = defineStore('authentication', () => {
         email: form.email,
         system: 'fnd',
       })
-      ElMessage.success(t('auth.success.resent'))
+      useToast().success(t('auth.success.resent'))
     } catch (err) {
       const e = err as AxiosError
-      ElMessage.error(isNetworkError(e) ? t('auth.errors.network') : t('auth.errors.resend_failed'))
+      useToast().error(isNetworkError(e) ? t('auth.errors.network') : t('auth.errors.resend_failed'))
     }
   }
 
@@ -247,7 +248,7 @@ export const useAuthenticationStore = defineStore('authentication', () => {
     Analytics.authLogout()
     isAuthenticated.value = false
     userProfile.value = { username: '', roles: [] }
-    ElMessage.success(t('auth.success.logged_out'))
+    useToast().success(t('auth.success.logged_out'))
     // Best-effort — clears the httpOnly cookies server-side; local state above already reflects logout
     HttpClient.post(ApiRoute.AUTHENTICATE.LOGOUT, {}).catch(() => {})
   }

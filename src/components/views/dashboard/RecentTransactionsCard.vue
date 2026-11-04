@@ -1,28 +1,34 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
 import { useNav } from '@/hooks/useNav'
 import { useApplePayStore } from '@/stores/applepay'
 import { useSsApiKeyStore } from '@/stores/ssApiKey'
+import { useAuthenticationStore } from '@/stores/authentication'
+import SignInPrompt from './SignInPrompt.vue'
 
 const { t } = useI18n()
 const nav = useNav()
 const store = useApplePayStore()
 const ssKeyStore = useSsApiKeyStore()
 const { transactions, isLoading } = storeToRefs(store)
+const { isAuthenticated } = storeToRefs(useAuthenticationStore())
 
 // null = unknown (still loading or request failed) — only a confirmed
 // "no key" switches the empty state to the setup call-to-action.
 const hasKey = ref<boolean | null>(null)
 
-onMounted(async () => {
+const load = async () => {
+  if (!isAuthenticated.value) return
   store.fetchTransactions()
   hasKey.value = await ssKeyStore
     .fetchApiKeyStatus()
     .then((s) => s.hasKey)
     .catch(() => null)
-})
+}
+onMounted(load)
+watch(isAuthenticated, load)
 
 // Already sorted newest-first server-side (ORDER BY occurred_dt DESC).
 const recent = computed(() => transactions.value.slice(0, 4))
@@ -49,19 +55,21 @@ const openTracker = () => nav.redirectTo('/apple-pay')
 </script>
 
 <template>
-  <section class="expense-hero" v-loading="isLoading">
+  <section class="expense-hero" v-loading="isAuthenticated && isLoading">
     <div class="expense-hero-head">
       <div>
         <p class="expense-hero-eyebrow">{{ t('dashboard.expenseTracker.eyebrow') }}</p>
         <h2 class="expense-hero-title">{{ t('dashboard.expenseTracker.title') }}</h2>
       </div>
-      <el-button v-if="!isEmpty" type="primary" @click="openTracker">
+      <el-button v-if="isAuthenticated && !isEmpty" type="primary" @click="openTracker">
         {{ t('dashboard.expenseTracker.viewAll') }}
       </el-button>
     </div>
 
+    <SignInPrompt v-if="!isAuthenticated" :message="t('dashboard.expenseTracker.signIn')" />
+
     <!-- Empty: guide the user into the Shortcut setup -->
-    <div v-if="isEmpty" class="expense-hero-empty">
+    <div v-else-if="isEmpty" class="expense-hero-empty">
       <template v-if="hasKey === false">
         <p class="expense-hero-empty-title">{{ t('dashboard.expenseTracker.setupTitle') }}</p>
         <p class="expense-hero-empty-desc">{{ t('dashboard.expenseTracker.setupDesc') }}</p>
@@ -105,8 +113,9 @@ const openTracker = () => nav.redirectTo('/apple-pay')
 .expense-hero {
   box-sizing: border-box;
   width: 100%;
+  height: 100%;
   padding: 20px 22px;
-  border-radius: 16px;
+  border-radius: var(--radius);
   background: var(--color-background-soft);
   border: 1px solid var(--el-color-primary-light-7);
   box-shadow: 0 1px 0 var(--el-color-primary-light-9) inset;

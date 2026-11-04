@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import FooterNavigation from './components/navigations/FooterNavigation.vue'
 import TopNavigation from './components/navigations/TopNavigation.vue'
-import SideNavigation from './components/navigations/SideNavigation.vue'
 import MobileNavigation from './components/navigations/MobileNavigation.vue'
+import BottomTabBar from './components/navigations/BottomTabBar.vue'
 import LoginView from './components/views/LoginView.vue'
 import { useRoute } from 'vue-router'
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { watch } from 'vue'
 import { useLayoutStateStore } from './stores/layoutState'
 import { useThemeStore } from './stores/theme'
 import AppInitializer from './AppInitializer.vue'
@@ -26,54 +26,25 @@ watch(() => route.query.showLogin, (newVal) => {
     window.history.replaceState({}, document.title, window.location.pathname)
   }
 })
-
-// Scroll-aware header — only on the immersive home hero (elsewhere the header
-// stays permanently visible). .wrapper's height is content-based here (no
-// height:100% anchor anywhere from html/body down), so it never actually
-// overflows internally despite its own overflow-y:auto — the whole page
-// (header + main + footer) just grows taller than the viewport and the
-// window/document scrolls instead. Hence a window listener, not @scroll on
-// .wrapper.
-const headerHiddenRaw = ref(false)
-let lastScrollY = 0
-
-function handleWindowScroll() {
-  const sy = window.scrollY
-  if (sy <= 0) {
-    headerHiddenRaw.value = false
-  } else if (sy > lastScrollY) {
-    headerHiddenRaw.value = true // scrolling down
-  } else {
-    headerHiddenRaw.value = false // scrolling up
-  }
-  lastScrollY = sy
-}
-
-onMounted(() => window.addEventListener('scroll', handleWindowScroll, { passive: true }))
-onUnmounted(() => window.removeEventListener('scroll', handleWindowScroll))
-
-watch(() => route.name, () => {
-  headerHiddenRaw.value = false
-  lastScrollY = 0
-})
 </script>
 
 <template>
-  <el-config-provider :locale="epLocale" :message="{ placement: 'bottom' }">
+  <el-config-provider :locale="epLocale">
   <AppInitializer>
-    <TopNavigation :hidden="route.name === 'home' && headerHiddenRaw" />
+    <TopNavigation />
     <div style="display: flex">
-      <!-- <SideNavigation /> -->
       <MobileNavigation />
       <main>
-        <div class="wrapper" :class="{ 'wrapper--fullbleed': ['home'].includes(route.name as string) }">
+        <!-- route.meta.fullbleed: edge-to-edge, viewport-height pages (e.g. /house) -->
+        <div class="wrapper" :class="{ 'wrapper--fullbleed': !!route.meta.fullbleed }">
           <RouterView />
         </div>
-        <footer>
+        <footer v-if="!route.meta.hideFooter">
           <FooterNavigation />
         </footer>
       </main>
     </div>
+    <BottomTabBar />
     <LoginView />
     <LoadingDialog :is-open="layoutStore.loadingDialog.isVisible" />
     <ToastHost />
@@ -89,7 +60,7 @@ watch(() => route.name, () => {
   overflow-y: auto;
   overflow-x: hidden;
   box-sizing: border-box;
-  min-height: calc(100vh - 80px - 220px);
+  min-height: calc(100vh - 64px - 220px);
   justify-content: center;
   width: 100%;
 }
@@ -98,6 +69,7 @@ watch(() => route.name, () => {
   padding: 0;
   justify-content: flex-start;
   min-height: 0;
+  overflow: hidden;
 }
 
 main {
@@ -119,6 +91,11 @@ footer {
 @media (max-width: 800px) {
   .wrapper:not(.wrapper--fullbleed) {
     padding: 0.5em;
+  }
+
+  /* keep content clear of the fixed bottom tab bar */
+  main {
+    padding-bottom: var(--tabbar-h);
   }
 }
 </style>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast'
 import { onMounted, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import { User, Lock, Check, Location, Edit } from '@element-plus/icons-vue'
 import { useAuthenticationStore } from '@/stores/authentication'
 import { CountryList } from '@/constants/Country'
@@ -12,6 +13,7 @@ import { useI18n } from 'vue-i18n'
 import PasswordChecklist from '@/components/common/PasswordChecklist.vue'
 
 const { t } = useI18n()
+const toast = useToast()
 
 const { userProfile } = useAuthenticationStore()
 const {
@@ -77,7 +79,7 @@ const handleSaveUsername = async () => {
   authStore.updateUsernameInStore(result.username)
 
   usernameForm.value.editing = false
-  ElMessage.success(t('profile.username.updated'))
+  toast.success(t('profile.username.updated'))
 }
 
 // Avatar
@@ -96,16 +98,16 @@ const handleFileChange = async (event: Event) => {
       sizeInBytes: file.size,
       fileName: file.name
     })
-    ElMessage.success(t('profile.avatar.updated'))
+    toast.success(t('profile.avatar.updated'))
   } catch {
-    ElMessage.error(t('profile.avatar.uploadFailed'))
+    toast.error(t('profile.avatar.uploadFailed'))
   }
 }
 
 // Password
 const handleValidatePassword = async () => {
   if (!passwordForm.value.currentPassword) {
-    ElMessage.error(t('profile.password.current'))
+    toast.error(t('profile.password.current'))
     return
   }
 
@@ -115,13 +117,13 @@ const handleValidatePassword = async () => {
 
     if (valid) {
       isPasswordValidated.value = true
-      ElMessage.success(t('profile.password.verified'))
+      toast.success(t('profile.password.verified'))
     } else {
-      ElMessage.error(t('profile.password.incorrect'))
+      toast.error(t('profile.password.incorrect'))
       isPasswordValidated.value = false
     }
   } catch {
-    ElMessage.error(t('profile.password.verifyFailed'))
+    toast.error(t('profile.password.verifyFailed'))
   } finally {
     isValidating.value = false
   }
@@ -132,12 +134,12 @@ const handleChangePassword = async () => {
     !passwordForm.value.newPassword ||
     passwordForm.value.newPassword !== passwordForm.value.confirmPassword
   ) {
-    ElMessage.error(t('profile.password.mismatch'))
+    toast.error(t('profile.password.mismatch'))
     return
   }
 
   if (!isPasswordValid(passwordForm.value.newPassword)) {
-    ElMessage.error(t('auth.validation.password_requirements'))
+    toast.error(t('auth.validation.password_requirements'))
     return
   }
 
@@ -149,9 +151,9 @@ const handleChangePassword = async () => {
   if (result) {
     passwordForm.value = { currentPassword: '', newPassword: '', confirmPassword: '' }
     isPasswordValidated.value = false
-    ElMessage.success(t('profile.password.updated'))
+    toast.success(t('profile.password.updated'))
   } else {
-    ElMessage.error(t('profile.password.failed'))
+    toast.error(t('profile.password.failed'))
   }
 }
 
@@ -160,9 +162,9 @@ const handleUpdateCountry = async () => {
   const result = await updateUserCountry(profile.value.country)
 
   if (result) {
-    ElMessage.success(t('profile.country.updated'))
+    toast.success(t('profile.country.updated'))
   } else {
-    ElMessage.error(t('profile.country.failed'))
+    toast.error(t('profile.country.failed'))
   }
 }
 

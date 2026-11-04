@@ -64,6 +64,14 @@ export const ApiRoute = {
     ADD_COLLABORATOR: (sessionId: string) => `/budget/${sessionId}/collaborator`,
     REMOVE_COLLABORATOR: (sessionId: string, userId: number) => `/budget/${sessionId}/collaborator/${userId}/delete`,
   },
+  TODO: {
+    GET_ALL: `/todo`,
+    CREATE: `/todo`,
+    REORDER: `/todo/reorder`,
+    UPDATE: (taskId: string) => `/todo/${taskId}/update`,
+    DELETE: (taskId: string) => `/todo/${taskId}/delete`,
+    RESTORE: (taskId: string) => `/todo/${taskId}/restore`,
+  },
   APPLEPAY: {
     GET_ALL: `/applepay`,
     CREATE: `/applepay`,

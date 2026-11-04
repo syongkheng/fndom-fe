@@ -73,14 +73,14 @@ const SEED_ACTIVITY: IpptSession[] = [
 ]
 
 const SEED_BADGES: IpptBadge[] = [
-  { id: 'b1', label: 'First Rep',    desc: 'Log your first session',       icon: '🎯', earned: true,  earnedDate: '2026-05-10' },
-  { id: 'b2', label: 'Iron Fist',    desc: '50+ push-ups in one session',  icon: '💪', earned: false },
-  { id: 'b3', label: 'Core Crusher', desc: '50+ sit-ups in one session',   icon: '🔥', earned: false },
-  { id: 'b4', label: 'Silver Star',  desc: 'Score Silver or above',        icon: '⭐', earned: false },
-  { id: 'b5', label: 'Gold Rush',    desc: 'Score Gold',                   icon: '🏅', earned: false },
-  { id: 'b6', label: 'Sub-13',       desc: 'Run 2.4km under 13 minutes',   icon: '⚡', earned: false },
-  { id: 'b7', label: 'Week Warrior', desc: 'Train 5 days in a week',       icon: '📅', earned: true, earnedDate: '2026-05-22' },
-  { id: 'b8', label: 'Consistent',   desc: 'Log 10 sessions total',        icon: '✅', earned: false },
+  { id: 'b1', label: 'First Rep',    desc: 'Log your first session',       icon: 'target', earned: true,  earnedDate: '2026-05-10' },
+  { id: 'b2', label: 'Iron Fist',    desc: '50+ push-ups in one session',  icon: 'dumbbell', earned: false },
+  { id: 'b3', label: 'Core Crusher', desc: '50+ sit-ups in one session',   icon: 'flame', earned: false },
+  { id: 'b4', label: 'Silver Star',  desc: 'Score Silver or above',        icon: 'star', earned: false },
+  { id: 'b5', label: 'Gold Rush',    desc: 'Score Gold',                   icon: 'medal', earned: false },
+  { id: 'b6', label: 'Sub-13',       desc: 'Run 2.4km under 13 minutes',   icon: 'bolt', earned: false },
+  { id: 'b7', label: 'Week Warrior', desc: 'Train 5 days in a week',       icon: 'calendar', earned: true, earnedDate: '2026-05-22' },
+  { id: 'b8', label: 'Consistent',   desc: 'Log 10 sessions total',        icon: 'check', earned: false },
 ]
 
 const SEED_PLAN: IpptPlanDay[] = [

@@ -3,7 +3,7 @@ import { ArrowLeft } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { useNav } from '@/hooks/useNav'
 
-const props = withDefaults(defineProps<{ to?: string }>(), { to: '/dashboard' })
+const props = withDefaults(defineProps<{ to?: string }>(), { to: '/' })
 
 const { t } = useI18n()
 const nav = useNav()

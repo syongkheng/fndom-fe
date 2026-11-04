@@ -1,32 +1,30 @@
 @import './base.css';
 
 :root {
-  --hyperlink-color: #0a7ea4;
-  --hyperlink-hover: #086b8c;
+  --hyperlink-color: var(--color-primary);
+  --hyperlink-hover: var(--color-accent);
   --text-color: var(--color-heading);
   --homepage-svg-icon: var(--color-heading);
   --icon-text-color: var(--color-text);
   --icon-text-size: 12px;
 }
 
-html.dark {
-  --hyperlink-color: #0a7ea4;
-  --hyperlink-hover: #0c96c4;
-}
-
+/* `clip` (not `hidden`) so these never become scroll containers — with `hidden`,
+   position:sticky on the header resolved against #app instead of the viewport. */
 #app {
   margin: 0;
   padding: 0;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 html, body {
-  overflow-x: hidden;
+  overflow-x: clip;
   max-width: 100%;
 }
 
+/* transparent so the soft glow on <body> shows through */
 main {
-  background-color: var(--color-background);
+  background-color: transparent;
 }
 
 .clickable {
@@ -56,36 +54,172 @@ main {
   justify-self: center;
 }
 
-/* ─── Element Plus — brand color overrides ──────────────────────── */
-:root {
-  --el-color-primary:         #C84B31;
-  --el-color-primary-light-3: #d9806c;
-  --el-color-primary-light-5: #e4a598;
-  --el-color-primary-light-7: #efcbc5;
-  --el-color-primary-light-8: #f4deda;
-  --el-color-primary-light-9: #f9eeec;
-  --el-color-primary-dark-2:  #a03c27;
+/* ─── Card / chip / button utilities ────────────────────────────
+   Class names keep the legacy .bp-* prefix so existing templates inherit the new look. */
 
-  --el-border-radius-base:    10px;
-  --el-box-shadow-light:      0 1px 4px rgba(0, 0, 0, 0.05);
+/* Small tinted pill used as an eyebrow / section tag */
+.bp-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--color-primary);
+}
+
+/* Soft rounded card; clickable cards lift on hover */
+.bp-panel {
+  position: relative;
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.bp-panel[role='button']:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-pop);
+}
+.bp-panel[role='button']:active {
+  transform: translateY(-1px) scale(0.995);
+}
+
+.bp-dim {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+.bp-btn {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 14px;
+  min-height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-background-soft);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s, color 0.12s, background 0.12s;
+}
+.bp-btn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.bp-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+.bp-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.bp-btn.is-active,
+.bp-btn--primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+.bp-btn.is-active:hover:not(:disabled),
+.bp-btn--primary:hover:not(:disabled) {
+  color: #fff;
+}
+.bp-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* House planner: elements created imperatively by Three.js (CSS2DRenderer), so styled globally */
+.room-marker {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  font: 800 11px/1 var(--font-sans);
+  background: var(--color-background-soft);
+  color: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
+  pointer-events: none;
+  user-select: none;
+}
+.measure-label {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: #2b1b14;
+  font: 800 12px/1.3 var(--font-sans);
+  transform: translateY(-14px);
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* ─── Element Plus — soft overrides ────────────────────────── */
+/* `:root, html.dark` so these beat element-plus/theme-chalk/dark/css-vars.css by order */
+:root,
+html.dark {
+  --el-color-primary:         var(--color-primary);
+  --el-border-radius-base:    12px;
+  --el-border-radius-small:   8px;
+  --el-border-radius-round:   999px;
+  --el-box-shadow-light:      var(--shadow-card);
+  --el-box-shadow:            var(--shadow-card);
+  --el-font-family:           var(--font-sans);
+
+  --el-bg-color:              var(--color-background-soft);
+  --el-bg-color-page:         var(--color-background);
+  --el-bg-color-overlay:      var(--color-background-soft);
+  --el-fill-color-blank:      var(--color-background-soft);
+  --el-fill-color-light:      var(--color-background-mute);
+  --el-fill-color:            var(--color-background-mute);
+  --el-border-color:          var(--color-border);
+  --el-border-color-light:    var(--color-divider);
+  --el-border-color-lighter:  var(--color-divider);
+  --el-text-color-primary:    var(--color-heading);
+  --el-text-color-regular:    var(--color-text);
+  --el-text-color-secondary:  var(--color-text-secondary);
+  --el-text-color-placeholder: var(--color-text-tertiary);
+}
+
+:root {
+  --el-color-primary-light-3: #ee7a67;
+  --el-color-primary-light-5: #f3a296;
+  --el-color-primary-light-7: #f8cac3;
+  --el-color-primary-light-8: #fadad5;
+  --el-color-primary-light-9: #fdecea;
+  --el-color-primary-dark-2:  #ba3723;
 }
 
 html.dark {
-  --el-color-primary:         #E8795A;
-  --el-color-primary-light-3: #eda48c;
-  --el-color-primary-light-5: #f4bcad;
-  --el-color-primary-light-7: #f8d4c9;
-  --el-color-primary-light-8: #fbddd5;
-  --el-color-primary-light-9: #fdeee9;
-  --el-color-primary-dark-2:  #ba6148;
+  --el-color-primary-light-3: #b95038;
+  --el-color-primary-light-5: #8b3e2d;
+  --el-color-primary-light-7: #5d2d21;
+  --el-color-primary-light-8: #4a261c;
+  --el-color-primary-light-9: #2e1c15;
+  --el-color-primary-dark-2:  #ff8a6e;
 }
 
-/* ─── Toast position ───
-   App.vue's <el-config-provider :message="{ placement: 'bottom' }"> anchors
-   every ElMessage from the bottom of the viewport (inline `bottom: 16px`),
-   which already clears TopNavigation's sticky header with no extra CSS
-   needed — do NOT also force a `top` here: a fixed-position element with
-   both `top` and `bottom` set (and no explicit height) stretches to fill
-   the space between them, which is exactly what caused messages to render
-   as a near full-height box instead of a small pill.
-*/
+/* Pill buttons everywhere in Element Plus, with a tactile press */
+.el-button {
+  border-radius: 999px;
+  font-weight: 700;
+  transition: transform 0.12s ease, background-color 0.15s, border-color 0.15s;
+}
+.el-button:active {
+  transform: scale(0.96);
+}
+.el-button--primary {
+  --el-button-text-color: #fff;
+}
+.el-dialog {
+  border-radius: 24px;
+}

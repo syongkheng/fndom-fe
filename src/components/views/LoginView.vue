@@ -1,16 +1,17 @@
 <script lang="ts" setup>
+import { useToast } from '@/composables/useToast'
 import { useNav } from '@/hooks/useNav'
 import { useAuthenticationStore } from '@/stores/authentication'
 import { useLayoutStateStore } from '@/stores/layoutState'
 import { Message, Lock, User } from '@element-plus/icons-vue'
 import { storeToRefs } from 'pinia'
 import { computed, ref, nextTick, watch } from 'vue'
-import { ElMessage } from 'element-plus'
 import OtpInput from '@/components/common/OtpInput.vue'
 import PasswordChecklist from '@/components/common/PasswordChecklist.vue'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
+const toast = useToast()
 
 const layoutStore = useLayoutStateStore()
 const authStore = useAuthenticationStore()
@@ -103,7 +104,7 @@ const handleBack = () => {
 }
 
 const handleForgotPassword = () => {
-  ElMessage.info(t('auth.forgotPasswordMessage'))
+  toast.info(t('auth.forgotPasswordMessage'))
 }
 
 // ── OTP ───────────────────────────────────────────────────────────────────────
@@ -115,7 +116,7 @@ watch(authenticationStep, (step) => {
     verifyDigits.value = ['', '', '', '', '', '']
     nextTick(() => otpRef.value?.focus())
     // Dev: no email is actually sent — backend accepts a fixed 111111 code
-    if (import.meta.env.DEV) ElMessage.info(t('auth.verify.devHint'))
+    if (import.meta.env.DEV) toast.info(t('auth.verify.devHint'))
   }
 })
 

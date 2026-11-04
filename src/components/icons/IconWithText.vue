@@ -39,7 +39,7 @@ const handleClick = (event: MouseEvent) => {
 }
 
 .icon-wrapper:hover .icon {
-  color: #409eff;
+  color: var(--color-primary);
   /* Element Plus primary blue */
 }
 

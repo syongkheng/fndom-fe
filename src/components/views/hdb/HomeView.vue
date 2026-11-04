@@ -130,7 +130,7 @@ watch(selectedBatchValue, (batch) => {
 
     <!-- Cards -->
     <div class="pphs-list">
-      <EmptyState v-if="!sortedRecords.length" icon="🏠" title="No records found for this batch." />
+      <EmptyState v-if="!sortedRecords.length" icon="home" title="No records found for this batch." />
       <div
         v-for="record in sortedRecords"
         :key="`${record.town}-${record.address}`"

@@ -1,12 +1,14 @@
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast'
 import { onMounted, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { CopyDocument, Edit, Check, Close } from '@element-plus/icons-vue'
 import { useSsApiKeyStore, type SsApiKeyStatus } from '@/stores/ssApiKey'
 
 const store = useSsApiKeyStore()
 const { t } = useI18n()
+const toast = useToast()
 
 const serverBaseUrl = import.meta.env.VITE_SERVER_BASE_URL as string
 
@@ -48,7 +50,7 @@ async function saveName() {
     apiKeyStatus.value = await store.renameApiKey(trimmed)
     isEditingName.value = false
   } catch {
-    ElMessage.error(t('ssKey.renameFailed'))
+    toast.error(t('ssKey.renameFailed'))
   } finally {
     nameSaving.value = false
   }
@@ -56,7 +58,7 @@ async function saveName() {
 
 async function copyAndDismiss() {
   await navigator.clipboard.writeText(freshlyGeneratedKey.value)
-  ElMessage.success(t('toast.ssKeyCopied'))
+  toast.success(t('toast.ssKeyCopied'))
   freshlyGeneratedKey.value = ''
 }
 
@@ -70,9 +72,9 @@ async function handleGenerateKey() {
     const key = await store.generateApiKey()
     freshlyGeneratedKey.value = key
     await refreshApiKeyStatus()
-    ElMessage({ type: 'warning', message: t('toast.ssKeyWarning'), duration: 6000 })
+    toast.warning(t('toast.ssKeyWarning'), { duration: 6000 })
   } catch {
-    ElMessage.error(t('toast.ssKeyFailed'))
+    toast.error(t('toast.ssKeyFailed'))
   } finally {
     keyGenerating.value = false
   }
@@ -102,7 +104,7 @@ async function handleRevokeKey() {
     await store.revokeApiKey()
     freshlyGeneratedKey.value = ''
     apiKeyStatus.value = { hasKey: false, name: null, createdDt: null, keyHint: null }
-    ElMessage.success(t('toast.ssKeyRevoked'))
+    toast.success(t('toast.ssKeyRevoked'))
   } catch {
     // ElMessageBox cancel throws — ignore
   } finally {

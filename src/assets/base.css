@@ -1,26 +1,30 @@
-/* color palette */
+/* color palette — warm "super-app" style.
+   Light = cream paper + vermilion red + lantern gold. Dark = warm charcoal + coral glow.
+   Semantic --color-* names are unchanged so existing scoped CSS inherits the new look. */
 :root {
   /* Light palette */
-  --vt-c-bg:             #F7F3EE;
+  --vt-c-bg:             #FFF7EC;
   --vt-c-surface:        #FFFFFF;
-  --vt-c-input-bg:       #FAF7F4;
-  --vt-c-divider:        #EDE5DC;
-  --vt-c-border:         #E8D5C4;
-  --vt-c-text:           #1C1008;
-  --vt-c-text-secondary: #7A5C4A;
-  --vt-c-text-tertiary:  #A68B7A;
-  --vt-c-primary:        #C84B31;
+  --vt-c-input-bg:       #FBEFE0;
+  --vt-c-divider:        #F3E4D2;
+  --vt-c-border:         #EBD8C2;
+  --vt-c-text:           #2B1B14;
+  --vt-c-text-secondary: #6E5648;
+  --vt-c-text-tertiary:  #A28B7B;
+  --vt-c-primary:        #E8452C;
+  --vt-c-accent:         #F2A81D;
 
   /* Dark palette */
-  --vt-c-dark-bg:             #12100E;
-  --vt-c-dark-surface:        #1E1B18;
-  --vt-c-dark-input-bg:       #2A2420;
-  --vt-c-dark-divider:        #2E2820;
-  --vt-c-dark-border:         #3A3028;
-  --vt-c-dark-text:           #F5EFE6;
-  --vt-c-dark-text-secondary: #9E8A7A;
-  --vt-c-dark-text-tertiary:  #6B5A4E;
-  --vt-c-dark-primary:        #E8795A;
+  --vt-c-dark-bg:             #17120F;
+  --vt-c-dark-surface:        #231C18;
+  --vt-c-dark-input-bg:       #2C231E;
+  --vt-c-dark-divider:        #382D26;
+  --vt-c-dark-border:         #4A3C33;
+  --vt-c-dark-text:           #FBEFE3;
+  --vt-c-dark-text-secondary: #C9B3A2;
+  --vt-c-dark-text-tertiary:  #8F7A6A;
+  --vt-c-dark-primary:        #FF6B4A;
+  --vt-c-dark-accent:         #FFC857;
 }
 
 /* Light mode (default) */
@@ -35,8 +39,32 @@
   --color-text:            var(--vt-c-text);
   --color-text-secondary:  var(--vt-c-text-secondary);
   --color-text-tertiary:   var(--vt-c-text-tertiary);
+  --color-primary:         var(--vt-c-primary);
+  --color-accent:          var(--vt-c-accent);
+  --color-danger:          #B3173F;
+  --color-success:         #1E9A5B;
+
+  /* tinted fills for chips / hero banners */
+  --color-primary-soft:    rgba(232, 69, 44, 0.10);
+  --color-accent-soft:     rgba(242, 168, 29, 0.18);
+
+  --shadow-card: 0 1px 2px rgba(120, 62, 30, 0.06), 0 6px 18px rgba(120, 62, 30, 0.07);
+  --shadow-pop:  0 2px 4px rgba(120, 62, 30, 0.08), 0 14px 32px rgba(120, 62, 30, 0.14);
+
+  --font-sans: 'Nunito', 'Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
+  /* kept as a token name for older components; now a friendly rounded face, not monospace */
+  --font-mono: 'Nunito', 'Noto Sans SC', 'PingFang SC', system-ui, sans-serif;
+  --radius: 16px;
+  --radius-sm: 10px;
 
   --section-gap: 160px;
+  --tabbar-h: 0px;
+}
+
+@media (max-width: 800px) {
+  :root {
+    --tabbar-h: calc(60px + env(safe-area-inset-bottom));
+  }
 }
 
 /* Dark mode — driven by class, not media query, so the toggle works */
@@ -51,6 +79,16 @@ html.dark {
   --color-text:            var(--vt-c-dark-text);
   --color-text-secondary:  var(--vt-c-dark-text-secondary);
   --color-text-tertiary:   var(--vt-c-dark-text-tertiary);
+  --color-primary:         var(--vt-c-dark-primary);
+  --color-accent:          var(--vt-c-dark-accent);
+  --color-danger:          #FF6B8B;
+  --color-success:         #5FD39A;
+
+  --color-primary-soft:    rgba(255, 107, 74, 0.16);
+  --color-accent-soft:     rgba(255, 200, 87, 0.16);
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.28);
+  --shadow-pop:  0 2px 4px rgba(0, 0, 0, 0.4), 0 14px 32px rgba(0, 0, 0, 0.45);
 }
 
 *,
@@ -64,21 +102,20 @@ html.dark {
 body {
   min-height: 100vh;
   color: var(--color-text);
-  background: var(--color-background);
+  background-color: var(--color-background);
+  /* soft lantern glow in the corners instead of a drafting grid */
+  background-image:
+    radial-gradient(900px 520px at 100% -8%, var(--color-primary-soft), transparent 62%),
+    radial-gradient(760px 460px at -6% 0%, var(--color-accent-soft), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   transition:
     color 0.2s,
     background-color 0.2s;
   line-height: 1.6;
-  font-family:
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    Helvetica,
-    Arial,
-    sans-serif;
+  font-family: var(--font-sans);
   font-size: 15px;
+  font-variant-numeric: tabular-nums;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

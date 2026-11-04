@@ -1,13 +1,13 @@
 import { ref, markRaw, type Component } from 'vue'
-import { CircleCheck, CircleClose, InfoFilled } from '@element-plus/icons-vue'
+import { CircleCheck, CircleClose, InfoFilled, WarningFilled } from '@element-plus/icons-vue'
 
 /**
  * App-wide toast system — a single standardised look (rounded pill, left
  * icon, optional countdown ring, optional action button) instead of mixing
- * raw ElMessage() calls with bespoke components per feature. Mount
+ * raw ElMessage() calls (now removed) with bespoke components per feature. Mount
  * <ToastHost /> once (App.vue) and call useToast() anywhere to push one.
  */
-export type ToastType = 'success' | 'error' | 'info'
+export type ToastType = 'success' | 'error' | 'info' | 'warning'
 
 export interface ToastAction {
   label: string
@@ -36,12 +36,14 @@ const TYPE_ICON: Record<ToastType, Component> = {
   success: CircleCheck,
   error: CircleClose,
   info: InfoFilled,
+  warning: WarningFilled,
 }
 
 const DEFAULT_DURATION: Record<ToastType, number> = {
   success: 3000,
   error: 4000,
   info: 3000,
+  warning: 4000,
 }
 
 let nextId = 0
@@ -90,6 +92,7 @@ export function useToast() {
     success: (message: string, opts?: ShowToastOptions) => show('success', message, opts),
     error: (message: string, opts?: ShowToastOptions) => show('error', message, opts),
     info: (message: string, opts?: ShowToastOptions) => show('info', message, opts),
+    warning: (message: string, opts?: ShowToastOptions) => show('warning', message, opts),
     action: (message: string, action: ToastAction, opts: Omit<ShowToastOptions, 'action'> = {}) =>
       show('info', message, { ...opts, action }),
     dismiss,

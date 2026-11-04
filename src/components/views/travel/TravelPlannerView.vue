@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { useToast } from '@/composables/useToast'
 import { ref, computed, onMounted, watchEffect, nextTick, watch } from 'vue'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
@@ -9,7 +10,6 @@ import { useBreakpointManager } from '@/hooks/useBreakpointManager'
 import { useLayoutStateStore } from '@/stores/layoutState'
 import { useAuthenticationStore } from '@/stores/authentication'
 import { storeToRefs } from 'pinia'
-import { ElMessage } from 'element-plus'
 import { createTravelPlannerVTableColumns } from './TravelPlannerVTableColumns'
 import { getCategoryIcon } from '@/constants/TravelCategories'
 import { PIN_ICON_SVG, CATEGORY_ICON_SVG, PACKING_ICON_SVG, CALENDAR_ICON_SVG } from '@/constants/TravelIconSvg'
@@ -74,6 +74,7 @@ const { collapsedDays, toggleDay, groupedByDate, formatDate: formatGroupDate, to
 const itineraryAsNullable = computed(() => itinerary.value as any)
 const { exportJSON, exportCSV, exportICS } = useTravelExport(itineraryAsNullable, groupedByDate, getCardCity)
 const { t } = useI18n()
+const toast = useToast()
 
 // ── Responsive drawer ─────────────────────────────────────────────────────────
 const { width } = useBreakpointManager()
@@ -391,7 +392,7 @@ onMounted(async () => {
     fetchFileBlobs(itinerary.value.agendaItems ?? [])
   }
   if (loadResult.forbidden) {
-    ElMessage.error(t('travel.planner.notYours'))
+    toast.error(t('travel.planner.notYours'))
     nav.redirectTo('/travel/trips')
     return
   }
@@ -427,7 +428,7 @@ watch(isAuthenticated, async (authed) => {
   if (!authed || !isDraft.value) return
   const newSessionId = await migrateDraft()
   if (newSessionId) {
-    ElMessage.success(t('travel.planner.draftMigrated'))
+    toast.success(t('travel.planner.draftMigrated'))
     nav.redirectTo(`/travel/${newSessionId}`)
   }
 })
@@ -435,30 +436,30 @@ watch(isAuthenticated, async (authed) => {
 const handleSave = async () => {
   if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
   if (drawerUploading.value) {
-    ElMessage.warning(t('travel.planner.uploadInProgress', 'Please wait for the photo upload to complete.'))
+    toast.warning(t('travel.planner.uploadInProgress', 'Please wait for the photo upload to complete.'))
     return
   }
   saving.value = true
   const result = await itineraryStore.updateItinerary()
   saving.value = false
   if (result.isSuccess) {
-    ElMessage.success(t('travel.planner.tripSaved'))
+    toast.success(t('travel.planner.tripSaved'))
   } else if (result.error === 'auth') {
-    ElMessage.warning(t('travel.planner.loginToSave'))
+    toast.warning(t('travel.planner.loginToSave'))
   } else {
-    ElMessage.error(t('travel.planner.saveFailed'))
+    toast.error(t('travel.planner.saveFailed'))
   }
 }
 
 const handleShare = () => {
   if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
   if (!itinerary.value.shortCode) {
-    ElMessage.info(t('travel.planner.saveFirst'))
+    toast.info(t('travel.planner.saveFirst'))
     return
   }
   const url = `${window.location.origin}/travel/v/${itinerary.value.shortCode}`
   navigator.clipboard.writeText(url)
-  ElMessage.success(t('travel.list.linkCopied'))
+  toast.success(t('travel.list.linkCopied'))
 }
 
 // ── Privacy / challenge ───────────────────────────────────────────────────────
@@ -478,7 +479,7 @@ const openPrivacyDialog = () => {
 const onPrivacySave = (code: string | undefined) => {
   itinerary.value.challenge = code
   sessionStorage.setItem(privacySeenKey, '1')
-  ElMessage.success(
+  toast.success(
     code
       ? t('travel.planner.accessCodeApplied')
       : t('travel.planner.noAccessCodeSet'),

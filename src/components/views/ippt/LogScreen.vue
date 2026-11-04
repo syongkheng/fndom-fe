@@ -169,7 +169,7 @@ function save() {
                 </div>
                 <div class="text-xs" style="width:48px;text-align:right;font-weight:600"
                   :style="lapIsFastest(i) ? 'color:#2E6B4F' : lapIsSlowest(i) ? 'color:#C0392B' : 'color:var(--ink-muted)'">
-                  {{ lapIsFastest(i) ? '⚡ Best' : lapIsSlowest(i) ? '▲ Slow' : '' }}
+                  {{ lapIsFastest(i) ? 'Best' : lapIsSlowest(i) ? 'Slow' : '' }}
                 </div>
               </div>
             </div>

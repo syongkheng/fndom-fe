@@ -1,6 +1,6 @@
+import { useToast } from '@/composables/useToast'
 import { useTokenVerification } from '@/hooks/useTokenVerification'
 import { useAuthenticationStore } from '@/stores/authentication'
-import { ElMessage } from 'element-plus'
 import { START_LOCATION, type NavigationGuardNext, type RouteLocationNormalized } from 'vue-router'
 import { i18n } from '@/i18n'
 const t = (key: string) => i18n.global.t(key)
@@ -12,7 +12,7 @@ export function useRouteGuards() {
       const validity = await verifyToken()
 
       if (!validity) {
-        ElMessage.error(t('toast.notLoggedIn'))
+        useToast().error(t('toast.notLoggedIn'))
         next({
           path: '/',
           query: { showLogin: 'true' },
@@ -32,7 +32,7 @@ export function useRouteGuards() {
       const validity = await verifyToken()
 
       if (!validity) {
-        ElMessage.error(t('toast.itineraryAccessDenied'))
+        useToast().error(t('toast.itineraryAccessDenied'))
       } else {
         next()
       }
@@ -47,12 +47,12 @@ export function useRouteGuards() {
       const { verifyToken } = useTokenVerification()
       const validity = await verifyToken()
       if (!validity) {
-        ElMessage.error(t('toast.loginRequired'))
+        useToast().error(t('toast.loginRequired'))
         return next({ path: '/', query: { showLogin: 'true' } })
       }
       const authStore = useAuthenticationStore()
       if (!authStore.userProfile.roles?.includes('SYSTEM_R5')) {
-        ElMessage.error(t('toast.accessDenied'))
+        useToast().error(t('toast.accessDenied'))
         return next('/')
       }
       next()

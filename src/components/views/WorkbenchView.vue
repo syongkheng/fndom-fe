@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppIcon from '@/components/common/AppIcon.vue'
 import { computed } from 'vue'
 import { useNav } from '@/hooks/useNav'
 import { usePermission } from '@/composables/usePermission'
@@ -9,8 +10,8 @@ const { hasModuleAccess } = usePermission()
 const { t } = useI18n()
 
 const MODULE_ICONS: Record<string, string> = {
-  pphs: '🏢', flat: '🏠', travel: '✈️',
-  imghost: '🖼️', ippt: '🪖', bus: '🚌',
+  pphs: 'building', flat: 'home', travel: 'plane',
+  imghost: 'image', ippt: 'shield', bus: 'bus',
 }
 const MODULE_PATHS: Record<string, string> = {
   pphs: '/pphs', flat: '/flat', travel: '/travel',
@@ -44,7 +45,7 @@ const modules = computed(() =>
         class="module-tile"
         @click="nav.redirectTo(mod.path)"
       >
-        <div class="tile-icon-wrap">{{ mod.icon }}</div>
+        <div class="tile-icon-wrap"><AppIcon :name="mod.icon" /></div>
         <div class="tile-body">
           <div class="tile-title">{{ mod.title }}</div>
           <div class="tile-desc">{{ mod.description }}</div>
@@ -57,7 +58,7 @@ const modules = computed(() =>
         class="module-tile module-tile--admin"
         @click="nav.redirectTo('/admin')"
       >
-        <div class="tile-icon-wrap tile-icon-wrap--admin">⚙️</div>
+        <div class="tile-icon-wrap tile-icon-wrap--admin"><AppIcon name="settings" /></div>
         <div class="tile-body">
           <div class="tile-title">{{ t('workbench.tiles.admin.label') }}</div>
           <div class="tile-desc">{{ t('workbench.tiles.admin.desc') }}</div>

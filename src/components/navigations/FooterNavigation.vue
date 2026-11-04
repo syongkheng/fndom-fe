@@ -15,36 +15,33 @@ const year = new Date().getFullYear()
 <template>
   <footer class="footer">
     <div class="footer-inner">
-
       <!-- Brand -->
       <div class="footer-brand">
-        <img src="/awense-logo.png" alt="Awense" width="36" class="footer-logo" />
-        <div>
-          <div class="brand-name">Awense <span class="beta-badge">{{ t('footer.betaBadge') }}</span></div>
-          <div class="brand-tagline">{{ t('footer.tagline') }}</div>
-        </div>
+        <div class="brand-name">AWENSE <span class="beta-badge">{{ t('footer.betaBadge') }}</span></div>
+        <div class="brand-tagline">{{ t('footer.tagline') }}</div>
       </div>
 
       <!-- Sitemap -->
       <div class="footer-sitemap">
-
         <div class="footer-col">
-          <div class="col-heading">{{ t('footer.sections.plan') }}</div>
+          <div class="col-heading">{{ t('footer.sections.modules') }}</div>
           <ul class="col-links">
-            <li><button class="footer-link" @click="redirectTo('/travel')">{{ t('nav.travel') }}</button></li>
+            <li><button type="button" class="footer-link" @click="redirectTo('/house')">{{ t('nav.house') }}</button></li>
+            <li><button type="button" class="footer-link" @click="redirectTo('/budget')">{{ t('nav.budget') }}</button></li>
+            <li><button type="button" class="footer-link" @click="redirectTo('/travel/trips')">{{ t('nav.trips') }}</button></li>
+            <li><button type="button" class="footer-link" @click="redirectTo('/apple-pay')">{{ t('nav.applePay') }}</button></li>
+            <li v-if="isInternal"><button type="button" class="footer-link" @click="redirectTo('/admin')">{{ t('nav.admin') }}</button></li>
           </ul>
         </div>
 
         <div class="footer-col">
           <div class="col-heading">{{ t('footer.sections.general') }}</div>
           <ul class="col-links">
-            <li><button class="footer-link" @click="redirectTo('/')">{{ t('footer.links.home') }}</button></li>
-            <li><button class="footer-link" @click="redirectTo('/profile')">{{ t('footer.links.profile') }}</button></li>
+            <li><button type="button" class="footer-link" @click="redirectTo('/')">{{ t('footer.links.home') }}</button></li>
+            <li><button type="button" class="footer-link" @click="redirectTo('/profile')">{{ t('footer.links.profile') }}</button></li>
           </ul>
         </div>
-
       </div>
-
     </div>
 
     <!-- Bottom bar -->
@@ -73,44 +70,36 @@ const year = new Date().getFullYear()
 
 /* Brand */
 .footer-brand {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
   min-width: 200px;
   flex: 1;
 }
 
-.footer-logo {
-  margin-top: 2px;
-  flex-shrink: 0;
-}
-
 .brand-name {
+  font-family: var(--font-mono);
   font-size: 1rem;
   font-weight: 700;
+  letter-spacing: 0.18em;
   color: var(--color-heading);
   display: flex;
   align-items: center;
-  gap: 7px;
-  margin-bottom: 4px;
+  gap: 9px;
+  margin-bottom: 6px;
 }
 
 .beta-badge {
   font-size: 0.6rem;
   font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
   padding: 1px 6px;
-  border-radius: 20px;
-  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-  color: var(--el-color-primary);
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 25%, transparent);
+  border-radius: var(--radius);
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
 }
 
 .brand-tagline {
   font-size: 0.78rem;
-  color: var(--color-text);
-  opacity: 0.5;
+  color: var(--color-text-secondary);
   line-height: 1.4;
 }
 
@@ -131,12 +120,11 @@ const year = new Date().getFullYear()
 }
 
 .col-heading {
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--color-text);
-  opacity: 0.4;
+  color: var(--color-text-tertiary);
 }
 
 .col-links {
@@ -155,15 +143,13 @@ const year = new Date().getFullYear()
   cursor: pointer;
   font-size: 0.85rem;
   color: var(--color-text);
-  opacity: 0.75;
   text-align: left;
-  transition: opacity 0.15s, color 0.15s;
+  transition: color 0.15s;
   line-height: 1;
 }
 
 .footer-link:hover {
-  opacity: 1;
-  color: var(--el-color-primary);
+  color: var(--color-primary);
 }
 
 /* Bottom bar */
@@ -175,13 +161,10 @@ const year = new Date().getFullYear()
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.75rem;
-  color: var(--color-text);
-  opacity: 0.45;
-}
-
-.footer-bottom-right {
-  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: var(--color-text-tertiary);
 }
 
 /* Mobile */

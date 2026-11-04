@@ -195,7 +195,7 @@ export function useTravelExport(
     const cal = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//fndom//Travel Planner//EN',
+      'PRODID:-//Awense//Travel Planner//EN',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
       `X-WR-CALNAME:${calName}`,

@@ -209,17 +209,20 @@ const confirmDelete = (sessionId: string, name: string) => {
   display: flex;
   align-items: center;
   gap: 6px;
+  font-family: var(--font-mono);
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--el-color-primary);
+  letter-spacing: 0.12em;
+  color: var(--color-accent);
   margin-bottom: 6px;
 }
 
 .list-title {
+  font-family: var(--font-mono);
   font-size: 1.6rem;
-  font-weight: 800;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   color: var(--color-heading);
 }
 
@@ -252,7 +255,7 @@ const confirmDelete = (sessionId: string, name: string) => {
 
 .budget-card {
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 16px;
   background: var(--color-background-soft);
   cursor: pointer;
@@ -265,8 +268,7 @@ const confirmDelete = (sessionId: string, name: string) => {
 
 .budget-card:hover {
   border-color: var(--el-color-primary);
-  background: color-mix(in srgb, var(--el-color-primary) 4%, var(--color-background-soft));
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  background: var(--color-background-mute);
 }
 
 .budget-card--shared {
@@ -301,10 +303,11 @@ const confirmDelete = (sessionId: string, name: string) => {
 .budget-sums {
   display: flex;
   gap: 10px;
+  font-family: var(--font-mono);
   font-size: 0.78rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-text);
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 .budget-card-actions {
@@ -335,7 +338,7 @@ const confirmDelete = (sessionId: string, name: string) => {
 }
 
 .req {
-  color: #f87171;
+  color: var(--color-danger);
 }
 
 .template-select {

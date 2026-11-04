@@ -626,7 +626,7 @@ watch(
 .ls-card {
   margin-top: 20px;
   border: 1px solid var(--color-border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--color-background-soft);
   overflow: hidden;
 }
@@ -695,7 +695,7 @@ watch(
   width: 100%;
   padding: 8px 10px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--color-background);
   color: inherit;
   font: inherit;
@@ -796,7 +796,7 @@ watch(
   gap: 4px;
   padding: 1px 6px;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: var(--color-background);
   color: var(--color-text);
   font-size: 0.76rem;
@@ -817,7 +817,7 @@ watch(
 .ls-problem {
   margin: 16px 20px 0;
   padding: 12px 14px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   border: 1px solid;
 }
 
@@ -858,7 +858,7 @@ watch(
   list-style: none;
   margin: 6px 0 0;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--color-background);
   font-family: var(--ls-mono);
   font-size: 0.74rem;
@@ -1014,7 +1014,7 @@ watch(
 
 .ls-step {
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   border: 1px solid var(--color-border);
   background: var(--color-background);
 }
@@ -1138,7 +1138,7 @@ watch(
 .ls-code {
   margin: 0;
   padding: 12px 14px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--color-background);
   border: 1px solid var(--color-border);
   font-family: var(--ls-mono);

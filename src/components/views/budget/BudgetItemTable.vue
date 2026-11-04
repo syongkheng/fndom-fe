@@ -208,6 +208,12 @@ const submitNew = async () => {
   background: transparent;
 }
 
+/* amounts read as figures on a drawing: mono, tabular */
+.cell-number :deep(.el-input__inner),
+.add-number :deep(.el-input__inner) {
+  font-family: var(--font-mono);
+}
+
 .status-tag {
   cursor: pointer;
   user-select: none;

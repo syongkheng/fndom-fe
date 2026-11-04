@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppIcon from '@/components/common/AppIcon.vue'
 import { ref, watch, nextTick, onUnmounted } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -113,7 +114,7 @@ onUnmounted(destroyMap)
     @opened="onDialogOpened"
     @closed="destroyMap"
   >
-    <div class="picker-address">📍 {{ record.address }}</div>
+    <div class="picker-address"><AppIcon name="pin" /> {{ record.address }}</div>
 
     <div ref="mapContainerRef" class="picker-map" />
 

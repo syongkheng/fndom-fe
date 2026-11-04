@@ -1,8 +1,9 @@
 <script lang="ts" setup>
+import { useToast } from '@/composables/useToast'
 import { ref, computed, nextTick, watch } from 'vue'
-import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
+const toast = useToast()
 import OtpInput from '@/components/common/OtpInput.vue'
 import { GLOBE_ICON_SVG } from '@/constants/TravelIconSvg'
 import TravelIcon from '@/components/icons/TravelIcon.vue'
@@ -32,7 +33,7 @@ const clearChallenge = () => {
 const saveChallenge = () => {
   const code = challengeDraft.value
   if (code && code.length !== 6) {
-    ElMessage.warning(t('toast.travelInvalidCode'))
+    toast.warning(t('toast.travelInvalidCode'))
     return
   }
   emit('save', code || undefined)

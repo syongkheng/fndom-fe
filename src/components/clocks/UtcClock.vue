@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 
-// 🕒 Reactive UTC time
+// Reactive UTC time
 const utcTime = ref<string>('')
 
 // Function to update UTC time every second

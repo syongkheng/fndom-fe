@@ -25,6 +25,8 @@ export default defineConfig({
           'vendor-vue':     ['vue', 'vue-router', 'pinia'],
           'vendor-element': ['element-plus'],
           'vendor-leaflet': ['leaflet'],
+          // only loaded by the lazy /house route
+          'vendor-three':   ['three'],
         },
       },
     },

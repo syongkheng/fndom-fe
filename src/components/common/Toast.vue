@@ -72,6 +72,7 @@ const runAction = async () => {
 .app-toast--success .app-toast-icon { color: var(--el-color-success); }
 .app-toast--error .app-toast-icon { color: var(--el-color-danger); }
 .app-toast--info .app-toast-icon { color: var(--el-color-primary); }
+.app-toast--warning .app-toast-icon { color: var(--el-color-warning); }
 
 .app-toast-ring {
   position: absolute;

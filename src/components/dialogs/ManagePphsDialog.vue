@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast'
+import AppIcon from '@/components/common/AppIcon.vue'
 import { Breakpoint } from '@/constants/Breakpoint';
 import { useBreakpointManager } from '@/hooks/useBreakpointManager';
 import type { PphsRecord } from '@/interfaces/PphsRecord.model';
 import { useLayoutStateStore } from '@/stores/layoutState';
 import { usePphsStore } from '@/stores/pphs';
-import { ElMessage } from 'element-plus';
 import { computed, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n'
 
@@ -15,6 +16,7 @@ const props = defineProps({
 const layoutStore = useLayoutStateStore()
 const pphsManager = usePphsStore();
 const { t } = useI18n()
+const toast = useToast()
 
 const pphsRecordForm = reactive<PphsRecord>({
   town: '',
@@ -47,9 +49,9 @@ const closeModal = () => layoutStore.hdbManagePphsDialog.setFalse()
 const submitForm = async () => {
   const result = await pphsManager.updatePphsCoordinates(pphsRecordForm)
   if (result) {
-    ElMessage.success(t('toast.pphsUpdateSuccess'))
+    toast.success(t('toast.pphsUpdateSuccess'))
   } else {
-    ElMessage.error(t('toast.pphsUpdateFailed'))
+    toast.error(t('toast.pphsUpdateFailed'))
   }
   closeModal()
 }
@@ -70,7 +72,7 @@ const isEdit = computed(() => !!props.record?.address)
   >
     <template #header>
       <div class="dialog-header">
-        <div class="dialog-header-icon">📍</div>
+        <div class="dialog-header-icon"><AppIcon name="pin" /></div>
         <div>
           <div class="dialog-title">{{ isEdit ? 'Edit PPHS Record' : 'Add PPHS Record' }}</div>
           <div class="dialog-subtitle" v-if="pphsRecordForm.address">{{ pphsRecordForm.address }}</div>
@@ -104,7 +106,7 @@ const isEdit = computed(() => !!props.record?.address)
       </div>
 
       <div v-if="pphsRecordForm.lat && pphsRecordForm.lng" class="coords-preview">
-        <span class="coords-icon">🗺️</span>
+        <span class="coords-icon"><AppIcon name="map" /></span>
         <a
           :href="`https://www.google.com/maps?q=${pphsRecordForm.lat},${pphsRecordForm.lng}`"
           target="_blank"

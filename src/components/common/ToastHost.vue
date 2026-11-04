@@ -16,8 +16,7 @@ const { toasts, dismiss } = useToast()
 <style scoped>
 .app-toast-stack {
   position: fixed;
-  /* Sits below TopNavigation's 80px sticky header — independent of ElMessage,
-     which is anchored from the bottom via App.vue's el-config-provider. */
+  /* Sits below TopNavigation's 80px sticky header. */
   top: 96px;
   left: 50%;
   transform: translateX(-50%);

@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import AppIcon from '@/components/common/AppIcon.vue'
 import type { Component } from 'vue'
 
 defineProps<{
@@ -12,7 +13,7 @@ defineProps<{
   <div class="empty-state">
     <div class="empty-icon">
       <el-icon v-if="typeof icon !== 'string'"><component :is="icon" /></el-icon>
-      <template v-else>{{ icon }}</template>
+      <AppIcon v-else :name="icon" />
     </div>
     <div class="empty-title">{{ title }}</div>
     <p v-if="message" class="empty-desc">{{ message }}</p>

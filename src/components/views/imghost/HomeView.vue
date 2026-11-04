@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast'
+import AppIcon from '@/components/common/AppIcon.vue'
 import { ref } from 'vue'
-import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
+const toast = useToast()
 import HttpClient from '@/interceptors/HttpClient'
 
 interface UploadedImage {
@@ -48,7 +50,7 @@ function onFileInput(e: Event) {
 
 function pickFile(file: File) {
   if (!file.type.startsWith('image/')) {
-    ElMessage.error(t('toast.imghostImagesOnly'))
+    toast.error(t('toast.imghostImagesOnly'))
     return
   }
   selectedFile.value = file
@@ -102,7 +104,7 @@ async function upload() {
     localPreview.value = null
     if (fileInput.value) fileInput.value.value = ''
   } catch {
-    ElMessage.error(t('toast.imghostUploadFailed'))
+    toast.error(t('toast.imghostUploadFailed'))
   } finally {
     uploading.value = false
   }
@@ -110,12 +112,12 @@ async function upload() {
 
 async function copyUrl(url: string) {
   await navigator.clipboard.writeText(url)
-  ElMessage.success(t('toast.imghostUrlCopied'))
+  toast.success(t('toast.imghostUrlCopied'))
 }
 
 async function copyEmbed(url: string) {
   await navigator.clipboard.writeText(`<img src="${url}" alt="" />`)
-  ElMessage.success(t('toast.imghostEmbedCopied'))
+  toast.success(t('toast.imghostEmbedCopied'))
 }
 </script>
 
@@ -134,7 +136,7 @@ async function copyEmbed(url: string) {
       @drop="onDrop"
       @click="fileInput?.click()"
     >
-      <span class="drop-icon">🖼️</span>
+      <span class="drop-icon"><AppIcon name="image" /></span>
       <p class="drop-hint">Drag & drop an image here, or click to select</p>
       <p class="drop-sub">PNG, JPG, GIF, WebP · Max 20 MB</p>
       <input ref="fileInput" type="file" accept="image/*" style="display: none" @change="onFileInput" />

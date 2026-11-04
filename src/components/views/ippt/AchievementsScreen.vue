@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppIcon from '@/components/common/AppIcon.vue'
 import { computed } from 'vue'
 import { useIpptStore } from '@/stores/ippt'
 import { tierOf } from '@/utilities/ipptScoring'
@@ -90,7 +91,7 @@ const nextMilestones = computed(() =>
           class="badge-tile"
           :class="{ locked: !badge.earned }"
         >
-          <div class="badge-icon">{{ badge.icon }}</div>
+          <div class="badge-icon"><AppIcon :name="badge.icon" /></div>
           <div class="badge-name">{{ badge.label }}</div>
           <div class="badge-sub">{{ badge.desc }}</div>
           <div v-if="badge.earned && badge.earnedDate" class="text-xs" style="color:var(--primary-2);margin-top:4px;font-size:10px">

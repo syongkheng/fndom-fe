@@ -1,7 +1,7 @@
 <script lang="ts" setup>
+import { useToast } from '@/composables/useToast'
 import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import type { UploadFile, UploadUserFile } from 'element-plus'
 import { Plus, Close } from '@element-plus/icons-vue'
@@ -34,6 +34,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const toast = useToast()
 const { uploadTgImage } = useTgImageUpload()
 const route = useRoute()
 
@@ -152,11 +153,11 @@ watch(() => props.modelValue, (val) => {
 
 const validateImageFile = (file: File): boolean => {
   if (!file.type.startsWith('image/')) {
-    ElMessage.error(t('travel.agenda.onlyImages'))
+    toast.error(t('travel.agenda.onlyImages'))
     return false
   }
   if (file.size > FILE_MAX_BYTES) {
-    ElMessage.error(t('travel.agenda.fileTooLarge', { name: file.name, size: 5 }))
+    toast.error(t('travel.agenda.fileTooLarge', { name: file.name, size: 5 }))
     return false
   }
   return true
@@ -190,7 +191,7 @@ const handleFileChange = async (uploadFile: UploadFile) => {
     ]
     emit('sync', { ...drawerForm.value })
   } catch {
-    ElMessage.error(t('travel.agenda.uploadFailed', 'Failed to upload image'))
+    toast.error(t('travel.agenda.uploadFailed', 'Failed to upload image'))
     drawerForm.value.files = drawerForm.value.files.filter((f) => f.uuid !== fwp.uuid)
     uploadFileList.value = uploadFileList.value.filter((f) => f.uid !== uploadFile.uid)
     uidToUuidMap.delete(uploadFile.uid)
@@ -215,7 +216,7 @@ const handleFileRemove = (uploadFile: UploadFile) => {
 }
 
 const handleExceed = () => {
-  ElMessage.warning(t('travel.agenda.maxImages', { n: FILE_LIMIT }))
+  toast.warning(t('travel.agenda.maxImages', { n: FILE_LIMIT }))
 }
 
 
@@ -231,11 +232,11 @@ const drawerDisabledDate = (time: Date) => {
 
 const save = () => {
   if (uploadingCount.value > 0) {
-    ElMessage.warning(t('travel.agenda.uploadInProgress', 'Please wait for the photo to finish uploading.'))
+    toast.warning(t('travel.agenda.uploadInProgress', 'Please wait for the photo to finish uploading.'))
     return
   }
   if (!drawerForm.value.title.trim()) {
-    ElMessage.warning(t('travel.agenda.titleRequired'))
+    toast.warning(t('travel.agenda.titleRequired'))
     return
   }
   emit('save', { ...drawerForm.value })

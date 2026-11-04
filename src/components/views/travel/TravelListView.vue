@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast'
 import { ref, onMounted, watch } from 'vue'
 import { useNav } from '@/hooks/useNav'
 import { useLayoutStateStore } from '@/stores/layoutState'
@@ -7,7 +8,7 @@ import { storeToRefs } from 'pinia'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
 import { GeneratorUtils } from '@/utilities/GeneratorUtils'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { EditPen, ArrowRight, View, Link, Delete } from '@element-plus/icons-vue'
 import { CATEGORY_ICON_SVG } from '@/constants/TravelIconSvg'
@@ -21,6 +22,7 @@ const authStore = useAuthenticationStore()
 const { isAuthenticated } = storeToRefs(authStore)
 
 const { t } = useI18n()
+const toast = useToast()
 
 interface TripCard {
   id: number
@@ -93,14 +95,14 @@ const onTripCreated = async (payload: CreateTripPayload) => {
     _agendaIdsToUpdate: [],
   }).catch(() => null)
   creating.value = false
-  if (!res?.data?.data?.sessionId) { ElMessage.error(t('travel.list.failed')); return }
+  if (!res?.data?.data?.sessionId) { toast.error(t('travel.list.failed')); return }
   nav.redirectTo(`/travel/${res.data.data.sessionId}`)
 }
 
 const copyShareLink = (shortCode: string) => {
   const url = `${window.location.origin}/travel/v/${shortCode}`
   navigator.clipboard.writeText(url)
-  ElMessage.success(t('travel.list.linkCopied'))
+  toast.success(t('travel.list.linkCopied'))
 }
 
 const confirmDelete = (trip: TripCard) => {
@@ -116,11 +118,11 @@ const confirmDelete = (trip: TripCard) => {
 const deleteTrip = async (sessionId: string) => {
   const res = await HttpClient.post(ApiRoute.ITINERARY.DELETE(sessionId), {}).catch(() => null)
   if (!res?.data?.data?.deleted) {
-    ElMessage.error(t('travel.list.failedDelete'))
+    toast.error(t('travel.list.failedDelete'))
     return
   }
   myTrips.value = myTrips.value.filter((t) => t.sessionId !== sessionId)
-  ElMessage.success(t('travel.list.deleted'))
+  toast.success(t('travel.list.deleted'))
 }
 </script>
 

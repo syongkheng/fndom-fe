@@ -1,7 +1,7 @@
+import { useToast } from '@/composables/useToast'
 import { reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { DateUtils } from '@/utilities/DateUtils'
-import { ElMessage } from 'element-plus'
 import { i18n } from '@/i18n'
 const t = (key: string, values?: Record<string, unknown>) => i18n.global.t(key, values ?? {})
 import HttpClient from '@/interceptors/HttpClient'
@@ -262,12 +262,7 @@ export const useItineraryStore = defineStore('itinerary', () => {
         const differenceInDays = newDays - itinerary.durationInDays
         itinerary.durationInDays = newDays
         if (differenceInDays < 0) {
-          ElMessage({
-            message: t('toast.itineraryDaysDiff', { days: Math.abs(differenceInDays) }),
-            type: 'warning',
-            plain: false,
-            duration: 6000,
-          })
+          useToast().warning(t('toast.itineraryDaysDiff', { days: Math.abs(differenceInDays) }), { duration: 6000 })
         }
       }
     }

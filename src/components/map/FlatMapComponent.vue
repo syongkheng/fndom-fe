@@ -1,13 +1,14 @@
 <template>
   <div v-if="isOnline" id="flat-map"></div>
   <div v-else class="map-offline">
-    <span class="map-offline-icon">🗺️</span>
+    <span class="map-offline-icon"><AppIcon name="map" /></span>
     <span class="map-offline-title">Map unavailable</span>
     <span class="map-offline-desc">Network connection required to load map tiles</span>
   </div>
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/components/common/AppIcon.vue'
 import { onMounted, onUnmounted, watch, ref, nextTick } from 'vue'
 import L, { type Map as LeafletMap, type FeatureGroup } from 'leaflet'
 import 'leaflet/dist/leaflet.css'

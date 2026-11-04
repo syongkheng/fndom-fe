@@ -7,8 +7,23 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: () => import('../components/views/travel/TravelLandingView.vue'),
-      beforeEnter: async (to, from, next) => useRouteGuards().landingGuard({ from, next }),
+      // Workbench home for everyone: signed-out visitors see the same layout and each
+      // panel shows its own sign-in state, so there is no auth guard here.
+      component: () => import('../components/views/dashboard/DashboardView.vue'),
+    },
+    {
+      // Local-only planner (layout lives in localStorage), so no auth guard.
+      // fullbleed: fills the viewport under the header; hideFooter: canvas owns the scroll gestures.
+      path: '/house',
+      name: 'house',
+      component: () => import('../components/views/house/HousePlannerView.vue'),
+      meta: { fullbleed: true, hideFooter: true },
+    },
+    {
+      path: '/todo',
+      name: 'todo',
+      component: () => import('../components/views/todo/TodoView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
     },
     {
       path: '/workbench',
@@ -23,10 +38,10 @@ const router = createRouter({
       beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
     },
     {
+      // Legacy URL — the workbench now lives at '/'.
       path: '/dashboard',
       name: 'dashboard',
-      component: () => import('../components/views/dashboard/DashboardView.vue'),
-      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
+      redirect: '/',
     },
     {
       path: '/pphs',

@@ -1,8 +1,8 @@
 <script lang="ts" setup>
+import { useToast } from '@/composables/useToast'
 import { Bell, HomeFilled, House, MoonNight, Notification, Operation, StarFilled } from '@element-plus/icons-vue'
 import { useLayoutStateStore } from '@/stores/layoutState'
 import { useNav } from '@/hooks/useNav'
-import { ElMessage } from 'element-plus';
 import { useAuthenticationStore } from '@/stores/authentication';
 import { storeToRefs } from 'pinia';
 import { useBreakpointManager } from '@/hooks/useBreakpointManager';
@@ -15,15 +15,16 @@ const authStore = useAuthenticationStore()
 const { isAuthenticated } = storeToRefs(authStore) // Preserves reactivity
 const { isScreensizeBelow } = useBreakpointManager();
 const { t } = useI18n()
+const toast = useToast()
 
 const handleLogout = () => {
   authStore.handleLogout()
   navigate.redirectToLanding()
-  ElMessage.success(t('toast.logoutSuccess'))
+  toast.success(t('toast.logoutSuccess'))
 }
 
 const handleSetting = () => {
-  ElMessage.info(t('common.comingSoon'))
+  toast.info(t('common.comingSoon'))
 }
 
 </script>

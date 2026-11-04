@@ -109,7 +109,7 @@ onMounted(() => {
       </div>
 
       <!-- Empty state -->
-      <EmptyState v-else icon="🔍" title="No results found" :message="`No results found for postal code ${postalCode}`" />
+      <EmptyState v-else icon="search" title="No results found" :message="`No results found for postal code ${postalCode}`" />
     </template>
 
     <!-- Skeleton loader -->

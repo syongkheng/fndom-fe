@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppIcon from '@/components/common/AppIcon.vue'
 import { useAuthenticationStore } from '@/stores/authentication'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
@@ -26,7 +27,7 @@ const { isAuthenticated } = storeToRefs(authStore)
 
       <!-- Travel -->
       <div class="service-card" @click="router.push('/travel')">
-        <div class="service-icon">✈️</div>
+        <div class="service-icon"><AppIcon name="plane" /></div>
         <div class="service-body">
           <h2 class="service-name">{{ t('home.travel.label') }}</h2>
           <p class="service-desc">{{ t('home.travel.desc') }}</p>

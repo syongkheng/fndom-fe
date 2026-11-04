@@ -1,4 +1,8 @@
 # fndom — Project Mindmap
+> Brand: the product is **Awense** (awense.com). The repo, package name, analytics `system='fndom'` and all localStorage keys keep the `fndom` name on purpose (renaming keys would wipe saved data). Only user-facing text says Awense.
+> **Look (2026-11-02, v2): warm "super-app" style replaced Blueprint/CAD** — cream/vermilion/gold palette, 16px radius, soft shadows, pill buttons, Nunito + Noto Sans SC, SVG line icons via `components/common/AppIcon.vue` (name -> path map; no emoji anywhere in UI), lantern-glow body background. Token and class names (`--color-*`, `--font-mono`, `.bp-*`) are unchanged but now mean the soft versions; `--font-mono` is a rounded sans. Phones get `BottomTabBar.vue` (fixed, 4 tabs; `--tabbar-h` var offsets main + /house height). Workbench has hero banner (daily tip), quick-entry tiles + Surprise-me. Older notes below that say "blueprint/drafting grid/mono" are historical.
+> Redesign (House + Budget, blueprint style): `/` is now a workbench home (transactions, budget tables, flat plan, itinerary). Nav = Workbench, House, Budget, Trips, Apple Pay, Admin. PPHS/Flat/Bus/IPPT/Imghost/ss-key remain routable but are out of the nav. Kingshot/Douyin do not exist in this codebase.
+
 
 ```
 fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
@@ -12,6 +16,7 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   ├── Maps: Leaflet
 │   ├── Charts: Chart.js
 │   ├── Video: HLS.js
+│   ├── 3D: Three.js 0.187 (house planner only; separate vendor-three chunk)
 │   ├── HTTP: Axios (auto-attaches JWT from localStorage)
 │   ├── Deploy: Vercel (vercel.json)
 │   └── Path alias: @/ → src/
@@ -20,55 +25,38 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   ├── createApp → Pinia → Router → ElementPlus → mount
 │   └── AppInitializer: verify JWT + fetch feature flags → render app
 │
-├── STYLING
-│   ├── Element Plus (light + dark CSS vars)
-│   ├── main.css — CSS custom properties
-│   ├── typography.css — fonts
+├── STYLING — Blueprint / CAD (redesign)
+│   ├── base.css: palette (--vt-c-* → semantic --color-*, plus --color-primary/accent/danger/success,
+│   │     --font-sans IBM Plex Sans, --font-mono JetBrains Mono, --radius 2px, --grid-minor/major);
+│   │     body paints an 8px/64px drafting grid. Light = drafting paper + blue ink, Dark = navy + cyan.
+│   ├── main.css: .bp-label / .bp-panel (corner ticks) / .bp-dim / .bp-btn utilities; global
+│   │     .room-marker + .measure-label (Three.js CSS2D elements); Element Plus overrides under
+│   │     `:root, html.dark` (2px radius, no shadows, --el-bg/fill/border/text mapped to --color-*)
+│   ├── typography.css: headings in mono (no longer re-imports base/main)
+│   ├── Fonts: Google Fonts link in index.html
 │   ├── Dark mode: .dark on <html>, toggled by theme store
 │   └── Breakpoints: S=425px, M=800px, L=801px+, CALENDAR=1200px+
 │
 ├── ROUTER (src/router/index.ts)  — 21 active routes
 │   │
 │   ├── PUBLIC (no auth)
-│   │   ├── /                      home → travel/TravelLandingView — now a
-│   │   │     full-screen art piece in place of the old marketing/CTA content
-│   │   │     (hero text/buttons/feature cards/CTA banner all removed, not
-│   │   │     just hidden), but TopNavigation/FooterNavigation are still shown
-│   │   │     as normal (only 'home' is in App.vue's wrapper--fullbleed route
-│   │   │     list, to drop the wrapper's padding/centering — nav/footer
-│   │   │     themselves are NOT conditionally hidden for this route).
-│   │   │     /mountain-ridges.png (ink-wash background, object-fit:cover)
-│   │   │     + /main-character-transparent.png (the purple-robed figure,
-│   │   │     absolutely positioned over the peak, left:50.5%/bottom:26% —
-│   │   │     tuned by eye against the old flattened hero-explore.png
-│   │   │     composition, re-check if either PNG is replaced). .art-hero is
-│   │   │     NOT flex:1 — this app's html/body/#app have no height:100%
-│   │   │     anchor anywhere, so a flex-fill child collapses to ~0 height
-│   │   │     here (learned the hard way). Desktop: `height: 100vh` —
-│   │   │     deliberately taller than the header+footer-adjusted viewport,
-│   │   │     so the footer sits below the fold until the user scrolls
-│   │   │     (a scroll cue, not a bug). Mobile (max-width:640px) overrides
-│   │   │     back to `calc(100vh - 80px - 220px)` — same calc App.vue's own
-│   │   │     default .wrapper rule uses for the same header/footer heights —
-│   │   │     so it still fits in one screen with no scroll there.
-│   │   │     Hovering (desktop) or clicking/tapping (touch — an isFloating
-│   │   │     ref toggled on the img, since touch has no hover) the character
-│   │   │     triggers a CSS keyframe bob (translateY; :hover and .is-floating
-│   │   │     share one animation class) AND, on click/tap specifically:
-│   │   │     logged-out → opens the login dialog (layoutStore.loginDialog.
-│   │   │     setTrue()), same as the header's Login button; logged-in →
-│   │   │     useNav().redirectToDashboard() → /dashboard (placeholder content
-│   │   │     only for now, see dashboard/DashboardView.vue below — the
-│   │   │     character is this page's entry point into the app either way).
-│   │   │     Header hide-on-scroll-down / show-on-scroll-up (home only): App.vue
-│   │   │     listens on `window` (a scroll listener, not @scroll on .wrapper —
-│   │   │     see the CSS-quirk note below) and passes a `hidden` prop into
-│   │   │     TopNavigation, which applies `.header--hidden{transform:
-│   │   │     translateY(-100%)}`. TopNavigation ALSO applies `.header--overlay
-│   │   │     {position:fixed}` for this route specifically (see next bullet
-│   │   │     for why `position:sticky` alone doesn't work) — everywhere else
-│   │   │     the header is untouched (still plain `position:sticky`).
-│   │   ├── /404                   404 → UnauthorizedView
+│   │   ├── /                      home → dashboard/DashboardView — the Awense workbench. PUBLIC, no
+│   │   │     guard: signed-out visitors see the same grid and each card shows a SignInPrompt.
+│   │   │     (LandingHomeView.vue is kept on disk but no longer routed; landingGuard in
+│   │   │     useRouteGuards is now unused.) /dashboard is a redirect to '/'. useNav
+│   │   │     redirectToDashboard + PageBackButton default now go to '/'.
+│   │   ├── /house                 house → house/HousePlannerView — 3D HDB floor plan +
+│   │   │     furniture planner. PUBLIC (no guard; layout is localStorage-only).
+│   │   │     meta: { fullbleed: true, hideFooter: true } — App.vue reads route.meta.fullbleed
+│   │   │     (edge-to-edge, overflow hidden) and route.meta.hideFooter. Lazy chunk; three.js
+│   │   │     is its own manualChunk (vendor-three).
+│   │   │   ├── /todo                  todo → todo/TodoView — personal to-do list. AUTH REQUIRED (authGuard), backed by qindom
+│   │   │     `/todo` (see qindom MINDMAP TODO) — optimistic updates + rollback toast, refetch on focus / every 15s
+│   │   │     while visible (skipped during writes/drags) for cross-device sync. Widget: `scriptable/todo-widget.js`
+│   │   │     (Scriptable accessoryRectangular) reads qindom `GET /v1/ss/todo` with the user's ss_ key. Add, check off, inline edit, delete with
+│   │   │     5s Undo toast, pin max 3 (MAX_PINNED), Pointer-Events drag to reorder (within pinned / unpinned
+│   │   │     group), collapsed Done section with "N done this week". Nav: TopNavigation + MobileNavigation.
+│   ├── /404                   404 → UnauthorizedView
 │   │   ├── /travel/v/:shortCode   travel-viewer (featureGuard)
 │   │   ├── /bus                   bus → bus/HomeView — geolocation-based nearest busstop + live LTA arrivals
 │   │
@@ -79,7 +67,7 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │
 │   ├── AUTH REQUIRED (authGuard)
 │   │   ├── /profile               profile → ProfileView
-│   │   ├── /dashboard             dashboard → dashboard/DashboardView — no
+│   │   ├── /dashboard             → redirect '/'. (History of the widget grid, now at '/'): no
 │   │   │     header/eyebrow text (the "Welcome back" placeholder block was
 │   │   │     removed 2026-09-22, dashboard.eyebrow/title/subtitle locale
 │   │   │     keys removed with it). Instead a draggable/resizable widget
@@ -91,7 +79,7 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   │     `order: WidgetId[]` (localStorage `fndom-dashboard-widget-order`)
 │   │   │     and `spans: Record<WidgetId, number>` (localStorage
 │   │   │     `fndom-dashboard-widget-sizes`) — stored order/spans are merged
-│   │   │     against `DEFAULT_ORDER`/`DEFAULT_SPAN` on load so a widget added
+│   │   │     against `DEFAULT_ORDER`/per-widget `span` on load so a widget added
 │   │   │     later still shows up for existing users. Two small per-slot
 │   │   │     handles, both Pointer Events (mouse + touch, no dnd library):
 │   │   │     top-right grip (Rank icon) drags to reorder — live-swaps
@@ -124,7 +112,7 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   │         off getUser(req).id or the api-key-resolved equivalent) —
 │   │   │         see the qindom MINDMAP's SS API KEY MGMT / APPLE PAY
 │   │   │         DASHBOARD sections.
-│   │   │       • TravelPlanningCard.vue (2026-09-22, always shown, no role
+│   │   │       • TravelPlanningCard.vue (NO LONGER on the dashboard — redesign replaced it with HousePlanCard; file kept) (2026-09-22, always shown, no role
 │   │   │         gate) — simple click-through card → /travel/trips.
 │   │   │       • BudgetCard.vue (2026-09-22, always shown, no role gate) —
 │   │   │         simple click-through card → /budget.
@@ -215,6 +203,13 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │         the item back into activeTable.items, re-sorted by sortOrder
 │   ├── applepay.ts         — fetch/list Apple Pay transactions + updateCategory
 │   │         (splices the updated row back in by its uuid-based `id`)
+│   ├── todo.ts             — to-do list: tasks[] (array order = manual order), open (pinned first) / done getters,
+│   │         optimistic add (temp id)/toggle/rename/togglePin/remove+restore (undo snapshot)/move+saveOrder
+│   │         against ApiRoute.TODO.*; fetchTasks(background) skips while inflight/dragging; reset() on sign-out
+│   ├── housePlan.ts        — house planner: items, selection, mode (arrange|3d), camera preset,
+│   │         measure state, undo/redo (100), localStorage `fndom-house-layout-v1`, import/export JSON,
+│   │         custom catalogue items, conflicts (wall/item overlap via utilities/houseGeometry.ts);
+│   │         toasts via useToast + i18n.global.t; displayName() localises catalogue names
 │   ├── ssApiKey.ts         — generic ss_ key: fetchApiKeyStatus, generateApiKey,
 │   │         revokeApiKey (stores the raw key in localStorage StorageKey.SS_API_KEY
 │   │         on generate — not that the frontend actually sends it anywhere itself,
@@ -228,12 +223,46 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 ├── MODULES (pages / views)
 │   │
 │   ├── WORKBENCH  /  (home)
+│   │   (route /workbench, SYSTEM_R5 only; NOT the home page. No featureFlags store/feature guards exist — gating = authGuard / systemR5Guard / landingGuard)
 │   │   └── WorkbenchView.vue — dashboard landing
 │   │
 │   ├── AUTH
 │   │   ├── LoginView.vue
 │   │   └── ProfileView.vue  (/profile, auth required)
 │   │
+│   ├── HOUSE PLANNER  /house  — public, localStorage
+│   │   ├── views/house/HousePlannerView.vue — layout (toolbar / canvas+legend / info bar) + keyboard
+│   │   │     shortcuts (arrows nudge 5cm, Shift 1cm, R, Del, Ctrl+Z / Shift+Z / Y, Esc) + PNG download
+│   │   ├── components/house/{PlannerCanvas,Toolbar,FurniturePicker,RoomLegend,InfoBar}.vue
+│   │   ├── WALL EDITOR (2026-11-04): store.walls = editable copy of floorplan.walls (axis-aligned only); wallTool
+│   │   │     'draw'|'erase'|null + wallKind (wall|door|parapet), toolbar "Edit walls" + sub-row. interaction.ts: taps
+│   │   │     place start/end (5 cm grid, snaps to wall ends, end aligns to nearby wall coords, chain until the last point
+│   │   │     is tapped again); erase highlights + removes on tap. buildPlan.setWalls() rebuilds wall meshes
+│   │   │     (PlannerScene.planObjs). Undo history snapshots {items, walls}; walls persist/export as optional `walls`
+│   │   │     (only when edited); overlap checks + snap points read the edited walls. Esc leaves the tool.
+│   │   ├── FURNITURE MODELS (2026-11-04): every piece is a list of FurniturePart (box w/ corner rounding,
+│   │   │     cylinder/cone via taper, sphere/oval, roll = lying cylinder, half-round; size, position, rotation,
+│   │   │     colour). Built-ins: constants/houseplan/furnitureModels.ts (generators keyed by catalogue id, sized from
+│   │   │     w/d/h so the bounding box == footprint; resolveParts() = own parts -> built-in -> plain box). User pieces
+│   │   │     store `parts` on the CatalogItem and on each PlacedItem (old saves without parts still load).
+│   │   │     utilities/furniturePartsGeometry.ts = pure helpers (partsBounds/partsSize/normalizeParts/cleanParts) —
+│   │   │     w/d/h and overlap checks always come from the parts' bounding box, so houseGeometry.ts is unchanged.
+│   │   │     three/house/furnitureParts.ts builds a lit mesh per part (RoundedBoxGeometry etc.) shared by the planner
+│   │   │     (furnitureMesh.ts, adds ambient+sun lights; rebuilds an entry if item.parts/dims change) and the builder.
+│   │   │     components/house/FurnitureBuilder.vue = Teleport modal opened from Toolbar ("Build furniture…" /
+│   │   │     "Edit shape…"), store.builder holds the draft: own small three scene (orbit, click a part to select),
+│   │   │     parts list, numeric/slider editor, "Start from" any catalogue piece, mirror/duplicate, save / save+place /
+│   │   │     update (editing a custom piece updates its placed copies as one undo step). Scratch check for built-in
+│   │   │     footprints: see git history of this note — run partsBounds() over catalogue vs builtinParts().
+│   │   ├── three/house/{scene,buildPlan,furnitureMesh,interaction}.ts — Three objects kept outside Vue
+│   │   │     reactivity; ortho top-down "arrange" camera (pan/zoom) + perspective OrbitControls "3d"
+│   │   │     (presets 3d/top/eye); drag via capture-phase pointerdown + stopPropagation; measure tool
+│   │   │     snaps to corners within 14px; theme follows theme store (PlannerCanvas watches isDark)
+│   │   ├── constants/houseplan/{floorplan,furniture}.ts — typed data (add a plan = new FloorPlan,
+│   │   │     point activePlan at it); room/furniture names are i18n keys (house.rooms.rN /
+│   │   │     house.furniture.<id>); utilities/houseGeometry.ts; interfaces/House.model.ts
+│   │   └── dashboard/HousePlanCard.vue — item/overlap summary from the housePlan store
+│
 │   ├── HDB / PPHS  /pphs
 │   │   ├── HomeView.vue           — public housing info
 │   │   ├── DebugView.vue
@@ -432,7 +461,7 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   ├── OtpInput.vue
 │   │   ├── StatPill.vue
 │   │   ├── Toast.vue             — one toast card: type icon (success/error/
-│   │   │     info) or, when `ring: true`, a circular SVG countdown (drains
+│   │   │     info/warning — useToast is the ONLY toast system: no ElMessage anywhere; ElMessageBox stays for confirm dialogs) or, when `ring: true`, a circular SVG countdown (drains
 │   │   │     full→empty over `duration` via a CSS stroke-dashoffset
 │   │   │     transition, restarted per-instance on mount since each toast is
 │   │   │     a fresh component instance) in its place; optional action button
@@ -447,27 +476,14 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │         (the budget module's delete/undo toast used to be one; see
 │   │         BudgetItemTable above)
 │   ├── navigations/
-│   │   ├── TopNavigation.vue      — header, theme toggle, login, profile.
-│   │         `.header{position:sticky}` is latent-broken app-wide once a
-│   │         page's content exceeds one viewport: main.css's `html,body{
-│   │         overflow-x:hidden}` and this file's own `#app{overflow-x:hidden}`
-│   │         each set only overflow-x, and per the CSS spec, setting one axis
-│   │         to non-visible forces the OTHER axis to compute as auto too — so
-│   │         `#app` (header's actual DOM parent) unintentionally becomes a
-│   │         "scroll container" for sticky's containing-block purposes, even
-│   │         though #app never itself scrolls (always exactly content-sized;
-│   │         the real scrolling element is `<html>`, confirmed via
-│   │         scrollHeight>clientHeight there but not on #app/body). Result:
-│   │         sticky positioning resolves against #app's static box instead of
-│   │         the viewport, and the header just scrolls away like `position:
-│   │         static` on any tall page. Only the home hero currently has
-│   │         taller-than-viewport content, so only TopNavigation's
-│   │         `header--overlay` (position:fixed, home route only, see the
-│   │         router section above) works around it there — this is NOT fixed
-│   │         site-wide; any other page that grows past one screen will hit
-│   │         the same non-sticky header.
-│   │   ├── FooterNavigation.vue
-│   │   ├── MobileNavigation.vue
+│   │   ├── TopNavigation.vue      — 64px sticky header: SVG mark + mono AWENSE wordmark, primary
+│   │   │     links (Workbench, House, Budget, Trips, Apple Pay when authed, Admin when SYSTEM_R5), EN/中 toggle,
+│   │   │     SVG theme toggle, login/profile, hamburger (<800px) → MobileNavigation. Sticky now
+│   │   │     works: main.css uses overflow-x:clip (was hidden, which made #app a scroll container).
+│   │   │     The home-route fixed-overlay / hide-on-scroll hack was removed (App.vue no longer
+│   │   │     listens to scroll).
+│   │   ├── FooterNavigation.vue   — modules (House/Budget/Apple Pay/Admin) + general links; hidden on meta.hideFooter routes
+│   │   ├── MobileNavigation.vue   — numbered drawing-index menu: Home, House, Budget, Apple Pay, Admin
 │   │   └── SideNavigation.vue     — (commented out)
 │   ├── dialogs/
 │   │   ├── LoadingDialog.vue
@@ -610,3 +626,10 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
     ├── Build: npm run build (vite build + vue-tsc)
     └── Deploy: Vercel (vercel.json)
 ```
+
+## Workbench (2026-11-02, route '/')
+DashboardView widgets: `transactions` (RecentTransactionsCard, span 2), `todo` (TodoCard: top 3 open tasks, pinned first, from the todo store), `budget` (BudgetCard: 3 newest tables with
+actual/budget bar, via budget store), `housePlan` (HousePlanCard: SVG thumbnail of the saved layout from the housePlan
+store), `itinerary` (ItineraryCard: soonest 3 non-finished trips, HttpClient ITINERARY.GET_ALL, links /travel/:id),
+`adminPanel` + `logSearch` (SYSTEM_R5). Shared `SignInPrompt.vue` is the signed-out state. Header strip uses
+`dashboard.workbench.*` keys. At <=500px every slot is forced to span 1 (a span-2 in a 1-col grid would add a column).

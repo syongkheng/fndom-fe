@@ -35,11 +35,15 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   height: 100vh;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  color: var(--color-text-secondary);
 }
 
 .loading-spinner {
-  border: 4px solid rgba(0, 0, 0, 0.1);
-  border-left-color: #42b983;
+  border: 2px solid var(--color-border);
+  border-left-color: var(--color-primary);
   border-radius: 50%;
   width: 40px;
   height: 40px;

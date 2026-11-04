@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppIcon from '@/components/common/AppIcon.vue'
 import { ApiRoute } from '@/constants/ApiRoute';
 import HttpClient from '@/interceptors/HttpClient';
 import type { BusRouteInformation } from '@/interfaces/BusRouteInformation.model';
@@ -198,7 +199,7 @@ onMounted(async () => {
             {{ sourceLabel }}
           </span>
         </div>
-        <div class="address">📍 {{ record.address }}</div>
+        <div class="address"><AppIcon name="pin" /> {{ record.address }}</div>
         <div v-if="isMapped" class="coords">{{ record.lat }}, {{ record.lng }}</div>
       </div>
       <div class="card-side">

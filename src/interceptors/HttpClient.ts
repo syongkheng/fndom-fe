@@ -1,5 +1,5 @@
+import { useToast } from '@/composables/useToast'
 import axios, { type AxiosError } from 'axios'
-import { ElMessage } from 'element-plus'
 import { i18n } from '@/i18n'
 const t = (key: string) => i18n.global.t(key)
 import { useAuthenticationStore } from '@/stores/authentication'
@@ -40,7 +40,7 @@ HttpClient.interceptors.response.use(
       if (authStore.isAuthenticated) {
         const layoutStore = useLayoutStateStore()
         authStore.handleLogout()
-        ElMessage.warning(t('toast.sessionExpired'))
+        useToast().warning(t('toast.sessionExpired'))
         layoutStore.loginDialog.setTrue()
       }
     }

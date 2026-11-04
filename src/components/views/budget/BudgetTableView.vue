@@ -253,8 +253,10 @@ const removeCollaborator = async (userId: number) => {
   display: flex;
   align-items: center;
   gap: 8px;
+  font-family: var(--font-mono);
   font-size: 1.5rem;
-  font-weight: 800;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   color: var(--color-heading);
 }
 
@@ -310,11 +312,11 @@ const removeCollaborator = async (userId: number) => {
   gap: 20px;
   justify-content: flex-end;
   padding: 10px 8px;
+  font-family: var(--font-mono);
   font-size: 0.85rem;
   font-weight: 700;
   color: var(--color-text);
-  opacity: 0.75;
-  border-top: 1px solid var(--color-border);
+  border-top: 2px double var(--color-border); /* ledger-style total rule */
   margin-top: 4px;
 }
 

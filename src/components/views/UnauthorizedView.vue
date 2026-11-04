@@ -32,7 +32,7 @@ const goToDashboard = () => {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--color-background-mute);
   padding: 20px;
 }
 
@@ -46,18 +46,18 @@ const goToDashboard = () => {
 }
 
 .error-icon {
-  color: #f56c6c;
+  color: var(--color-danger);
   margin-bottom: 20px;
 }
 
 h1 {
-  color: #f56c6c;
+  color: var(--color-danger);
   margin-bottom: 16px;
   font-size: 28px;
 }
 
 .description {
-  color: #606266;
+  color: var(--color-text-secondary);
   margin-bottom: 24px;
   line-height: 1.6;
 }

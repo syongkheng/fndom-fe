@@ -142,7 +142,7 @@ onMounted(load)
   max-width: 100%;
   overflow-x: auto;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius);
 }
 
 .tlp-table {

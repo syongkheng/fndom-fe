@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
 import { ArrowLeft, ArrowRight, CopyDocument, Delete, Download, Plus } from '@element-plus/icons-vue'
 import { Pie } from 'vue-chartjs'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
@@ -68,7 +67,7 @@ async function handleGenerateKey() {
     const key = await ssKeyStore.generateApiKey()
     freshlyGeneratedKey.value = key
     await refreshKeyStatus()
-    ElMessage({ type: 'warning', message: t('toast.ssKeyWarning'), duration: 6000 })
+    toast.warning(t('toast.ssKeyWarning'), { duration: 6000 })
   } catch {
     toast.error(t('toast.ssKeyFailed'))
   } finally {
@@ -1335,7 +1334,7 @@ const pieOptions = {
   align-items: center;
   gap: 10px;
   padding: 8px 14px 8px 12px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   border: 1px solid var(--color-border);
   background: var(--color-background-soft);
   color: var(--color-text);
@@ -1392,7 +1391,7 @@ const pieOptions = {
 
 .setup-guide {
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius);
   margin-bottom: 16px;
   overflow: hidden;
 }
@@ -1511,7 +1510,7 @@ const pieOptions = {
 
 .bank-guide {
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -1529,7 +1528,7 @@ const pieOptions = {
 
 .setup-guide-image img {
   width: 100%;
-  border-radius: 6px;
+  border-radius: var(--radius);
   border: 1px solid var(--color-border);
 }
 
@@ -1563,7 +1562,7 @@ const pieOptions = {
 .fresh-key-banner {
   background: var(--el-color-warning-light-9);
   border: 1px solid var(--el-color-warning-light-5);
-  border-radius: 10px;
+  border-radius: var(--radius);
   padding: 12px 14px;
   margin-top: 10px;
 }
@@ -1600,7 +1599,7 @@ const pieOptions = {
   align-items: end;
   gap: 8px 20px;
   padding: 12px 16px 14px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   margin-bottom: 14px;
   background: var(--color-background-soft);
   border: 1px solid var(--el-color-primary-light-7);
@@ -1749,7 +1748,7 @@ const pieOptions = {
   gap: 12px;
   padding: 10px 14px;
   margin-bottom: 12px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   border: 1px solid var(--el-color-warning-light-5);
   background: var(--el-color-warning-light-9);
   font-size: 0.82rem;
@@ -1866,7 +1865,7 @@ const pieOptions = {
 }
 
 .tx-day {
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--color-background-soft);
   border: 1px solid var(--color-border);
   overflow: hidden;
@@ -2101,7 +2100,7 @@ const pieOptions = {
 .tx-sheet-duplicate {
   margin: 0;
   padding: 8px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   font-size: 0.8rem;
   line-height: 1.45;
   border: 1px solid var(--el-color-warning-light-5);
@@ -2177,7 +2176,7 @@ const pieOptions = {
 .stat-tile {
   min-width: 0;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--color-background-soft);
   border: 1px solid var(--color-border);
   display: flex;
@@ -2219,7 +2218,7 @@ const pieOptions = {
 .chart-card {
   min-width: 0;
   padding: 16px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--color-background-soft);
   border: 1px solid var(--color-border);
 }
@@ -2297,7 +2296,7 @@ const pieOptions = {
 
 .calendar-card {
   padding: 16px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--color-background-soft);
   border: 1px solid var(--color-border);
 }
@@ -2341,7 +2340,7 @@ const pieOptions = {
      its container instead of letting the nowrap text truncate inside it. */
   min-width: 0;
   min-height: 64px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 6px;
   display: flex;
   flex-direction: column;
@@ -2384,7 +2383,7 @@ const pieOptions = {
 
 .day-detail-card {
   padding: 16px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--color-background-soft);
   border: 1px solid var(--color-border);
 }
@@ -2418,7 +2417,7 @@ const pieOptions = {
   gap: 12px;
   font-size: 0.82rem;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--color-background-mute);
 }
 
@@ -2469,7 +2468,7 @@ const pieOptions = {
     margin-left: auto;
     padding: 6px 10px;
     gap: 8px;
-    border-radius: 10px;
+    border-radius: var(--radius);
     flex-shrink: 1;
     min-width: 0;
   }
@@ -2566,7 +2565,7 @@ const pieOptions = {
 <style>
 .el-drawer.tx-sheet {
   max-height: 85vh;
-  border-radius: 16px 16px 0 0;
+  border-radius: var(--radius) 16px 0 0;
 }
 
 .el-drawer.tx-sheet .el-drawer__body {

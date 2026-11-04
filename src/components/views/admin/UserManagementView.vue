@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast'
 import { ref, onMounted, computed } from 'vue'
-import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import HttpClient from '@/interceptors/HttpClient'
@@ -9,6 +9,7 @@ import { GRANTABLE_ROLES, MODULE_COLORS, type RoleDefinition } from '@/constants
 
 const router = useRouter()
 const { t } = useI18n()
+const toast = useToast()
 
 interface UserRecord {
   id: number
@@ -64,7 +65,7 @@ const fetchUsers = async () => {
   if (res?.data?.data) {
     users.value = res.data.data
   } else {
-    ElMessage.error(t('toast.adminUsersLoadFailed'))
+    toast.error(t('toast.adminUsersLoadFailed'))
   }
   loading.value = false
 }
@@ -96,10 +97,10 @@ const saveRoles = async () => {
     selectedUser.value.roles = [...draftRoles.value]
     const idx = users.value.findIndex(u => u.id === selectedUser.value!.id)
     if (idx !== -1) users.value[idx].roles = [...draftRoles.value]
-    ElMessage.success(t('toast.adminRolesUpdated'))
+    toast.success(t('toast.adminRolesUpdated'))
     drawerVisible.value = false
   } else {
-    ElMessage.error(t('toast.adminRolesFailed'))
+    toast.error(t('toast.adminRolesFailed'))
   }
 }
 
@@ -288,7 +289,7 @@ onMounted(fetchUsers)
   padding: 10px 16px;
   background: var(--color-background-soft);
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   margin-bottom: 16px;
 }
 
@@ -338,7 +339,7 @@ onMounted(fetchUsers)
   padding: 14px 16px;
   background: var(--color-background-soft);
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
@@ -418,7 +419,7 @@ onMounted(fetchUsers)
   gap: 12px;
   padding: 14px;
   background: var(--color-background-mute);
-  border-radius: 10px;
+  border-radius: var(--radius);
 }
 
 .drawer-avatar {
@@ -500,7 +501,7 @@ onMounted(fetchUsers)
 .role-option {
   padding: 10px 12px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
   background: var(--color-background-soft);
