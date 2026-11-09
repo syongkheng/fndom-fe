@@ -14,6 +14,10 @@ export interface PlannerScene {
   activeCamera(): THREE.Camera
   setMode(m: HouseMode): void
   applyPreset(p: HousePreset): void
+  /** Frames the whole plan again (top-down view, or the 3D preset). */
+  fitPlan(): void
+  /** Zooms in on a footprint (plan metres). */
+  zoomToRect(r: { x0: number; y0: number; x1: number; y1: number }): void
   setTheme(dark: boolean): void
   markDirty(): void
   snapshot(): string
@@ -31,7 +35,8 @@ export function createPlannerScene(container: HTMLElement, plan: FloorPlan): Pla
   container.appendChild(renderer.domElement)
 
   const labelRenderer = new CSS2DRenderer()
-  Object.assign(labelRenderer.domElement.style, { position: 'absolute', top: '0', left: '0', pointerEvents: 'none' })
+  // own stacking context: the renderer sets each label's z-index from its depth, which must not outrank the overlay panels
+  Object.assign(labelRenderer.domElement.style, { position: 'absolute', top: '0', left: '0', pointerEvents: 'none', zIndex: '0' })
   container.appendChild(labelRenderer.domElement)
 
   const planObjs = buildPlan(plan)
@@ -65,6 +70,9 @@ export function createPlannerScene(container: HTMLElement, plan: FloorPlan): Pla
   perspControls.screenSpacePanning = false
   perspControls.minDistance = 0.5
   perspControls.maxDistance = 120
+  // One finger turns the view (like a mouse drag); two fingers pan (like a right-drag) or pinch to zoom, never both at once.
+  perspControls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }
+  const lockTwoFingers = twoFingerLock(renderer.domElement, [orthoControls, perspControls])
 
   let mode: HouseMode = 'arrange'
   let dirty = true
@@ -118,6 +126,37 @@ export function createPlannerScene(container: HTMLElement, plan: FloorPlan): Pla
     markDirty()
   }
 
+  function zoomToRect(r: { x0: number; y0: number; x1: number; y1: number }) {
+    const mx = (r.x0 + r.x1) / 2
+    const mz = (r.y0 + r.y1) / 2
+    const w = r.x1 - r.x0 + 1.6
+    const d = r.y1 - r.y0 + 1.6
+    if (mode === 'arrange') {
+      const vw = ortho.right - ortho.left
+      const vh = ortho.top - ortho.bottom
+      ortho.zoom = THREE.MathUtils.clamp(Math.min(vw / w, vh / d), orthoControls.minZoom, orthoControls.maxZoom)
+      ortho.position.set(mx, 40, mz)
+      orthoControls.target.set(mx, 0, mz)
+      ortho.lookAt(mx, 0, mz)
+      ortho.updateProjectionMatrix()
+      orthoControls.update()
+    } else {
+      // keep the viewing direction, move in on the piece
+      const target = new THREE.Vector3(mx, 0.5, mz)
+      const dir = persp.position.clone().sub(perspControls.target).normalize()
+      persp.position.copy(target).addScaledVector(dir, Math.max(2.5, Math.max(w, d) * 1.6))
+      perspControls.target.copy(target)
+      persp.lookAt(target)
+      perspControls.update()
+    }
+    markDirty()
+  }
+
+  function fitPlan() {
+    if (mode === 'arrange') fitOrtho()
+    else applyPreset('3d')
+  }
+
   function resize() {
     const w = Math.max(1, container.clientWidth)
     const h = Math.max(1, container.clientHeight)
@@ -167,6 +206,8 @@ export function createPlannerScene(container: HTMLElement, plan: FloorPlan): Pla
     activeCamera,
     setMode,
     applyPreset,
+    fitPlan,
+    zoomToRect,
     markDirty,
     setTheme(dark) {
       scene.background = new THREE.Color(dark ? 0x17120f : 0xfff7ec)
@@ -180,6 +221,7 @@ export function createPlannerScene(container: HTMLElement, plan: FloorPlan): Pla
     dispose() {
       cancelAnimationFrame(raf)
       observer.disconnect()
+      lockTwoFingers()
       orthoControls.dispose()
       perspControls.dispose()
       disposeTree(scene)
@@ -187,5 +229,69 @@ export function createPlannerScene(container: HTMLElement, plan: FloorPlan): Pla
       renderer.domElement.remove()
       labelRenderer.domElement.remove()
     },
+  }
+}
+
+/**
+ * Two-finger gestures in OrbitControls pan and pinch-zoom at the same time, which feels twitchy on a phone. This locks each
+ * gesture to whichever the fingers do more of (centre moving = pan, spread changing = zoom). Returns a cleanup function.
+ */
+function twoFingerLock(el: HTMLElement, controls: { enablePan: boolean; enableZoom: boolean }[]): () => void {
+  const touches = new Map<number, { x: number; y: number }>()
+  const LOCK_PX = 8
+  let start: { dist: number; mx: number; my: number } | null = null
+  let locked = false
+
+  const metrics = () => {
+    const [a, b] = [...touches.values()]
+    return { dist: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 }
+  }
+  const release = () => {
+    start = null
+    locked = false
+    controls.forEach((c) => {
+      c.enablePan = true
+      c.enableZoom = true
+    })
+  }
+  const down = (e: PointerEvent) => {
+    if (e.pointerType !== 'touch') return
+    touches.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    if (touches.size === 2) {
+      release()
+      start = metrics()
+    } else release()
+  }
+  const move = (e: PointerEvent) => {
+    const t = touches.get(e.pointerId)
+    if (!t) return
+    t.x = e.clientX
+    t.y = e.clientY
+    if (!start || locked || touches.size !== 2) return
+    const now = metrics()
+    const spread = Math.abs(now.dist - start.dist)
+    const drift = Math.hypot(now.mx - start.mx, now.my - start.my)
+    if (Math.max(spread, drift) < LOCK_PX) return
+    locked = true
+    const pinch = spread > drift
+    controls.forEach((c) => {
+      c.enableZoom = pinch
+      c.enablePan = !pinch
+    })
+  }
+  const up = (e: PointerEvent) => {
+    if (!touches.delete(e.pointerId)) return
+    release()
+  }
+
+  el.addEventListener('pointerdown', down, true)
+  el.addEventListener('pointermove', move, true)
+  el.addEventListener('pointerup', up, true)
+  el.addEventListener('pointercancel', up, true)
+  return () => {
+    el.removeEventListener('pointerdown', down, true)
+    el.removeEventListener('pointermove', move, true)
+    el.removeEventListener('pointerup', up, true)
+    el.removeEventListener('pointercancel', up, true)
   }
 }

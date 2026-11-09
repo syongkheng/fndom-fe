@@ -38,4 +38,10 @@ const cm = (m: number) => Math.round(m * 100)
   min-width: 0;
   max-width: 100%;
 }
+@media (max-width: 559px) {
+  .picker {
+    flex: 1 1 110px; /* wraps the selection actions to a second row only when they appear */
+    min-width: 0;
+  }
+}
 </style>

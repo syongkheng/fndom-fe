@@ -102,5 +102,31 @@ export const hdb5Room: FloorPlan = {
   eye: { pos: [1.0, 1.0], target: [4.5, 4.5] },
 }
 
+/**
+ * Floor area of each numbered room (rects as x0, y0, x1, y1 in plan metres) for counting what is in a room.
+ * Approximate: the living area also takes the open common space between the bedrooms and the kitchen.
+ */
+export const hdb5RoomAreas: Record<number, [number, number, number, number][]> = {
+  1: [[0, 0, 3.4, 4.9], [1.75, 4.9, 4.575, 7.7], [3.4, 3.35, 8.75, 6.1]],
+  2: [[3.4, 0, 5.8, 3.35]],
+  3: [[5.8, 0, 8.8, 3.35]],
+  4: [[8.8, 0, 11.8, 3.35]],
+  5: [[11.8, 0, 15.1, 4.45]],
+  6: [[8.75, 4.45, 10.925, 6.1]],
+  7: [[10.925, 4.45, 13.175, 6.1]],
+  8: [[0, 4.9, 1.75, 7.7]],
+  9: [[4.575, 6.1, 8.75, 8.95]],
+  10: [[8.75, 6.1, 10.18, 8.95]],
+  11: [[10.4, 6.1, 13.175, 7.0]],
+}
+
+/** The numbered room a plan point falls in, or null (outside every room area). */
+export function roomIdAt(x: number, y: number, areas: Record<number, [number, number, number, number][]> = hdb5RoomAreas): number | null {
+  for (const [id, rects] of Object.entries(areas)) {
+    if (rects.some(([x0, y0, x1, y1]) => x >= x0 && x <= x1 && y >= y0 && y <= y1)) return Number(id)
+  }
+  return null
+}
+
 export const floorPlans: Record<string, FloorPlan> = { hdb5Room }
 export const activePlan: FloorPlan = hdb5Room

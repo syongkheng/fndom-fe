@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js'
 import { categoryColor, type PlacedItem } from '@/constants/houseplan/furniture'
 import { resolveParts } from '@/constants/houseplan/furnitureModels'
 import { disposeTree } from './buildPlan'
@@ -10,10 +11,20 @@ interface Entry {
   /** what the model was built from; a change in any of these rebuilds it */
   parts: PlacedItem['parts']
   dims: string
+  label: CSS2DObject | null
+  labelText: string
+}
+
+/** What to print on a piece: its name, plus its size when selected. Returning null leaves the piece unlabelled. */
+export interface PieceLabel {
+  name: string
+  size?: string
+  selected?: boolean
 }
 
 export interface FurnitureLayer {
-  sync(items: PlacedItem[], selectedId: string | null, conflicts: Set<string>): void
+  /** labelOf = null hides all labels. */
+  sync(items: PlacedItem[], selectedId: string | null, conflicts: Set<string>, labelOf?: ((item: PlacedItem) => PieceLabel | null) | null, warned?: Set<string>): void
   pickTargets(): THREE.Object3D[]
   dispose(): void
 }
@@ -32,17 +43,24 @@ export function createFurnitureLayer(parent: THREE.Group, onChange: () => void):
     const group = new THREE.Group()
     group.add(model.group)
     parent.add(group)
-    return { group, model, parts: item.parts, dims: `${item.w}|${item.d}|${item.h}` }
+    return { group, model, parts: item.parts, dims: `${item.w}|${item.d}|${item.h}`, label: null, labelText: '' }
+  }
+
+  function dropLabel(e: Entry) {
+    e.label?.removeFromParent() // fires 'removed' on the label so the renderer detaches its element
+    e.label = null
+    e.labelText = ''
   }
 
   function remove(uid: string, e: Entry) {
+    dropLabel(e)
     parent.remove(e.group)
     disposeTree(e.group)
     entries.delete(uid)
   }
 
   return {
-    sync(items, selectedId, conflicts) {
+    sync(items, selectedId, conflicts, labelOf = null, warned) {
       const live = new Set(items.map((i) => i.uid))
       for (const [uid, e] of entries) if (!live.has(uid)) remove(uid, e)
 
@@ -56,7 +74,30 @@ export function createFurnitureLayer(parent: THREE.Group, onChange: () => void):
         entries.set(item.uid, e)
         e.group.position.set(item.x, 0, item.y)
         e.group.rotation.y = (-item.rot * Math.PI) / 180 // clockwise on the plan
-        e.model.setState(conflicts.has(item.uid) ? 'conflict' : item.uid === selectedId ? 'selected' : 'normal')
+        e.model.setState(conflicts.has(item.uid) ? 'conflict' : item.uid === selectedId ? 'selected' : warned?.has(item.uid) ? 'warning' : 'normal')
+
+        const info = labelOf?.(item) ?? null
+        if (!info) {
+          dropLabel(e)
+          continue
+        }
+        const size = info.size ?? ''
+        const text = `${info.name}\n${size}\n${info.selected ? 1 : 0}`
+        if (!e.label) {
+          const el = document.createElement('div')
+          el.append(document.createElement('b'), document.createElement('span'))
+          e.label = new CSS2DObject(el)
+          e.group.add(e.label)
+        }
+        e.label.position.set(0, item.h + 0.02, 0)
+        if (e.labelText !== text) {
+          e.labelText = text
+          const el = e.label.element
+          el.className = info.selected ? 'item-label is-selected' : 'item-label'
+          const [n, s] = Array.from(el.children)
+          n.textContent = info.name
+          s.textContent = size
+        }
       }
       onChange()
     },

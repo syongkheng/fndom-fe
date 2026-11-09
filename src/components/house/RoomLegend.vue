@@ -2,9 +2,15 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { activePlan } from '@/constants/houseplan/floorplan'
+import { useHousePlanStore } from '@/stores/housePlan'
 
 const { t } = useI18n()
+const store = useHousePlanStore()
 const open = ref(window.innerWidth >= 760)
+
+const inRoom = (id: number) => store.roomContents.byRoom.get(id) ?? []
+/** Hover text: what is in the room. */
+const contents = (id: number) => inRoom(id).map((i) => store.displayName(i.catalogId, i.name)).join(', ')
 </script>
 
 <template>
@@ -15,6 +21,11 @@ const open = ref(window.innerWidth >= 760)
     <ol v-if="open" class="bp-panel title-block">
       <li v-for="r in activePlan.rooms" :key="r.id">
         <span class="room-marker static">{{ r.id }}</span>{{ t(r.nameKey) }}
+        <span v-if="inRoom(r.id).length" class="count" :title="contents(r.id)">{{ inRoom(r.id).length }}</span>
+      </li>
+      <li v-if="store.roomContents.outside.length" class="outside">
+        {{ t('house.legend.outside') }}
+        <span class="count" :title="store.roomContents.outside.map((i) => store.displayName(i.catalogId, i.name)).join(', ')">{{ store.roomContents.outside.length }}</span>
       </li>
     </ol>
   </aside>
@@ -55,7 +66,26 @@ li {
   padding: 5px 10px;
   white-space: nowrap;
 }
+.count {
+  margin-left: auto;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #fff;
+  font: 700 11px/18px var(--font-sans);
+}
+.outside {
+  color: var(--color-text-tertiary);
+}
 li + li {
   border-top: 1px solid var(--color-divider);
+}
+@media (max-width: 759px) {
+  .legend {
+    max-width: calc(100% - 16px);
+  }
+  .title-block {
+    max-height: 40vh;
+  }
 }
 </style>

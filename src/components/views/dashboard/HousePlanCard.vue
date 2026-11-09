@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useNav } from '@/hooks/useNav'
 import { useHousePlanStore } from '@/stores/housePlan'
 import { activePlan as plan } from '@/constants/houseplan/floorplan'
+import { isQuarterTurn, planSize } from '@/utilities/houseGeometry'
 
 const { t } = useI18n()
 const nav = useNav()
@@ -17,13 +18,20 @@ const viewBox = `${-PAD} ${-PAD} ${plan.width + PAD * 2} ${plan.depth + PAD * 2}
 const outlinePath = `M${plan.outline.map((p) => p.join(' ')).join('L')}Z`
 const wallLines = plan.walls.filter((w) => w.kind !== 'door')
 
-// Placed furniture as footprints; a quarter turn swaps width and depth.
+// Placed furniture as footprints (a freely turned piece is drawn rotated about its centre).
 const rects = computed(() =>
   store.items.map((it) => {
-    const swap = it.rot % 180 !== 0
-    const w = swap ? it.d : it.w
-    const d = swap ? it.w : it.d
-    return { uid: it.uid, x: it.x - w / 2, y: it.y - d / 2, w, d, bad: store.conflicts.has(it.uid) }
+    const { x: w, y: d } = planSize(it)
+    const free = !isQuarterTurn(it.rot)
+    return {
+      uid: it.uid,
+      x: free ? it.x - it.w / 2 : it.x - w / 2,
+      y: free ? it.y - it.d / 2 : it.y - d / 2,
+      w: free ? it.w : w,
+      d: free ? it.d : d,
+      transform: free ? `rotate(${it.rot} ${it.x} ${it.y})` : undefined,
+      bad: store.conflicts.has(it.uid),
+    }
   }),
 )
 </script>
@@ -34,7 +42,7 @@ const rects = computed(() =>
 
     <svg :viewBox="viewBox" class="thumb" aria-hidden="true">
       <path :d="outlinePath" class="slab" />
-      <rect v-for="r in rects" :key="r.uid" :x="r.x" :y="r.y" :width="r.w" :height="r.d" class="piece" :class="{ bad: r.bad }" />
+      <rect v-for="r in rects" :key="r.uid" :x="r.x" :y="r.y" :width="r.w" :height="r.d" :transform="r.transform" class="piece" :class="{ bad: r.bad }" />
       <line v-for="(w, i) in wallLines" :key="i" :x1="w.x1" :y1="w.y1" :x2="w.x2" :y2="w.y2" class="wall" />
     </svg>
 

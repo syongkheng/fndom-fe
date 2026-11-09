@@ -4,8 +4,9 @@ import type { FurniturePart } from '@/constants/houseplan/furniture'
 
 export const SELECTED = 0xffd23f
 export const CONFLICT = 0xff3b3b
+export const WARNING = 0xffa21f
 
-export type ModelState = 'normal' | 'selected' | 'conflict'
+export type ModelState = 'normal' | 'selected' | 'conflict' | 'warning'
 
 export interface PartsModel {
   group: THREE.Group
@@ -75,7 +76,7 @@ export function buildPartsModel(parts: FurniturePart[], fallbackColor: number, u
   let lit: number | null = null
 
   function paint() {
-    const tint = state === 'selected' ? SELECTED : state === 'conflict' ? CONFLICT : null
+    const tint = state === 'selected' ? SELECTED : state === 'conflict' ? CONFLICT : state === 'warning' ? WARNING : null
     mats.forEach((m, i) => {
       if (tint !== null) {
         m.emissive.set(tint)

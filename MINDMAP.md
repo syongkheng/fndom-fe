@@ -234,6 +234,56 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   ├── views/house/HousePlannerView.vue — layout (toolbar / canvas+legend / info bar) + keyboard
 │   │   │     shortcuts (arrows nudge 5cm, Shift 1cm, R, Del, Ctrl+Z / Shift+Z / Y, Esc) + PNG download
 │   │   ├── components/house/{PlannerCanvas,Toolbar,FurniturePicker,RoomLegend,InfoBar}.vue
+│   │   │     Toolbar layout: one primary row (Arrange hammer / View eye mode toggle, picker, Rotate/Duplicate/Delete only while a piece is selected, undo/redo, save chip, Layouts, More); "More" is a popover (outside-click / Esc closes) grouped Tools / Plan / File + Shortcuts; view controls (mode-dependent: Arrange shows Fit/Zoom/Labels/Clearance/Measure, View shows 3D/Top/Eye presets + Fit/Zoom/Labels; Fit, Zoom, Labels, Clearance, Measure) live in components/house/ViewPanel.vue, an always-visible top-left stage overlay (no toggle; wraps into a strip on phones); wall-tool row appears below when active. Touch: one finger = drag/orbit, two fingers = pan OR pinch-zoom (scene.ts twoFingerLock locks to whichever the fingers do more of). Phones (<760px): ViewPanel collapses behind a "View" toggle (top-left, matchMedia), RoomLegend top-right, FurnitureMenu bottom-right (36vh max); all start collapsed.
+│   │   ├── SHARE LINKS + FURNITURE MENU (2026-11-09): public route `/house/view/:token` (name `house-view`, no guard) -> views/house/HouseSharedView.vue: fetches ApiRoute.HOUSE_SHARE.VIEW (qindom /house/view/:token, public), `store.viewShared(data)` shows it read-only in View (3D) mode (housePlan.readOnly: save() skipped, user's draft held in memory and restored by `leaveShared()` on unmount; houseLayouts autosave/updateCurrent are blocked while readOnly). "Share" toolbar button -> stores/houseShares.ts + components/house/ShareDialog.vue (login required; snapshot of layoutData() -> link; copy / list / revoke; ApiRoute.HOUSE_SHARE.*). components/house/FurnitureMenu.vue = bottom-right collapsible list of pieces grouped by room with W × D × H cm (same figures as the print sheet; click = select + zoom), mounted in BOTH HousePlannerView and HouseSharedView.
+│   │   ├── SAVED LAYOUTS (2026-11-04): stores/houseLayouts.ts + components/house/LayoutsDialog.vue ("Layouts" toolbar button)
+│   │   │     against ApiRoute.HOUSE_LAYOUT.* (qindom /house-layout, JWT). Save as new / update current / load (one undo step via
+│   │   │     housePlan.applyLayout) / delete (inline confirm). Payload = housePlan.layoutData() (same as Export JSON). Logged out:
+│   │   │     dialog shows sign-in prompt; planner still uses localStorage. Cleared on sign-out.
+│   │   ├── QoL (2026-11-09): double-click / double-tap a piece (interaction.ts `registerTap`, 350 ms / 24 px, works for mouse + touch + after
+│   │   │     a no-move press that began a drag) -> hooks.onEdit -> select + openBuilder(true). Keys: Enter = edit shape (ignored on a focused
+│   │   │     button), Ctrl/Cmd+D = duplicate.
+│   │   ├── WALL SNAP + LABELS (2026-11-09): dragging a piece within 15 cm of a wall face (and running alongside it) snaps it flush —
+│   │   │     houseGeometry.snapFlush (flush to walls AND other pieces' footprints, plus edge-alignment with touching neighbours; 15 cm) -> housePlan.snapDrag -> interaction onMove (Alt held = off); uses the edited walls
+│   │   │     (wallBoxes). Labels (quiet style, 2026-11-10): the selected piece always shows a chip with name + "W × D × H cm" (W/D swapped when turned 90/270); the toolbar "Labels" toggle (store.showLabels, localStorage `fndom-house-labels`, default on) adds faint name-only text on pieces >= 0.9 m long. furnitureMesh adds a CSS2DObject per labelled piece (PieceLabel); `.item-label` / `.is-selected` in main.css; PlannerCanvas.labelOf builds it, re-syncs on locale change.
+│   │   ├── CORNER RESIZE (2026-11-10): the selected piece (arrange mode, no measure/wall tool) shows 4 corner handles — CSS2D `.resize-handle`
+│   │   │     elements in overlayGroup (constant screen size, own pointer events, 20 px touch hit area). interaction.ts: pointerdown on a
+│   │   │     handle starts a `resize` (opposite corner = anchor, 5 cm grid), hooks resizable/onResizeStart/onResize ->
+│   │   │     housePlan.beginResize (one undo step on first movement) / resizeTo (anchor fixed, W/D swapped when turned 90/270, moving
+│   │   │     edges snap to wall + other-piece faces via houseGeometry.snapEdge, Alt = off, min 10 cm). Built-in models rebuild from w/d; pieces
+│   │   │     with own `parts` are stretched from their starting shape (px/sx by w ratio, pz/sz by d ratio). Height stays in the shape editor.
+│   │   ├── COPY/PASTE (2026-11-10): Ctrl/Cmd+C / X / V (HousePlannerView.onKey; only intercepted when a piece is selected / clipboard
+│   │   │     has one). housePlan.clipboard (in-memory deep clone, survives layout loads) + copySelected/cutSelected/paste(at). Paste centres
+│   │   │     on the mouse (interaction.cursor(), last floor point, cleared on pointerleave; 5 cm grid) else steps 30 cm down-right per paste.
+│   │   ├── CONTEXT MENU + LOCK + CLEARANCE (2026-11-10): right-click (a press that doesn't move; right-drag still pans) or touch long-press ->
+│   │   │     interaction hooks.onContext -> components/house/HouseContextMenu.vue (Teleport to body; edit shape / rotate / duplicate / copy /
+│   │   │     cut / lock / delete on a piece, "Paste here" on empty floor; closes on outside press, Esc, wheel, resize; i18n `house.menu.*`).
+│   │   │     Lock = optional `PlacedItem.locked` (persisted/exported; cleanItem keeps it; copies start unlocked): blocks drag (interaction
+│   │   │     isLocked -> select only), corner handles, nudge, rotate. Clearance: houseGeometry.clearanceIssues(items, walls, thickness)
+│   │   │     -> store.clearance (Map uid -> 'tight' | 'door'; toolbar "Clearance" toggle, localStorage `fndom-house-clearance`, default on).
+│   │   │     'tight' = obstacle (wall/other piece) inside the 60 cm strip in front (frontZone; back-to-north at rot 0) of wardrobe /
+│   │   │     fitted_wardrobe / shoe / fridge / washer; 'door' = any piece within 45 cm either side of a door opening (doorZones).
+│   │   │     Shown as an amber model tint (ModelState 'warning', below conflict/selected), info-bar messages + count.
+│   │   ├── DOOR CUT (2026-11-10): drawing a door opening along the inside of an existing wall segment cuts that wall around it
+│   │   │     (housePlan.addWall splits the host into remainders >= 10 cm) - no erase first. (Windows were tried and removed.)
+│   │   ├── QoL BATCH (2026-11-11):
+│   │   │     • Size fields: InfoBar W/D/H number inputs (cm, plan orientation) -> housePlan.setSelectedSize (stretches own `parts`, keeps the piece in the plan, disabled when locked).
+│   │   │     • Autosave + status: houseLayouts store tracks `savedSnapshot` (= house.exportJson() at last save/load) -> `dirty`/`status` (local|saved|unsaved|saving|error),
+│   │   │       toolbar chip (click = save now) + "Autosave" toggle (localStorage `fndom-house-autosave`, default on; 2 s debounce, silent updateCurrent(true), never saves an empty plan).
+│   │   │       `detach()` after sample/import/delete so those become new drafts instead of overwriting the open saved layout. beforeunload prompt in HousePlannerView while unsaved.
+│   │   │     • Shortcuts sheet: ShortcutsDialog.vue (`?` / toolbar "?"), store.helpOpen; `F` = zoom to selection / fit plan (scene.zoomToRect / fitPlan, PlannerCanvas.zoomToSelection).
+│   │   │     • PlannerHints.vue: empty-plan card (Sample home) + one-time tips card (store.tipsSeen, localStorage `fndom-house-tips-seen`; hidden < 760 px).
+│   │   │     • Distance guides: houseGeometry.nearestGaps -> store.guidesFor -> interaction.showGuides (blue line + cm label to the nearest wall/piece on each side) while dragging/resizing.
+│   │   │     • Room totals: floorplan.hdb5RoomAreas + roomIdAt (approximate rects per numbered room) -> store.roomContents; RoomLegend shows a count badge (title = contents) + "Outside rooms".
+│   │   │     • Rotate handle: `.rotate-handle` CSS2D circle above the selected piece; click = +90 (rotateSelected), drag = free angle (store.beginRotate/rotateTo, one undo step): whole degrees, clicks onto 0/90/180/270 within 4°, Shift = 15° steps, Alt = no snapping. Rotation is any angle (cleanItem keeps 0.1°): InfoBar Rot field (setSelectedRotation), `[` / `]` = ±15° (rotateBy). houseGeometry: isQuarterTurn/planSize (w/d swap only at quarter turns), footprint = bounding box at free angles, itemPolygon + SAT in findConflicts (itemsOverlap/itemHitsRect); frontZone null for free angles (no 'tight' check); corner resize handles hidden for free angles (resizable().quarter); dashboard HousePlanCard draws rotated rects.
+│   │   │     • Print / PDF: utilities/housePrint.ts (hidden iframe + window.print): current view image (WebGL canvas only, so no CSS2D labels/room numbers) + furniture list grouped by room.
+│   │   │     • Undo toasts: store.toastUndo on delete / cut / clear all (Undo only acts if that delete is still the latest history entry).
+│   │   ├── SAMPLE HOME (2026-11-07): constants/houseplan/presets.ts `couplesHome` (21 catalogue pieces for two: main bedroom,
+│   │   │     gaming room = Bedroom 2, closet room = Bedroom 3, study nook, living/dining, kitchen). Toolbar "Sample home" (More row)
+│   │   │     -> housePlan.applyLayout (one undo step; inline confirm when items exist). Conflict- and clearance-warning-free.
+│   │   ├── MCP (2026-11-08): the house MCP server lives in qindom (/mcp) and is PUBLIC + STATELESS (no key, nothing stored): tools take the
+│   │   │     planner's layout JSON and return the edited JSON -> user saves it and uses Import JSON. Unused for now (kept, not mounted):
+│   │   │     stores/mcpApiKey.ts, views/ss-key/McpKeyCard.vue, ApiRoute.MCP_KEY, `mcpKey.*` i18n — for a future authenticated variant.
 │   │   ├── WALL EDITOR (2026-11-04): store.walls = editable copy of floorplan.walls (axis-aligned only); wallTool
 │   │   │     'draw'|'erase'|null + wallKind (wall|door|parapet), toolbar "Edit walls" + sub-row. interaction.ts: taps
 │   │   │     place start/end (5 cm grid, snaps to wall ends, end aligns to nearby wall coords, chain until the last point

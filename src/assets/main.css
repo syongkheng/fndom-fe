@@ -151,6 +151,103 @@ main {
   pointer-events: none;
   user-select: none;
 }
+.resize-handle {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  box-sizing: border-box;
+  border-radius: 3px;
+  background: #fff;
+  border: 2px solid var(--color-primary);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 25%);
+  pointer-events: auto;
+  touch-action: none;
+  cursor: nwse-resize;
+}
+.resize-handle[data-corner='1'],
+.resize-handle[data-corner='3'] {
+  cursor: nesw-resize;
+}
+/* bigger invisible hit area, for fingers */
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+}
+.rotate-handle {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  box-sizing: border-box;
+  margin-top: -30px; /* lifts it above the piece's top edge */
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--color-primary);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 25%);
+  pointer-events: auto;
+  touch-action: none;
+  cursor: grab;
+}
+.rotate-handle::before {
+  /* stem down to the piece */
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 2px;
+  height: 16px;
+  margin-left: -1px;
+  background: var(--color-primary);
+  pointer-events: none;
+}
+.rotate-handle::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+}
+.guide-label {
+  padding: 0 4px;
+  border-radius: 4px;
+  background: #2a8fe0;
+  color: #fff;
+  font: 700 10px/1.4 var(--font-sans);
+  pointer-events: none;
+  user-select: none;
+}
+.item-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  font: 500 10px/1.2 var(--font-sans);
+  letter-spacing: 0.02em;
+  color: var(--color-text);
+  opacity: 0.7;
+  /* halo instead of a box, so it stays readable over the furniture without covering it */
+  text-shadow: 0 0 3px var(--color-background), 0 0 3px var(--color-background);
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+}
+.item-label b {
+  font-weight: 600;
+}
+.item-label span {
+  opacity: 0.8;
+}
+.item-label span:empty {
+  display: none;
+}
+.item-label.is-selected {
+  opacity: 1;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 12%);
+  text-shadow: none;
+  color: var(--color-heading);
+}
 .measure-label {
   padding: 2px 7px;
   border-radius: 999px;

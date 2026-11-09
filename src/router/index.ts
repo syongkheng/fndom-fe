@@ -20,6 +20,13 @@ const router = createRouter({
       meta: { fullbleed: true, hideFooter: true },
     },
     {
+      // Public read-only 3D view of a house someone shared (a snapshot made from the planner's Share dialog).
+      path: '/house/view/:token',
+      name: 'house-view',
+      component: () => import('../components/views/house/HouseSharedView.vue'),
+      meta: { fullbleed: true, hideFooter: true },
+    },
+    {
       path: '/todo',
       name: 'todo',
       component: () => import('../components/views/todo/TodoView.vue'),

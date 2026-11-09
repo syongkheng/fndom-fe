@@ -82,14 +82,25 @@ const isActive = (path: string) =>
           </svg>
         </button>
         <span v-if="!isAuthenticated" class="auth-btn">
-          <el-button @click="layoutStore.loginDialog.toggle()" type="primary" :icon="Star" size="small">
+          <el-button class="auth-full" @click="layoutStore.loginDialog.toggle()" type="primary" :icon="Star" size="small">
             <StableWidth path="nav.login" />
           </el-button>
+          <button type="button" class="icon-btn auth-icon" :aria-label="t('nav.login')" @click="layoutStore.loginDialog.toggle()">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+              <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+            </svg>
+          </button>
         </span>
         <span v-else class="auth-btn">
-          <el-button @click="redirectToProfile()" type="primary" :icon="User" size="small">
+          <el-button class="auth-full" @click="redirectToProfile()" type="primary" :icon="User" size="small">
             <StableWidth path="nav.profile" />
           </el-button>
+          <button type="button" class="icon-btn auth-icon" :aria-label="t('nav.profile')" @click="redirectToProfile()">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+              <circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.6" />
+              <path d="M4 20c0-4 3.6-6 8-6s8 2 8 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+            </svg>
+          </button>
         </span>
         <button
           type="button"
@@ -197,6 +208,9 @@ const isActive = (path: string) =>
 .menu-btn {
   display: none;
 }
+.auth-icon {
+  display: none;
+}
 
 .lang-toggle {
   display: flex;
@@ -223,6 +237,23 @@ const isActive = (path: string) =>
 
 .clickable {
   cursor: pointer;
+}
+
+/* Small phones: login / profile shrink to the same 32px circle as the other header icons */
+@media (max-width: 600px) {
+  .auth-full {
+    display: none;
+  }
+  .auth-icon {
+    display: inline-grid;
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #fff;
+  }
+  .auth-icon:hover {
+    color: #fff;
+    opacity: 0.9;
+  }
 }
 
 /* Mobile: links move into the MobileNavigation dialog */

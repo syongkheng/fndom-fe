@@ -90,4 +90,6 @@ export interface PlacedItem {
   y: number
   rot: number
   parts?: FurniturePart[]
+  /** pinned: can't be dragged, resized, nudged or rotated until unlocked */
+  locked?: boolean
 }

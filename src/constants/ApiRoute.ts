@@ -64,6 +64,19 @@ export const ApiRoute = {
     ADD_COLLABORATOR: (sessionId: string) => `/budget/${sessionId}/collaborator`,
     REMOVE_COLLABORATOR: (sessionId: string, userId: number) => `/budget/${sessionId}/collaborator/${userId}/delete`,
   },
+  HOUSE_LAYOUT: {
+    GET_ALL: `/house-layout`,
+    CREATE: `/house-layout`,
+    GET: (id: string) => `/house-layout/${id}`,
+    UPDATE: (id: string) => `/house-layout/${id}/update`,
+    DELETE: (id: string) => `/house-layout/${id}/delete`,
+  },
+  HOUSE_SHARE: {
+    GET_ALL: `/house/share`,
+    CREATE: `/house/share`,
+    REVOKE: (token: string) => `/house/share/${token}/delete`,
+    VIEW: (token: string) => `/house/view/${token}`,
+  },
   TODO: {
     GET_ALL: `/todo`,
     CREATE: `/todo`,
@@ -103,6 +116,9 @@ export const ApiRoute = {
   SS_KEY: {
     API_KEY:  `/ss-key/api-key`,
     RENAME_API_KEY: `/ss-key/api-key/name`,
+  },
+  MCP_KEY: {
+    API_KEY: `/mcp-key/api-key`,
   },
   DATA_GOV_SG: {
     // HDB Resale Flat Prices (Jan 2017 onwards) — update resource ID here if dataset changes
