@@ -192,13 +192,18 @@ export const useAuthenticationStore = defineStore('authentication', () => {
         email: form.email,
         system: 'fnd',
         code: form.verifyCode,
+        // Backend checks the account's password too (both paths into the verify
+        // step, register and login, leave it in the form)
+        password: form.password,
       }).catch((err: AxiosError) => {
         if (isNetworkError(err)) {
           registerError.value = t('auth.errors.network')
           return null
         }
         const code = (err.response?.data as any)?.data?.code
-        if (code === 'code_expired') {
+        if (code === 'invalid_login_credentials') {
+          registerError.value = t('auth.errors.invalid_login_credentials')
+        } else if (code === 'code_expired') {
           registerError.value = t('auth.errors.code_expired')
         } else if (code === 'max_verify_attempts') {
           registerError.value = t('auth.errors.max_verify_attempts')
