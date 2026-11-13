@@ -41,6 +41,12 @@ export const useItineraryStore = defineStore('itinerary', () => {
     itinerary.id = undefined
     itinerary.sessionTitle = 'Untitled Travel'
     itinerary.sessionId = ''
+    itinerary.destination = undefined
+    itinerary.country = undefined
+    itinerary.itineraryDateRaw = undefined
+    itinerary.startDate = undefined
+    itinerary.endDate = undefined
+    itinerary.shortCode = undefined
     itinerary.unknownDate = false
     itinerary.durationInDays = 1
     itinerary.numberOfPax = 1
@@ -352,6 +358,34 @@ export const useItineraryStore = defineStore('itinerary', () => {
     }
   }
 
+  // Quick-add: a bare agenda item from a title (inline inputs in the planner).
+  // Everything else is filled in later through the AgendaDrawer.
+  const addQuickAgendaItem = (
+    title: string,
+    opts: { listType?: 'todo' | 'place'; day?: number; date?: string } = {},
+  ): AgendaItem => {
+    const item: AgendaItem = {
+      _localIndex: `agenda-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      category: undefined,
+      listType: opts.listType ?? 'todo',
+      title: title.trim(),
+      desc: '',
+      day: opts.day,
+      date: opts.date ?? '',
+      city: '',
+      cityRaw: [],
+      unknownTime: true,
+      startTime: undefined,
+      endTime: undefined,
+      files: [],
+      _fileIdsToDelete: [],
+      _filesToInsert: [],
+      _agendaToFileMapping: [],
+    }
+    itinerary.agendaItems.push(item)
+    return item
+  }
+
   const DRAFT_KEY = 'fndom-draft-itinerary'
 
   const saveDraft = () => {
@@ -461,6 +495,7 @@ export const useItineraryStore = defineStore('itinerary', () => {
       itinerary.sessionId = clonedRetrievedItinerary.sessionId
       itinerary.sessionTitle = clonedRetrievedItinerary.sessionTitle
       itinerary.destination = clonedRetrievedItinerary.destination
+      itinerary.country = clonedRetrievedItinerary.country
       itinerary.unknownDate = clonedRetrievedItinerary.unknownDate
       itinerary.durationInDays = clonedRetrievedItinerary.durationInDays
       itinerary.numberOfPax = clonedRetrievedItinerary.numberOfPax
@@ -526,6 +561,7 @@ export const useItineraryStore = defineStore('itinerary', () => {
     updateNoteItem,
     toggleNoteItem,
     assignItemDay,
+    addQuickAgendaItem,
     saveDraft,
     loadDraft,
     clearDraft,

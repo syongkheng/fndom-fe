@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { useToast } from '@/composables/useToast'
-import { ref, computed, onMounted, watchEffect, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import HttpClient from '@/interceptors/HttpClient'
 import { ApiRoute } from '@/constants/ApiRoute'
 import { useRoute } from 'vue-router'
@@ -10,206 +10,303 @@ import { useBreakpointManager } from '@/hooks/useBreakpointManager'
 import { useLayoutStateStore } from '@/stores/layoutState'
 import { useAuthenticationStore } from '@/stores/authentication'
 import { storeToRefs } from 'pinia'
-import { createTravelPlannerVTableColumns } from './TravelPlannerVTableColumns'
-import { getCategoryIcon } from '@/constants/TravelCategories'
-import { PIN_ICON_SVG, CATEGORY_ICON_SVG, PACKING_ICON_SVG, CALENDAR_ICON_SVG } from '@/constants/TravelIconSvg'
+import { getCategoryIcon, PACKING_CATEGORIES } from '@/constants/TravelCategories'
+import { PIN_ICON_SVG, CATEGORY_ICON_SVG } from '@/constants/TravelIconSvg'
 import TravelIcon from '@/components/icons/TravelIcon.vue'
 import type { AgendaItem } from '@/interfaces/forms/itinerary/AgendaItem'
-import EmptyState from '@/components/common/EmptyState.vue'
-import PrivacyDialog from '@/components/views/travel/PrivacyDialog.vue'
-import AgendaDrawer from '@/components/views/travel/AgendaDrawer.vue'
-import { useTravelDayGroups, type AgendaRow } from '@/composables/useTravelDayGroups'
-import { useTravelExport } from '@/composables/useTravelExport'
-import { useCityLabel } from '@/composables/useCityLabel'
-import { Edit, Delete, ArrowDown, Lock, Unlock, MapLocation, Sort, Top, Money, Camera, Check, Calendar, Link } from '@element-plus/icons-vue'
-import TravelMapView from '@/components/views/travel/TravelMapView.vue'
-import PackingDrawer from '@/components/views/travel/PackingDrawer.vue'
-import { getPackingCategoryIcon, PACKING_CATEGORIES } from '@/constants/TravelCategories'
 import type { PackingItem } from '@/interfaces/forms/itinerary/PackingItem'
 import type { NoteItem } from '@/interfaces/forms/itinerary/NoteItem'
-import { useI18n } from 'vue-i18n'
+import AgendaDrawer from '@/components/views/travel/AgendaDrawer.vue'
+import PackingDrawer from '@/components/views/travel/PackingDrawer.vue'
+import TravelMapView from '@/components/views/travel/TravelMapView.vue'
+import TravelShareDialog from '@/components/views/travel/TravelShareDialog.vue'
+import QuickAddInput from '@/components/views/travel/QuickAddInput.vue'
+import DayChipMenu from '@/components/views/travel/DayChipMenu.vue'
 import PackingSuggestionPanel, { type PackingSuggestion } from '@/components/views/travel/PackingSuggestionPanel.vue'
 import NoteSuggestionPanel, { type NoteSuggestion } from '@/components/views/travel/NoteSuggestionPanel.vue'
-import PlannerSideNav, { type PlannerNavSection } from '@/components/views/travel/PlannerSideNav.vue'
+import {
+  useTravelDayGroups, resolveStartKey, dateKeyForDay, formatShortDate, sortByTime,
+} from '@/composables/useTravelDayGroups'
+import { useTravelExport } from '@/composables/useTravelExport'
+import { useCityLabel } from '@/composables/useCityLabel'
 import { searchPlaces } from '@/composables/useGeocode'
+import { useI18n } from 'vue-i18n'
+import { Delete, Lock, Money, Camera, Check, Link, Edit, Share, MapLocation, Plus, ArrowDown, Sort } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const nav = useNav()
 const itineraryStore = useItineraryStore()
 const layoutStore = useLayoutStateStore()
 const authStore = useAuthenticationStore()
-const { itinerary, loadingStage } = storeToRefs(itineraryStore)
+const { itinerary } = storeToRefs(itineraryStore)
 const {
   addPackingItem, removePackingItem, updatePackingItem, togglePackingItem,
   addNoteItem, removeNoteItem, toggleNoteItem,
-  assignItemDay,
+  assignItemDay, addQuickAgendaItem,
   saveDraft, loadDraft, migrateDraft,
 } = itineraryStore
 const { isAuthenticated } = storeToRefs(authStore)
-
-const sessionId = route.params.sessionId as string
-const isDraft = computed(() => route.path === '/travel/draft')
-
-const loading = ref(true)
-const saving = ref(false)
-const editMode = ref<'form' | 'table' | 'map'>('form')
-
-// ── City label ────────────────────────────────────────────────────────────────
-const { getCardCity } = useCityLabel()
-
-// ── Collapsible days + grouping ───────────────────────────────────────────────
-// Unscheduled items (no date yet) surface in the Things-to-do/Places-to-visit
-// sections instead of the day timeline below — the split is driven by the
-// explicit `listType` field. Items loaded from the backend may come back as
-// `list_type` (snake_case); a missing/legacy value defaults to 'todo'.
-// Assigning a day (assignItemDay) moves an item out of these lists and into
-// the scheduled day-group timeline for free.
-const listTypeOf = (i: AgendaItem): 'todo' | 'place' => (i.listType ?? (i as any).list_type ?? 'todo')
-const todoItems = computed(() => (itinerary.value.agendaItems ?? []).filter((i) => !i.date && listTypeOf(i) === 'todo'))
-const placeItems = computed(() => (itinerary.value.agendaItems ?? []).filter((i) => !i.date && listTypeOf(i) === 'place'))
-const scheduledAgendaItemsRef = computed(() => (itinerary.value.agendaItems ?? []).filter((i) => !!i.date))
-const { collapsedDays, toggleDay, groupedByDate, formatDate: formatGroupDate, toLocalDateKey, collapseAll, expandAll, allCollapsed } = useTravelDayGroups(scheduledAgendaItemsRef)
-
-// ── Export ────────────────────────────────────────────────────────────────────
-const itineraryAsNullable = computed(() => itinerary.value as any)
-const { exportJSON, exportCSV, exportICS } = useTravelExport(itineraryAsNullable, groupedByDate, getCardCity)
 const { t } = useI18n()
 const toast = useToast()
 
-// ── Responsive drawer ─────────────────────────────────────────────────────────
+const sessionId = route.params.sessionId as string
+const isDraft = computed(() => route.path === '/travel/draft')
+const loading = ref(true)
+
+// ── Responsive ───────────────────────────────────────────────────────────────
 const { width } = useBreakpointManager()
 const isMobile = computed(() => width.value <= 600)
 const isSplit = computed(() => width.value > 900)
-const isMapFullscreen = ref(false)
 const drawerDirection = computed(() => isMobile.value ? 'btt' : 'rtl')
 const drawerSize = computed(() => isMobile.value ? '92%' : '420px')
 
-function scrollToTop() {
-  const wrapper = document.querySelector('.wrapper')
-  if (wrapper && wrapper.scrollTop > 0) {
-    wrapper.scrollTo({ top: 0, behavior: 'smooth' })
-  } else {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-}
+// ── Day model ────────────────────────────────────────────────────────────────
+// The trip is planned by day number. Day 1..N always exist (N = duration), a
+// day's calendar date is derived from the trip start when the trip has one.
+const { getCardCity } = useCityLabel()
+const agendaItems = computed(() => itinerary.value.agendaItems ?? [])
+const startKey = computed(() => itinerary.value.unknownDate ? undefined : resolveStartKey(itinerary.value.itineraryDateRaw, itinerary.value.startDate))
+const dayCtx = computed(() => ({ startKey: startKey.value, durationInDays: itinerary.value.durationInDays }))
+const { dayOf, groupedByDate } = useTravelDayGroups(agendaItems, dayCtx)
 
+const listTypeOf = (i: AgendaItem): 'todo' | 'place' => (i.listType ?? (i as any).list_type ?? 'todo')
+const itemKey = (i: AgendaItem) => String(i.id ?? i._localIndex)
 
-// ── Packing drawer state ──────────────────────────────────────────────────────
-const packingDrawerVisible = ref(false)
-const packingDrawerIsNew = ref(false)
-const packingDrawerItem = ref<PackingItem | null>(null)
-
-const openAddPackingDrawer = () => {
-  packingDrawerIsNew.value = true
-  packingDrawerItem.value = null
-  packingDrawerVisible.value = true
-}
-
-const openEditPackingDrawer = (item: PackingItem) => {
-  packingDrawerIsNew.value = false
-  packingDrawerItem.value = { ...item }
-  packingDrawerVisible.value = true
-}
-
-const onPackingDrawerSave = (item: PackingItem) => {
-  if (packingDrawerIsNew.value) addPackingItem(item)
-  else updatePackingItem(item)
-}
-
-// Packing list computed
-const packingItemsByCategory = computed(() => {
-  const items = itinerary.value.packingItems ?? []
-  return PACKING_CATEGORIES
-    .map((cat) => ({
-      cat,
-      items: items.filter((i) => i.category === cat.key),
-    }))
-    .filter((g) => g.items.length > 0)
+const maxItemDay = computed(() => agendaItems.value.reduce((m, i) => Math.max(m, dayOf(i) ?? 0), 0))
+const dayCount = computed(() => {
+  const duration = Math.max(1, Number(itinerary.value.durationInDays) || 1)
+  // Undated trips grow to fit whatever day an item was put on; dated trips
+  // keep their real length and surface stragglers under "outside trip dates".
+  return startKey.value ? duration : Math.max(duration, maxItemDay.value)
 })
 
-const packingPackedCount = computed(() =>
-  (itinerary.value.packingItems ?? []).filter((i) => i.packed).length,
+const dayDateKey = (n: number) => (startKey.value ? dateKeyForDay(startKey.value, n) : undefined)
+const dayLabel = (n: number) => {
+  const key = dayDateKey(n)
+  return key ? formatShortDate(key) : t('travel.planner.dayN', { n })
+}
+
+interface BoardDay { n: number; items: AgendaItem[] }
+const board = computed<BoardDay[]>(() =>
+  Array.from({ length: dayCount.value }, (_, i) => {
+    const n = i + 1
+    return { n, items: sortByTime(agendaItems.value.filter((it) => dayOf(it) === n)) }
+  }),
 )
+const outsideItems = computed(() =>
+  sortByTime(agendaItems.value.filter((it) => { const d = dayOf(it); return d !== undefined && (d < 1 || d > dayCount.value) })),
+)
+const unscheduled = computed(() => agendaItems.value.filter((it) => dayOf(it) === undefined))
+const scheduledCount = computed(() => agendaItems.value.length - unscheduled.value.length)
 
-// ── Suggestion drag state ──────────────────────────────────────────────────
-const draggingPacking = ref(false)
+// Ideas tray filter
+const ideasFilter = ref<'all' | 'todo' | 'place'>('all')
+const ideas = computed(() => unscheduled.value.filter((it) => ideasFilter.value === 'all' || listTypeOf(it) === ideasFilter.value))
 
-const onDropPacking = (e: DragEvent) => {
-  draggingPacking.value = false
-  const raw = e.dataTransfer?.getData('suggestion/packing')
-  if (!raw) return
-  try {
-    const s: PackingSuggestion = JSON.parse(raw)
-    _pushPackingSuggestion(s)
-  } catch { /* ignore */ }
+// Collapsed days (per trip, in memory)
+const collapsed = ref(new Set<number>())
+const toggleDayCollapsed = (n: number) => {
+  const next = new Set(collapsed.value)
+  next.has(n) ? next.delete(n) : next.add(n)
+  collapsed.value = next
+}
+const allCollapsed = computed(() => board.value.length > 0 && board.value.every((d) => collapsed.value.has(d.n)))
+const toggleAll = () => { collapsed.value = allCollapsed.value ? new Set() : new Set(board.value.map((d) => d.n)) }
+
+// Scheduling: set the day and, when the trip has dates, the matching date.
+const scheduleItem = (item: AgendaItem, day: number | undefined) => {
+  const date = day ? dayDateKey(day) : undefined
+  assignItemDay(item, date, day)
+  if (day && collapsed.value.has(day)) toggleDayCollapsed(day)
 }
 
-const onPackingAdd = (s: PackingSuggestion) => {
-  _pushPackingSuggestion(s)
-}
-
-const _pushPackingSuggestion = (s: PackingSuggestion) => {
-  const already = (itinerary.value.packingItems ?? []).some(
-    (p) => p.label?.toLowerCase() === s.label.toLowerCase(),
-  )
-  if (already) return
-  addPackingItem({
-    _localIndex: `packing-${Date.now()}`,
-    label: s.label,
-    category: s.category ?? '',
-    packed: false,
+// Trip dates changed: pin every item to its day number first, then re-derive
+// dates from the new start so Day 2 stays Day 2 when the trip shifts.
+const onDatesChange = (v: string[] | null) => {
+  const pinned = agendaItems.value.map((it) => dayOf(it))
+  if (!v || v.length !== 2) {
+    itinerary.value.itineraryDateRaw = undefined
+    itinerary.value.startDate = undefined
+    itinerary.value.endDate = undefined
+    itinerary.value.unknownDate = true
+  } else {
+    itinerary.value.unknownDate = false
+    itineraryStore.onItineraryDateSelection(v)
+  }
+  agendaItems.value.forEach((it, idx) => {
+    const d = pinned[idx]
+    it.day = d
+    it.date = d ? dayDateKey(d) ?? '' : ''
+    if (it.id) { it._isDirty = true; itinerary.value._agendaIdsToUpdate?.push(it.id) }
   })
 }
 
-// ── Side nav ─────────────────────────────────────────────────────────────────
-type PlannerSection = 'todo' | 'places' | 'bring' | 'note' | 'schedule'
-const NAV_COLLAPSE_KEY = 'fndom-planner-nav-collapsed'
-const activeSection = ref<PlannerSection>('todo')
-const navCollapsed = ref(localStorage.getItem(NAV_COLLAPSE_KEY) === 'true')
-watch(navCollapsed, (v) => localStorage.setItem(NAV_COLLAPSE_KEY, String(v)))
+const onDurationChange = (n: number | undefined) => {
+  if (!n || n < 1) return
+  itinerary.value.durationInDays = n
+}
 
-const navSections = computed<PlannerNavSection[]>(() => [
-  { key: 'todo', labelKey: 'travel.todo.title', icon: CATEGORY_ICON_SVG.attraction, count: todoItems.value.length },
-  { key: 'places', labelKey: 'travel.places.title', icon: PIN_ICON_SVG, count: placeItems.value.length },
-  { key: 'bring', labelKey: 'travel.packing.title', icon: PACKING_ICON_SVG.misc, count: (itinerary.value.packingItems ?? []).length },
-  { key: 'note', labelKey: 'travel.note.title', icon: PACKING_ICON_SVG.documents, count: noteItemsList.value.length },
-  { key: 'schedule', labelKey: 'travel.planner.schedule', icon: CALENDAR_ICON_SVG, count: groupedByDate.value.length || undefined },
-])
+// ── Drag & drop (pointer devices; the day chip menu covers touch) ───────────
+const draggingKey = ref<string | null>(null)
+const dropTarget = ref<string | null>(null)
 
-// Same fetch-suggestions pattern as CreateTripDialog's Destination field —
-// this one just needs the resolved place name (not the full Place object),
-// since itinerary.destination is a plain string here.
-const fetchDestinationSuggestions = async (query: string, cb: (results: { value: string }[]) => void) => {
-  if (!query.trim()) { cb([]); return }
-  try {
-    const places = await searchPlaces(query)
-    cb(places.map((p) => ({ value: p.shortName })))
-  } catch {
-    cb([])
+const onDragStart = (e: DragEvent, item: AgendaItem) => {
+  draggingKey.value = itemKey(item)
+  e.dataTransfer?.setData('text/plain', draggingKey.value)
+  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'
+}
+const onDragEnd = () => { draggingKey.value = null; dropTarget.value = null }
+const onDragOver = (e: DragEvent, target: string) => {
+  if (!draggingKey.value) return
+  e.preventDefault()
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
+  dropTarget.value = target
+}
+const onDrop = (e: DragEvent, day: number | undefined) => {
+  e.preventDefault()
+  const key = e.dataTransfer?.getData('text/plain') || draggingKey.value
+  const item = agendaItems.value.find((it) => itemKey(it) === key)
+  if (item && dayOf(item) !== day) scheduleItem(item, day)
+  onDragEnd()
+}
+
+// ── Quick add ────────────────────────────────────────────────────────────────
+const quickAddIdea = (title: string) => {
+  addQuickAgendaItem(title, { listType: ideasFilter.value === 'place' ? 'place' : 'todo' })
+}
+const quickAddToDay = (n: number, title: string) => {
+  addQuickAgendaItem(title, { day: n, date: dayDateKey(n) })
+  if (collapsed.value.has(n)) toggleDayCollapsed(n)
+}
+const quickAddPacking = (label: string) => {
+  const exists = (itinerary.value.packingItems ?? []).some((p) => p.label?.toLowerCase() === label.toLowerCase())
+  if (exists) return
+  addPackingItem({ _localIndex: `packing-${Date.now()}`, label, category: 'misc', packed: false })
+}
+const quickAddNote = (label: string) => addNoteItem({ label, done: false })
+
+// ── Delete with undo ─────────────────────────────────────────────────────────
+const removeAgendaItem = (item: AgendaItem) => {
+  const list = itinerary.value.agendaItems
+  const index = list.findIndex((i) => itemKey(i) === itemKey(item))
+  if (index === -1) return
+  const [removed] = list.splice(index, 1)
+  if (removed.id != null) itinerary.value._agendaIdsToDelete?.push(removed.id)
+  toast.action(t('travel.planner.itemDeleted'), {
+    label: t('travel.planner.undo'),
+    onClick: () => {
+      if (removed.id != null) {
+        const del = itinerary.value._agendaIdsToDelete
+        const di = del?.indexOf(removed.id) ?? -1
+        if (di !== -1) del!.splice(di, 1)
+      }
+      itinerary.value.agendaItems.splice(Math.min(index, itinerary.value.agendaItems.length), 0, removed)
+    },
+  }, { ring: true, duration: 6000 })
+}
+
+// ── Agenda drawer ────────────────────────────────────────────────────────────
+const drawerVisible = ref(false)
+const drawerIsNew = ref(false)
+const drawerEditKey = ref<string | undefined>()
+const drawerItem = ref<AgendaItem | null>(null)
+const drawerUploading = ref(false)
+
+const makeBlankDraft = (day?: number, listType: 'todo' | 'place' = 'todo'): AgendaItem => ({
+  _localIndex: `agenda-${Date.now()}`,
+  category: undefined,
+  listType,
+  title: '',
+  desc: '',
+  day,
+  date: day ? dayDateKey(day) ?? '' : '',
+  city: '',
+  cityRaw: [],
+  unknownTime: true,
+  startTime: undefined,
+  endTime: undefined,
+  files: [],
+  _fileIdsToDelete: [],
+  _filesToInsert: [],
+  _agendaToFileMapping: [],
+})
+
+const openAddDrawer = (day?: number, listType: 'todo' | 'place' = 'todo') => {
+  drawerIsNew.value = true
+  drawerEditKey.value = undefined
+  drawerItem.value = makeBlankDraft(day, listType)
+  drawerVisible.value = true
+}
+
+const openEditDrawer = (item: AgendaItem) => {
+  const row = item as any
+  drawerIsNew.value = false
+  drawerEditKey.value = itemKey(item)
+  const cityRaw: string[] = item.cityRaw?.length
+    ? item.cityRaw
+    : (() => { try { return JSON.parse((row.city_raw ?? row.city) ?? '[]') } catch { return [] } })()
+  drawerItem.value = {
+    ...item,
+    day: dayOf(item),
+    startTime: item.startTime ?? (row.start_time as string | undefined) ?? undefined,
+    endTime: item.endTime ?? (row.end_time as string | undefined) ?? undefined,
+    unknownTime: item.unknownTime !== undefined ? item.unknownTime : !!row.unknown_time,
+    cityRaw,
+    coordinates: item.coordinates ?? undefined,
+    _filesToInsert: item._filesToInsert ?? [],
+    _fileIdsToDelete: item._fileIdsToDelete ?? [],
+    _agendaToFileMapping: item._agendaToFileMapping ?? [],
   }
+  drawerVisible.value = true
 }
 
-// ── Things to note ──────────────────────────────────────────────────────────
-const noteItemsList = computed(() => itinerary.value.noteItems ?? [])
+const withDerivedDate = (item: AgendaItem): AgendaItem => ({
+  ...item,
+  day: item.day && item.day > 0 ? item.day : undefined,
+  date: item.day && item.day > 0 ? dayDateKey(item.day) ?? '' : '',
+})
 
-const onNoteAdd = (s: NoteSuggestion) => {
-  const already = noteItemsList.value.some((n) => n.label?.toLowerCase() === s.title.toLowerCase())
-  if (already) return
-  addNoteItem({ label: s.title, category: s.category ?? undefined, url: s.url, done: false })
+const onDrawerSave = (item: AgendaItem) => {
+  const next = withDerivedDate(item)
+  if (drawerIsNew.value) {
+    itinerary.value.agendaItems.push(next)
+  } else {
+    const idx = itinerary.value.agendaItems.findIndex((i) => itemKey(i) === drawerEditKey.value)
+    if (idx !== -1) {
+      itinerary.value.agendaItems[idx] = next
+      if (next.id) { next._isDirty = true; itinerary.value._agendaIdsToUpdate?.push(next.id) }
+    }
+  }
+  fetchFileBlobs([next])
+  drawerVisible.value = false
 }
 
-const openAddNoteDialog = () => {
-  const label = window.prompt(t('travel.note.addPromptLabel'))
-  if (!label?.trim()) return
-  addNoteItem({ label: label.trim(), done: false })
+const onDrawerSync = (item: AgendaItem) => {
+  const key = drawerEditKey.value
+  if (!key) return
+  const idx = itinerary.value.agendaItems.findIndex((i) => itemKey(i) === key)
+  if (idx !== -1) itinerary.value.agendaItems[idx] = withDerivedDate(item)
 }
 
-const assignDate = (item: AgendaItem, date: string | undefined) => {
-  assignItemDay(item, date, undefined)
+// ── Card helpers ─────────────────────────────────────────────────────────────
+const getCardTime = (item: AgendaItem) => {
+  const row = item as any
+  const unknownTime = item.unknownTime || !!row.unknown_time
+  const st = item.startTime ?? row.start_time
+  if (unknownTime || !st) return null
+  const toHHMM = (val: any) => {
+    if (typeof val === 'string') return val.slice(0, 5)
+    const d = new Date(val)
+    return isNaN(d.getTime()) ? null : d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  }
+  const start = toHHMM(st)
+  if (!start) return null
+  const et = item.endTime ?? row.end_time
+  const end = et ? toHHMM(et) : null
+  return end ? `${start} – ${end}` : start
 }
 
 const fileBlobs = ref<Map<string, string>>(new Map())
-
 const fetchFileBlobs = async (items: AgendaItem[]) => {
   const allFiles = items.flatMap((item) => item.files ?? [])
   if (!allFiles.length) return
@@ -229,151 +326,93 @@ const fetchFileBlobs = async (items: AgendaItem[]) => {
     }),
   )
 }
+const cardImages = (item: AgendaItem) => (item.files ?? []).filter((f: any) => fileBlobs.value.get(f.uuid))
 
-// ── Drawer state ──────────────────────────────────────────────────────────────
-const drawerVisible = ref(false)
-const drawerIsNew = ref(false)
-const drawerEditKey = ref<string | undefined>()
-const drawerItem = ref<AgendaItem | null>(null)
-const drawerUploading = ref(false)
+// ── Packing ──────────────────────────────────────────────────────────────────
+const packingDrawerVisible = ref(false)
+const packingDrawerIsNew = ref(false)
+const packingDrawerItem = ref<PackingItem | null>(null)
 
-const makeBlankDraft = (presetDate = '', listType: 'todo' | 'place' = 'todo'): AgendaItem => ({
-  _localIndex: `agenda-${Date.now()}`,
-  category: undefined,
-  listType,
-  title: '',
-  desc: '',
-  date: presetDate,
-  city: '',
-  cityRaw: [],
-  unknownTime: true,
-  startTime: undefined,
-  endTime: undefined,
-  files: [],
-  _fileIdsToDelete: [],
-  _filesToInsert: [],
-  _agendaToFileMapping: [],
+const openEditPackingDrawer = (item: PackingItem) => {
+  packingDrawerIsNew.value = false
+  packingDrawerItem.value = { ...item }
+  packingDrawerVisible.value = true
+}
+const onPackingDrawerSave = (item: PackingItem) => {
+  if (packingDrawerIsNew.value) addPackingItem(item)
+  else updatePackingItem(item)
+}
+
+const packingList = computed(() => itinerary.value.packingItems ?? [])
+const packingItemsByCategory = computed(() => {
+  const known = new Set<string>(PACKING_CATEGORIES.map((c) => c.key))
+  return PACKING_CATEGORIES
+    .map((cat) => ({
+      cat,
+      // Anything with an unknown/blank category lands under "misc" so it
+      // never silently disappears from the list.
+      items: packingList.value.filter((i) => i.category === cat.key || (cat.key === 'misc' && !known.has(i.category))),
+    }))
+    .filter((g) => g.items.length > 0)
 })
+const packingPackedCount = computed(() => packingList.value.filter((i) => i.packed).length)
 
-const openAddDrawer = (presetDate?: string, listType: 'todo' | 'place' = 'todo') => {
-  if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
-  drawerIsNew.value = true
-  drawerEditKey.value = undefined
-  const normalised = presetDate ? toLocalDateKey(presetDate) : ''
-  drawerItem.value = makeBlankDraft(normalised === '__tbc__' ? '' : normalised, listType)
-  drawerVisible.value = true
+const draggingPacking = ref(false)
+const onDropPacking = (e: DragEvent) => {
+  draggingPacking.value = false
+  const raw = e.dataTransfer?.getData('suggestion/packing')
+  if (!raw) return
+  try { onPackingAdd(JSON.parse(raw)) } catch { /* ignore */ }
+}
+const onPackingAdd = (s: PackingSuggestion) => {
+  const already = packingList.value.some((p) => p.label?.toLowerCase() === s.label.toLowerCase())
+  if (already) return
+  addPackingItem({ _localIndex: `packing-${Date.now()}`, label: s.label, category: s.category || 'misc', packed: false })
 }
 
-const openAddPlaceDrawer = () => openAddDrawer(undefined, 'place')
-
-const openEditDrawer = (row: AgendaRow) => {
-  if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
-  const item = row as AgendaItem
-  drawerIsNew.value = false
-  drawerEditKey.value = item.id ?? item._localIndex
-  const cityRaw: string[] =
-    item.cityRaw?.length
-      ? item.cityRaw
-      : (() => { try { return JSON.parse((row.city_raw ?? row.city) ?? '[]') } catch { return [] } })()
-  drawerItem.value = {
-    ...item,
-    startTime: item.startTime ?? (row.start_time as string | undefined) ?? undefined,
-    endTime: item.endTime ?? (row.end_time as string | undefined) ?? undefined,
-    unknownTime: item.unknownTime !== undefined ? item.unknownTime : !!(row.unknown_time),
-    cityRaw,
-    coordinates: item.coordinates ?? undefined,
-    _filesToInsert: item._filesToInsert ?? [],
-    _fileIdsToDelete: item._fileIdsToDelete ?? [],
-    _agendaToFileMapping: item._agendaToFileMapping ?? [],
-  }
-  drawerVisible.value = true
+// ── Notes ────────────────────────────────────────────────────────────────────
+const noteItemsList = computed(() => itinerary.value.noteItems ?? [])
+const onNoteAdd = (s: NoteSuggestion) => {
+  const already = noteItemsList.value.some((n) => n.label?.toLowerCase() === s.title.toLowerCase())
+  if (already) return
+  addNoteItem({ label: s.title, category: s.category ?? undefined, url: s.url, done: false })
 }
 
-const onDrawerSave = (item: AgendaItem) => {
-  if (drawerIsNew.value) {
-    itinerary.value.agendaItems.push({ ...item })
-  } else {
-    const idx = itinerary.value.agendaItems.findIndex(
-      (i) => (i.id ?? i._localIndex) === drawerEditKey.value,
-    )
-    if (idx !== -1) itinerary.value.agendaItems[idx] = { ...item }
-  }
-  fetchFileBlobs([item])
-  drawerVisible.value = false
-}
-
-const onDrawerSync = (item: AgendaItem) => {
-  const key = drawerEditKey.value
-  if (!key) return
-  const idx = itinerary.value.agendaItems.findIndex(
-    (i) => (i.id ?? i._localIndex) === key,
-  )
-  if (idx !== -1) itinerary.value.agendaItems[idx] = { ...item }
-}
-
-// ── Form mode helpers ─────────────────────────────────────────────────────────
-
-const getCardTime = (item: AgendaRow) => {
-  const unknownTime = item.unknownTime || !!(item as any).unknown_time
-  const st = item.startTime ?? (item as any).start_time
-  if (unknownTime || !st) return null
-  const toHHMM = (val: any) => {
-    if (typeof val === 'string') return val.slice(0, 5)
-    const d = new Date(val)
-    return isNaN(d.getTime()) ? null : d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-  }
-  const start = toHHMM(st)
-  if (!start) return null
-  const et = item.endTime ?? (item as any).end_time
-  const end = et ? toHHMM(et) : null
-  return end ? `${start} – ${end}` : start
-}
-
-// ── Table mode (unchanged) ────────────────────────────────────────────────────
-const addAgendaItem = () => {
-  itinerary.value.agendaItems.push({
-    id: undefined,
-    _localIndex: `agenda-${Date.now()}`,
-    date: '',
-    city: '',
-    cityRaw: [],
-    title: '',
-    desc: '',
-    unknownTime: true,
-    files: [],
-    _fileIdsToDelete: [],
-    _filesToInsert: [],
-    _agendaToFileMapping: [],
-  })
-}
-
-const removeAgendaItem = (id: string) => {
-  const index = itinerary.value.agendaItems.findIndex(
-    (i) => String(i.id) === id || i._localIndex === id,
-  )
-  if (index !== -1) {
-    const item = itinerary.value.agendaItems[index]
-    if (item.id != null) itinerary.value._agendaIdsToDelete?.push(item.id)
-    itinerary.value.agendaItems.splice(index, 1)
-  }
-}
-
-const tableData = computed(() => [
-  ...itinerary.value.agendaItems,
-  { id: '__add__', isAddRow: true },
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+type PlannerTab = 'plan' | 'packing' | 'notes'
+const activeTab = ref<PlannerTab>('plan')
+const tabs = computed(() => [
+  { key: 'plan' as PlannerTab, label: t('travel.planner.tabPlan'), icon: CATEGORY_ICON_SVG.attraction, count: agendaItems.value.length },
+  { key: 'packing' as PlannerTab, label: t('travel.planner.tabPacking'), icon: PIN_ICON_SVG, count: packingList.value.length },
+  { key: 'notes' as PlannerTab, label: t('travel.planner.tabNotes'), icon: CATEGORY_ICON_SVG.other, count: noteItemsList.value.length },
 ])
 
-const columns = createTravelPlannerVTableColumns(
-  addAgendaItem,
-  removeAgendaItem,
-  () => ({
-    startDate: itinerary.value.startDate,
-    endDate: itinerary.value.endDate,
-    unknownDate: itinerary.value.unknownDate,
-  }),
-)
+// ── Map (progressive: only offered once something can be plotted) ───────────
+const MAP_OPEN_KEY = 'fndom-planner-map-open'
+const hasGeo = computed(() => agendaItems.value.some((i: any) =>
+  i.coordinates || i.placeDisplay || (i.cityRaw?.length) || (typeof i.city === 'string' && i.city.trim() && i.city !== '[]'),
+))
+const mapOpen = ref(localStorage.getItem(MAP_OPEN_KEY) === 'true')
+watch(mapOpen, (v) => localStorage.setItem(MAP_OPEN_KEY, String(v)))
+const showMap = computed(() => hasGeo.value && mapOpen.value)
+const isMapFullscreen = ref(false)
 
-// ── Shared ────────────────────────────────────────────────────────────────────
+// ── Destination ──────────────────────────────────────────────────────────────
+const fetchDestinationSuggestions = async (query: string, cb: (results: { value: string }[]) => void) => {
+  if (!query.trim()) { cb([]); return }
+  try {
+    const places = await searchPlaces(query)
+    cb(places.map((p) => ({ value: p.shortName })))
+  } catch {
+    cb([])
+  }
+}
+
+// ── Export ───────────────────────────────────────────────────────────────────
+const itineraryAsNullable = computed(() => itinerary.value as any)
+const { exportJSON, exportCSV, exportICS } = useTravelExport(itineraryAsNullable, groupedByDate as any, getCardCity)
+
+// ── Load ─────────────────────────────────────────────────────────────────────
 onMounted(async () => {
   if (isDraft.value) {
     itineraryStore.resetItinerary()
@@ -388,42 +427,69 @@ onMounted(async () => {
   }
   const loadResult = await itineraryStore.retrieveItineraryForUpdate(sessionId)
   loading.value = false
-  if (!loadResult.forbidden) {
-    fetchFileBlobs(itinerary.value.agendaItems ?? [])
-  }
   if (loadResult.forbidden) {
     toast.error(t('travel.planner.notYours'))
     nav.redirectTo('/travel/trips')
     return
   }
-  if (!sessionStorage.getItem(privacySeenKey) && !itinerary.value.challenge) {
-    privacyDialogVisible.value = true
-  }
+  fetchFileBlobs(itinerary.value.agendaItems ?? [])
 })
 
-// ── Auto-save ─────────────────────────────────────────────────────────────────
-const autoSaveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
+// ── Autosave (the only save path) ────────────────────────────────────────────
+type SaveStatus = 'idle' | 'pending' | 'saving' | 'saved' | 'error'
+const saveStatus = ref<SaveStatus>('idle')
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
+let savedResetTimer: ReturnType<typeof setTimeout> | null = null
 let skipNextWatch = true
+let inflight = false
+
+const runSave = async () => {
+  if (drawerUploading.value) { autoSaveTimer = setTimeout(runSave, 1500); return }
+  if (inflight) return
+  inflight = true
+  saveStatus.value = 'saving'
+  const result = await itineraryStore.updateItinerary()
+  inflight = false
+  // Edits made while the request was in flight flip the status back to
+  // pending; save again so nothing is left behind.
+  if ((saveStatus.value as SaveStatus) === 'pending') { runSave(); return }
+  saveStatus.value = result.isSuccess ? 'saved' : 'error'
+  if (result.error === 'auth') toast.warning(t('travel.planner.loginToSave'))
+  if (result.isSuccess) {
+    if (savedResetTimer) clearTimeout(savedResetTimer)
+    savedResetTimer = setTimeout(() => { if (saveStatus.value === 'saved') saveStatus.value = 'idle' }, 2500)
+  }
+}
 
 watch(
   () => JSON.stringify(itinerary.value),
   () => {
     if (skipNextWatch) { skipNextWatch = false; return }
     if (isDraft.value) { saveDraft(); return }
-    if (!isAuthenticated.value || !itinerary.value.id || saving.value) return
+    if (!isAuthenticated.value || !itinerary.value.id) return
     if (autoSaveTimer) clearTimeout(autoSaveTimer)
-    autoSaveStatus.value = 'saving'
-    autoSaveTimer = setTimeout(async () => {
-      if (drawerUploading.value) return
-      const result = await itineraryStore.updateItinerary()
-      autoSaveStatus.value = result.isSuccess ? 'saved' : 'error'
-      if (result.isSuccess) setTimeout(() => { autoSaveStatus.value = 'idle' }, 3000)
-    }, 2500)
+    saveStatus.value = 'pending'
+    autoSaveTimer = setTimeout(runSave, 1500)
   },
 )
 
-// ── Draft migration ───────────────────────────────────────────────────────────
+const saveNow = () => {
+  if (saveStatus.value === 'pending' || saveStatus.value === 'error') {
+    if (autoSaveTimer) clearTimeout(autoSaveTimer)
+    runSave()
+  }
+}
+
+const onBeforeUnload = (e: BeforeUnloadEvent) => {
+  if (saveStatus.value === 'pending' || saveStatus.value === 'saving') { e.preventDefault(); e.returnValue = '' }
+}
+onMounted(() => window.addEventListener('beforeunload', onBeforeUnload))
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', onBeforeUnload)
+  if (autoSaveTimer) clearTimeout(autoSaveTimer)
+})
+
+// ── Draft migration ──────────────────────────────────────────────────────────
 watch(isAuthenticated, async (authed) => {
   if (!authed || !isDraft.value) return
   const newSessionId = await migrateDraft()
@@ -433,63 +499,9 @@ watch(isAuthenticated, async (authed) => {
   }
 })
 
-const handleSave = async () => {
-  if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
-  if (drawerUploading.value) {
-    toast.warning(t('travel.planner.uploadInProgress', 'Please wait for the photo upload to complete.'))
-    return
-  }
-  saving.value = true
-  const result = await itineraryStore.updateItinerary()
-  saving.value = false
-  if (result.isSuccess) {
-    toast.success(t('travel.planner.tripSaved'))
-  } else if (result.error === 'auth') {
-    toast.warning(t('travel.planner.loginToSave'))
-  } else {
-    toast.error(t('travel.planner.saveFailed'))
-  }
-}
-
-const handleShare = () => {
-  if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
-  if (!itinerary.value.shortCode) {
-    toast.info(t('travel.planner.saveFirst'))
-    return
-  }
-  const url = `${window.location.origin}/travel/v/${itinerary.value.shortCode}`
-  navigator.clipboard.writeText(url)
-  toast.success(t('travel.list.linkCopied'))
-}
-
-// ── Privacy / challenge ───────────────────────────────────────────────────────
-const privacyDialogVisible = ref(false)
-const privacySeenKey = `itinerary-privacy-seen-${sessionId}`
-const privacyDialogRef = ref<{ setDigits: (d: string[]) => void } | null>(null)
-
-const openPrivacyDialog = () => {
-  if (!isAuthenticated.value) { layoutStore.loginDialog.setTrue(); return }
-  const existing = itinerary.value.challenge ?? ''
-  const digits = [...existing.slice(0, 6).split(''), '', '', '', '', ''].slice(0, 6)
-  privacyDialogVisible.value = true
-  // Set existing digits after dialog opens
-  nextTick(() => privacyDialogRef.value?.setDigits(digits))
-}
-
-const onPrivacySave = (code: string | undefined) => {
-  itinerary.value.challenge = code
-  sessionStorage.setItem(privacySeenKey, '1')
-  toast.success(
-    code
-      ? t('travel.planner.accessCodeApplied')
-      : t('travel.planner.noAccessCodeSet'),
-  )
-}
-
-const onPrivacyClose = () => {
-  sessionStorage.setItem(privacySeenKey, '1')
-}
-
+// ── Share ────────────────────────────────────────────────────────────────────
+const shareOpen = ref(false)
+const onChallengeChange = (code: string | undefined) => { itinerary.value.challenge = code }
 </script>
 
 <template>
@@ -508,16 +520,25 @@ const onPrivacyClose = () => {
     <div class="planner-topbar">
       <el-button link @click="nav.redirectTo('/travel/trips')" class="back-btn">{{ t('travel.planner.back') }}</el-button>
       <div class="planner-actions">
-        <span v-if="autoSaveStatus !== 'idle'" class="autosave-status" :class="`autosave-status--${autoSaveStatus}`">
-          {{ autoSaveStatus === 'saving' ? t('travel.planner.autoSaving') : autoSaveStatus === 'saved' ? t('travel.planner.autoSaved') : t('travel.planner.autoSaveFail') }}
-        </span>
-        <el-segmented v-if="!isSplit" v-model="editMode" size="small"
-          :options="[
-            { label: t('travel.planner.form'), value: 'form' },
-            { label: t('travel.planner.map'), value: 'map' },
-          ]" />
+        <button
+          v-if="!isDraft && saveStatus !== 'idle'"
+          type="button"
+          class="save-chip"
+          :class="`save-chip--${saveStatus}`"
+          :disabled="saveStatus === 'saving' || saveStatus === 'saved'"
+          @click="saveNow"
+        >
+          <span class="save-chip-dot" />
+          {{ saveStatus === 'pending' ? t('travel.planner.statusPending')
+            : saveStatus === 'saving' ? t('travel.planner.autoSaving')
+            : saveStatus === 'saved' ? t('travel.planner.autoSaved')
+            : t('travel.planner.autoSaveFail') }}
+        </button>
+        <el-button v-if="hasGeo && !isMobile" size="small" :type="showMap ? 'primary' : 'default'" plain @click="mapOpen = !mapOpen">
+          <el-icon><MapLocation /></el-icon> {{ t('travel.planner.map') }}
+        </el-button>
         <el-dropdown size="small" trigger="click" @command="(cmd: string) => cmd === 'json' ? exportJSON() : cmd === 'csv' ? exportCSV() : exportICS()">
-          <el-button size="small">{{ t('travel.planner.exportBtn') }}</el-button>
+          <el-button size="small">{{ t('travel.planner.exportBtn') }} <el-icon class="el-icon--right"><ArrowDown /></el-icon></el-button>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="json">{{ t('travel.planner.exportJson') }}</el-dropdown-item>
@@ -526,36 +547,50 @@ const onPrivacyClose = () => {
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-        <el-button size="small" @click="handleShare">{{ t('travel.planner.share') }}</el-button>
-        <el-button v-if="itinerary.shortCode" size="small" @click="nav.redirectTo(`/travel/v/${itinerary.shortCode}`)">{{ t('travel.planner.preview') }}</el-button>
-        <el-tooltip :content="itinerary.challenge ? t('travel.planner.accessCodeSet') : t('travel.planner.noAccessCode')" placement="bottom">
-          <el-button size="small" @click="openPrivacyDialog">
-            <el-icon><component :is="itinerary.challenge ? Lock : Unlock" /></el-icon>
-          </el-button>
-        </el-tooltip>
-        <el-button v-if="!isMobile" type="primary" size="small" :loading="saving" @click="handleSave">{{ t('travel.planner.save') }}</el-button>
+        <el-button size="small" type="primary" @click="shareOpen = true">
+          <el-icon><component :is="itinerary.challenge ? Lock : Share" /></el-icon> {{ t('travel.planner.share') }}
+        </el-button>
       </div>
     </div>
 
     <!-- Trip header -->
     <div class="planner-header">
-      <div class="title-row">
-        <el-input v-model="itinerary.sessionTitle" class="title-input" :placeholder="t('travel.planner.tripTitle')" :border="false" />
-      </div>
+      <el-input v-model="itinerary.sessionTitle" class="title-input" :placeholder="t('travel.planner.tripTitle')" />
       <div class="header-meta">
-        <div class="destination-field">
-          <el-autocomplete
-            v-model="itinerary.destination"
-            :fetch-suggestions="fetchDestinationSuggestions"
-            :placeholder="t('travel.planner.destination')"
+        <el-autocomplete
+          v-model="itinerary.destination"
+          :fetch-suggestions="fetchDestinationSuggestions"
+          :placeholder="t('travel.planner.destination')"
+          size="small"
+          class="meta-destination"
+        />
+        <el-date-picker
+          :model-value="startKey ? itinerary.itineraryDateRaw : null"
+          type="daterange"
+          :range-separator="t('travel.list.dialog.to')"
+          :start-placeholder="t('travel.planner.start')"
+          :end-placeholder="t('travel.planner.end')"
+          size="small"
+          value-format="YYYY-MM-DD"
+          class="meta-dates"
+          @update:model-value="(v: string[] | null) => onDatesChange(v)"
+        />
+        <div class="meta-days">
+          <el-input-number
+            :model-value="itinerary.durationInDays"
+            :min="1"
+            :max="60"
             size="small"
-            style="width: 200px"
+            :disabled="!!startKey"
+            controls-position="right"
+            @update:model-value="onDurationChange"
           />
+          <span class="meta-days-label">{{ t('travel.planner.days') }}</span>
         </div>
-        <el-date-picker :model-value="itinerary.itineraryDateRaw" type="daterange" :range-separator="t('travel.list.dialog.to')"
-          :start-placeholder="t('travel.planner.start')" :end-placeholder="t('travel.planner.end')" size="small" value-format="YYYY-MM-DD"
-          @update:model-value="(v: string[]) => itineraryStore.onItineraryDateSelection(v)" />
-        <el-input-number v-model="itinerary.numberOfPax" :min="1" size="small" style="width: 110px" :placeholder="t('travel.planner.pax')" />
+        <div class="meta-days">
+          <el-input-number v-model="itinerary.numberOfPax" :min="1" size="small" controls-position="right" />
+          <span class="meta-days-label">{{ t('travel.planner.pax') }}</span>
+        </div>
       </div>
     </div>
 
@@ -565,287 +600,252 @@ const onPrivacyClose = () => {
       <el-button size="small" type="primary" @click="layoutStore.loginDialog.setTrue()">{{ t('nav.login') }}</el-button>
     </div>
 
-    <!-- Split layout: content left, map right -->
-    <div class="planner-layout">
-
-    <!-- Content panel: always visible on desktop, hidden on mobile when in map mode -->
-    <div class="planner-content" v-show="isSplit || editMode !== 'map'">
-
-    <!-- Loading -->
-    <div v-if="loading" class="planner-loading">
-      <el-skeleton :rows="5" animated />
+    <!-- Tabs -->
+    <div class="planner-tabs" role="tablist">
+      <button
+        v-for="tab in tabs"
+        :key="tab.key"
+        type="button"
+        role="tab"
+        class="planner-tab"
+        :class="{ 'planner-tab--active': activeTab === tab.key }"
+        :aria-selected="activeTab === tab.key"
+        @click="activeTab = tab.key"
+      >
+        <span class="planner-tab-icon"><TravelIcon :svg="tab.icon" /></span>
+        {{ tab.label }}
+        <span v-if="tab.count" class="planner-tab-count">{{ tab.count }}</span>
+      </button>
     </div>
 
-    <!-- ── FORM MODE ─────────────────────────────────────────────────────── -->
-    <div v-else-if="editMode === 'form'" class="form-mode">
-      <div class="planner-form-layout">
-        <PlannerSideNav
-          :sections="navSections"
-          :active="activeSection"
-          v-model:collapsed="navCollapsed"
-          @update:active="(k: string) => activeSection = (k as PlannerSection)"
-        />
+    <div class="planner-layout">
 
-        <div class="planner-section-body">
+    <div class="planner-content" v-show="isSplit || !showMap">
 
-          <!-- ── Things to do ────────────────────────────────────────────── -->
-          <template v-if="activeSection === 'todo'">
-            <div v-if="todoItems.length === 0" class="bookings-empty">{{ t('travel.todo.noItems') }}</div>
+      <div v-if="loading" class="planner-loading">
+        <el-skeleton :rows="5" animated />
+      </div>
 
-            <div v-else class="packing-categories">
-              <div class="packing-item" v-for="item in todoItems" :key="item._localIndex ?? item.id">
-                <TravelIcon :svg="getCategoryIcon(item.category)" />
-                <span class="packing-item-label">{{ item.title }}</span>
-                <div class="packing-item-actions">
-                  <el-popover placement="bottom" trigger="click" :width="240">
-                    <template #reference>
-                      <el-button circle size="small" :title="t('travel.dayAssign.tooltip')">
-                        <el-icon style="font-size:0.72rem"><Calendar /></el-icon>
-                      </el-button>
-                    </template>
-                    <el-date-picker
-                      type="date"
-                      value-format="YYYY-MM-DD"
-                      :model-value="item.date"
-                      :placeholder="t('travel.dayAssign.assignToDay')"
-                      style="width: 100%"
-                      @update:model-value="(v: string) => assignDate(item, v)"
-                    />
-                  </el-popover>
-                  <el-button circle size="small" @click="removeAgendaItem(String(item.id ?? item._localIndex))">
-                    <el-icon style="font-size:0.72rem"><Delete /></el-icon>
-                  </el-button>
-                </div>
-              </div>
+      <!-- ── PLAN: ideas tray + day board ───────────────────────────────── -->
+      <div v-else-if="activeTab === 'plan'" class="plan-grid" :class="{ 'plan-grid--with-map': showMap && isSplit }">
+
+        <aside
+          class="ideas-tray"
+          :class="{ 'drop-target': dropTarget === 'ideas' && draggingKey }"
+          @dragover="onDragOver($event, 'ideas')"
+          @dragleave="dropTarget = null"
+          @drop="onDrop($event, undefined)"
+        >
+          <div class="ideas-head">
+            <div class="ideas-title">{{ t('travel.planner.ideas') }} <span class="ideas-count" v-if="unscheduled.length">{{ unscheduled.length }}</span></div>
+            <div class="ideas-filters">
+              <button type="button" class="filter-pill" :class="{ active: ideasFilter === 'all' }" @click="ideasFilter = 'all'">{{ t('travel.planner.filterAll') }}</button>
+              <button type="button" class="filter-pill" :class="{ active: ideasFilter === 'todo' }" @click="ideasFilter = 'todo'">{{ t('travel.planner.filterTodo') }}</button>
+              <button type="button" class="filter-pill" :class="{ active: ideasFilter === 'place' }" @click="ideasFilter = 'place'">{{ t('travel.planner.filterPlace') }}</button>
             </div>
+          </div>
+          <p class="ideas-hint">{{ t('travel.planner.ideasHint') }}</p>
 
-            <div class="bookings-add-row">
-              <el-button size="small" @click="openAddDrawer()">{{ t('travel.todo.addItem') }}</el-button>
-            </div>
-          </template>
-
-          <!-- ── Places to visit ─────────────────────────────────────────── -->
-          <template v-else-if="activeSection === 'places'">
-            <div v-if="placeItems.length === 0" class="bookings-empty">{{ t('travel.places.noItems') }}</div>
-
-            <div v-else class="packing-categories">
-              <div class="packing-item" v-for="item in placeItems" :key="item._localIndex ?? item.id">
-                <TravelIcon :svg="getCategoryIcon(item.category)" />
-                <span class="packing-item-label">{{ item.title }}</span>
-                <div class="packing-item-actions">
-                  <el-popover placement="bottom" trigger="click" :width="240">
-                    <template #reference>
-                      <el-button circle size="small" :title="t('travel.dayAssign.tooltip')">
-                        <el-icon style="font-size:0.72rem"><Calendar /></el-icon>
-                      </el-button>
-                    </template>
-                    <el-date-picker
-                      type="date"
-                      value-format="YYYY-MM-DD"
-                      :model-value="item.date"
-                      :placeholder="t('travel.dayAssign.assignToDay')"
-                      style="width: 100%"
-                      @update:model-value="(v: string) => assignDate(item, v)"
-                    />
-                  </el-popover>
-                  <el-button circle size="small" @click="removeAgendaItem(String(item.id ?? item._localIndex))">
-                    <el-icon style="font-size:0.72rem"><Delete /></el-icon>
-                  </el-button>
-                </div>
+          <div v-if="ideas.length === 0" class="list-empty">{{ t('travel.planner.noIdeas') }}</div>
+          <div v-else class="ideas-list">
+            <div
+              v-for="item in ideas"
+              :key="itemKey(item)"
+              class="idea-card"
+              :class="{ dragging: draggingKey === itemKey(item) }"
+              draggable="true"
+              @dragstart="onDragStart($event, item)"
+              @dragend="onDragEnd"
+              @click="openEditDrawer(item)"
+            >
+              <TravelIcon :svg="listTypeOf(item) === 'place' ? PIN_ICON_SVG : getCategoryIcon(item.category)" class="idea-icon" />
+              <div class="idea-body">
+                <div class="idea-title">{{ item.title || t('travel.viewer.untitled') }}</div>
+                <div v-if="getCardCity(item)" class="idea-city">{{ getCardCity(item) }}</div>
               </div>
-            </div>
-
-            <div class="bookings-add-row">
-              <el-button size="small" @click="openAddPlaceDrawer">{{ t('travel.places.addItem') }}</el-button>
-            </div>
-          </template>
-
-          <!-- ── Things to bring ─────────────────────────────────────────── -->
-          <template v-else-if="activeSection === 'bring'">
-            <div @dragover.prevent @drop="onDropPacking($event)" :class="{ 'drop-active': draggingPacking }">
-              <PackingSuggestionPanel
-                @add="onPackingAdd"
-                @drag-start="draggingPacking = true"
-                @drag-end="draggingPacking = false"
-              />
-
-              <div class="packing-progress" v-if="(itinerary.packingItems ?? []).length > 0">
-                <div class="packing-progress-bar">
-                  <div
-                    class="packing-progress-fill"
-                    :style="{ width: ((itinerary.packingItems ?? []).length ? packingPackedCount / (itinerary.packingItems ?? []).length * 100 : 0) + '%' }"
-                  />
-                </div>
-              </div>
-
-              <div v-if="(itinerary.packingItems ?? []).length === 0" class="bookings-empty">
-                {{ t('travel.packing.noItems') }}
-              </div>
-
-              <div v-else class="packing-categories">
-                <div v-for="group in packingItemsByCategory" :key="group.cat.key" class="packing-category-group">
-                  <div class="packing-cat-heading"><TravelIcon :svg="group.cat.icon" /> {{ t(group.cat.labelKey) }}</div>
-                  <div class="packing-item"
-                    v-for="item in group.items"
-                    :key="item._localIndex ?? item.id"
-                  >
-                    <button
-                      class="packing-check"
-                      :class="{ 'packing-check--packed': item.packed }"
-                      @click="togglePackingItem(item)"
-                      type="button"
-                    >
-                      <el-icon v-if="item.packed"><Check /></el-icon>
-                    </button>
-                    <span class="packing-item-label" :class="{ 'packing-item-label--packed': item.packed }">
-                      {{ item.label }}
-                    </span>
-                    <span v-if="item.quantity" class="packing-qty">×{{ item.quantity }}</span>
-                    <div class="packing-item-actions">
-                      <el-button circle size="small" @click="openEditPackingDrawer(item)">
-                        <el-icon style="font-size:0.72rem"><Edit /></el-icon>
-                      </el-button>
-                      <el-button circle size="small" @click="removePackingItem(item)">
-                        <el-icon style="font-size:0.72rem"><Delete /></el-icon>
-                      </el-button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="bookings-add-row">
-                <el-button size="small" @click="openAddPackingDrawer">{{ t('travel.packing.addItem') }}</el-button>
-              </div>
-            </div>
-          </template>
-
-          <!-- ── Things to note ──────────────────────────────────────────── -->
-          <template v-else-if="activeSection === 'note'">
-            <NoteSuggestionPanel :country="itinerary.country" @add="onNoteAdd" />
-
-            <div v-if="noteItemsList.length === 0" class="bookings-empty">{{ t('travel.note.noItems') }}</div>
-
-            <div v-else class="packing-categories">
-              <div class="packing-item" v-for="item in noteItemsList" :key="item._localIndex ?? item.id">
-                <button
-                  class="packing-check"
-                  :class="{ 'packing-check--packed': item.done }"
-                  @click="toggleNoteItem(item)"
-                  type="button"
-                >
-                  <el-icon v-if="item.done"><Check /></el-icon>
-                </button>
-                <span class="packing-item-label" :class="{ 'packing-item-label--packed': item.done }">{{ item.label }}</span>
-                <a v-if="item.url" :href="item.url" target="_blank" rel="noopener" class="note-item-link">
-                  <el-icon><Link /></el-icon>
-                </a>
-                <div class="packing-item-actions">
-                  <el-button circle size="small" @click="removeNoteItem(item)">
-                    <el-icon style="font-size:0.72rem"><Delete /></el-icon>
-                  </el-button>
-                </div>
-              </div>
-            </div>
-
-            <div class="bookings-add-row">
-              <el-button size="small" @click="openAddNoteDialog">{{ t('travel.note.addItem') }}</el-button>
-            </div>
-          </template>
-
-          <!-- ── Schedule ─────────────────────────────────────────────────── -->
-          <template v-else-if="activeSection === 'schedule'">
-            <EmptyState v-if="groupedByDate.length === 0" :icon="MapLocation" :title="t('travel.planner.noSchedule')" />
-
-            <div v-else>
-              <div class="day-group-controls">
-                <el-button link size="small" @click="allCollapsed ? expandAll() : collapseAll()">
-                  <el-icon><Sort /></el-icon> {{ allCollapsed ? t('travel.viewer.expandAll') : t('travel.viewer.collapseAll') }}
+              <div class="idea-actions" @click.stop>
+                <DayChipMenu :day="undefined" :day-count="dayCount" :start-key="startKey" @select="(d) => scheduleItem(item, d)" />
+                <el-button circle size="small" :title="t('travel.planner.deleteTooltip')" @click="removeAgendaItem(item)">
+                  <el-icon style="font-size:0.72rem"><Delete /></el-icon>
                 </el-button>
               </div>
+            </div>
+          </div>
 
-              <div
-                v-for="group in groupedByDate"
-                :key="group.date"
-                class="day-group"
-              >
-                <div class="day-group-header" @click="toggleDay(group.date)">
-                  <div v-if="group.dayNumber !== null" class="day-badge">{{ group.dayNumber }}</div>
-                  <div class="day-label">{{ formatGroupDate(group.date) }}</div>
-                  <span class="day-item-count" v-if="collapsedDays.has(group.date)">{{ group.items.length }} {{ group.items.length === 1 ? t('travel.viewer.item') : t('travel.viewer.items') }}</span>
-                  <span class="day-chevron">{{ collapsedDays.has(group.date) ? '›' : '⌄' }}</span>
-                </div>
+          <QuickAddInput :placeholder="t('travel.planner.quickAddIdea')" compact @submit="quickAddIdea" />
+          <button type="button" class="details-link" @click="openAddDrawer(undefined, ideasFilter === 'place' ? 'place' : 'todo')">
+            <el-icon><Plus /></el-icon> {{ t('travel.planner.addWithDetails') }}
+          </button>
+        </aside>
 
-                <div v-show="!collapsedDays.has(group.date)" class="agenda-cards">
-                  <div v-for="item in group.items" :key="item.id ?? item._localIndex" class="agenda-card"
-                    :class="(item.id && !item._isDirty) ? 'card--saved' : 'card--new'">
-                    <div class="card-icon"><TravelIcon :svg="getCategoryIcon(item.category)" /></div>
-                    <div class="card-body">
-                      <div class="card-title">{{ item.title || t('travel.viewer.untitled') }}</div>
-                      <div v-if="getCardTime(item) || getCardCity(item) || item.budget" class="card-meta">
-                        <span v-if="getCardTime(item)" class="card-time">{{ getCardTime(item) }}</span>
-                        <span v-if="getCardCity(item)" class="card-city">
-                          <template v-if="getCardTime(item)"> · </template>{{ getCardCity(item) }}
-                        </span>
-                        <template v-if="item.budget">
-                          <span class="card-sep" v-if="getCardTime(item) || getCardCity(item)"> · </span>
-                          <span class="card-budget"><el-icon><Money /></el-icon> {{ item.budget.toLocaleString() }}</span>
-                        </template>
-                      </div>
-                      <div v-if="item.desc" class="card-notes">{{ item.desc }}</div>
-                      <div v-if="(item.files ?? []).some((f: any) => fileBlobs.get(f.uuid))" class="card-images">
-                        <el-image
-                          v-for="(file, fi) in (item.files ?? []).filter((f: any) => fileBlobs.get(f.uuid))"
-                          :key="file.uuid ?? fi"
-                          :src="fileBlobs.get(file.uuid)"
-                          :preview-src-list="(item.files ?? []).map((f: any) => fileBlobs.get(f.uuid)).filter(Boolean)"
-                          :initial-index="fi"
-                          fit="cover"
-                          class="card-image-thumb"
-                          preview-teleported
-                        />
-                      </div>
-                      <div v-else-if="(item.files ?? []).length" class="card-photo-chip">
-                        <el-icon><Camera /></el-icon> {{ item.files!.length }} photo{{ item.files!.length > 1 ? 's' : '' }}
-                      </div>
+        <section class="day-board">
+          <div class="board-controls">
+            <span class="board-summary">{{ t('travel.planner.scheduledSummary', { n: scheduledCount, days: dayCount }) }}</span>
+            <el-button link size="small" @click="toggleAll">
+              <el-icon><Sort /></el-icon> {{ allCollapsed ? t('travel.viewer.expandAll') : t('travel.viewer.collapseAll') }}
+            </el-button>
+          </div>
+
+          <div
+            v-for="day in board"
+            :key="day.n"
+            class="day-group"
+            :class="{ 'drop-target': dropTarget === `day-${day.n}` && draggingKey, 'day-group--empty': day.items.length === 0 }"
+            @dragover="onDragOver($event, `day-${day.n}`)"
+            @dragleave="dropTarget = null"
+            @drop="onDrop($event, day.n)"
+          >
+            <div class="day-group-header" @click="toggleDayCollapsed(day.n)">
+              <div class="day-badge">{{ day.n }}</div>
+              <div class="day-label">{{ dayLabel(day.n) }}</div>
+              <span v-if="startKey" class="day-sub">{{ t('travel.planner.dayN', { n: day.n }) }}</span>
+              <span class="day-item-count" v-if="collapsed.has(day.n) && day.items.length">{{ day.items.length }} {{ day.items.length === 1 ? t('travel.viewer.item') : t('travel.viewer.items') }}</span>
+              <span class="day-chevron">{{ collapsed.has(day.n) ? '›' : '⌄' }}</span>
+            </div>
+
+            <div v-show="!collapsed.has(day.n)" class="day-body">
+              <div v-if="day.items.length === 0 && !draggingKey" class="day-empty">{{ t('travel.planner.emptyDay') }}</div>
+              <div v-if="draggingKey && day.items.length === 0" class="day-drop-hint">{{ t('travel.planner.dropHere') }}</div>
+
+              <div class="agenda-cards">
+                <div
+                  v-for="item in day.items"
+                  :key="itemKey(item)"
+                  class="agenda-card"
+                  :class="{ dragging: draggingKey === itemKey(item) }"
+                  draggable="true"
+                  @dragstart="onDragStart($event, item)"
+                  @dragend="onDragEnd"
+                  @click="openEditDrawer(item)"
+                >
+                  <div class="card-icon"><TravelIcon :svg="getCategoryIcon(item.category)" /></div>
+                  <div class="card-body">
+                    <div class="card-title">{{ item.title || t('travel.viewer.untitled') }}</div>
+                    <div v-if="getCardTime(item) || getCardCity(item) || item.budget" class="card-meta">
+                      <span v-if="getCardTime(item)" class="card-time">{{ getCardTime(item) }}</span>
+                      <span v-if="getCardCity(item)" class="card-city"><template v-if="getCardTime(item)"> · </template>{{ getCardCity(item) }}</span>
+                      <template v-if="item.budget">
+                        <span class="card-sep" v-if="getCardTime(item) || getCardCity(item)"> · </span>
+                        <span class="card-budget"><el-icon><Money /></el-icon> {{ item.budget.toLocaleString() }}</span>
+                      </template>
                     </div>
-                    <div class="card-right">
-                      <div class="card-actions">
-                        <el-tooltip :content="t('travel.planner.editTooltip')" placement="top">
-                          <el-button circle size="small" @click="openEditDrawer(item)">
-                            <el-icon style="font-size:0.72rem"><Edit /></el-icon>
-                          </el-button>
-                        </el-tooltip>
-                        <el-tooltip :content="t('travel.planner.deleteTooltip')" placement="top">
-                          <el-button circle size="small" @click="removeAgendaItem(String(item.id ?? item._localIndex))">
-                            <el-icon style="font-size:0.72rem"><Delete /></el-icon>
-                          </el-button>
-                        </el-tooltip>
-                      </div>
-                      <div class="card-save-status">
-                        <span v-if="!item.id || item._isDirty" class="status--new">{{ t('travel.planner.unsaved') }}</span>
-                        <span v-else class="status--saved">{{ t('travel.planner.saved') }}</span>
-                      </div>
+                    <div v-if="item.desc" class="card-notes">{{ item.desc }}</div>
+                    <div v-if="cardImages(item).length" class="card-images">
+                      <el-image
+                        v-for="(file, fi) in cardImages(item)"
+                        :key="file.uuid ?? fi"
+                        :src="fileBlobs.get(file.uuid)"
+                        :preview-src-list="cardImages(item).map((f: any) => fileBlobs.get(f.uuid)).filter(Boolean)"
+                        :initial-index="fi"
+                        fit="cover"
+                        class="card-image-thumb"
+                        preview-teleported
+                        @click.stop
+                      />
+                    </div>
+                    <div v-else-if="(item.files ?? []).length" class="card-photo-chip">
+                      <el-icon><Camera /></el-icon> {{ t('travel.planner.photoCount', item.files!.length) }}
                     </div>
                   </div>
+                  <div class="card-actions" @click.stop>
+                    <DayChipMenu :day="day.n" :day-count="dayCount" :start-key="startKey" @select="(d) => scheduleItem(item, d)" />
+                    <el-button circle size="small" :title="t('travel.planner.editTooltip')" @click="openEditDrawer(item)">
+                      <el-icon style="font-size:0.72rem"><Edit /></el-icon>
+                    </el-button>
+                    <el-button circle size="small" :title="t('travel.planner.deleteTooltip')" @click="removeAgendaItem(item)">
+                      <el-icon style="font-size:0.72rem"><Delete /></el-icon>
+                    </el-button>
+                  </div>
                 </div>
+              </div>
 
-                <button v-show="!collapsedDays.has(group.date)" class="add-to-day-btn" @click="openAddDrawer(group.date !== '__tbc__' ? group.date : '')">
-                  {{ group.dayNumber !== null ? t('travel.planner.addToDay', { n: group.dayNumber }) : t('travel.planner.addToDateTbc') }}
-                </button>
+              <QuickAddInput :placeholder="t('travel.planner.quickAddToDay', { n: day.n })" compact @submit="(text) => quickAddToDay(day.n, text)" />
+            </div>
+          </div>
+
+          <!-- Dated items that fall outside the trip's current dates -->
+          <div v-if="outsideItems.length" class="day-group day-group--outside">
+            <div class="day-group-header day-group-header--static">
+              <div class="day-badge day-badge--muted">!</div>
+              <div class="day-label">{{ t('travel.planner.outsideDates') }}</div>
+            </div>
+            <div class="agenda-cards">
+              <div v-for="item in outsideItems" :key="itemKey(item)" class="agenda-card" @click="openEditDrawer(item)">
+                <div class="card-icon"><TravelIcon :svg="getCategoryIcon(item.category)" /></div>
+                <div class="card-body">
+                  <div class="card-title">{{ item.title || t('travel.viewer.untitled') }}</div>
+                  <div class="card-meta"><span class="card-time">{{ item.date }}</span></div>
+                </div>
+                <div class="card-actions" @click.stop>
+                  <DayChipMenu :day="undefined" :day-count="dayCount" :start-key="startKey" @select="(d) => scheduleItem(item, d)" />
+                  <el-button circle size="small" @click="removeAgendaItem(item)"><el-icon style="font-size:0.72rem"><Delete /></el-icon></el-button>
+                </div>
               </div>
             </div>
-          </template>
-
-        </div>
+          </div>
+        </section>
       </div>
-    </div><!-- end .form-mode -->
+
+      <!-- ── PACKING ───────────────────────────────────────────────────── -->
+      <div v-else-if="activeTab === 'packing'" class="tab-panel" :class="{ 'drop-active': draggingPacking }" @dragover.prevent @drop="onDropPacking($event)">
+        <PackingSuggestionPanel @add="onPackingAdd" @drag-start="draggingPacking = true" @drag-end="draggingPacking = false" />
+
+        <div class="packing-progress" v-if="packingList.length > 0">
+          <div class="packing-progress-label">{{ t('travel.packing.progress', { packed: packingPackedCount, total: packingList.length }) }}</div>
+          <div class="packing-progress-bar">
+            <div class="packing-progress-fill" :style="{ width: (packingPackedCount / packingList.length * 100) + '%' }" />
+          </div>
+        </div>
+
+        <div v-if="packingList.length === 0" class="list-empty">{{ t('travel.packing.noItems') }}</div>
+        <div v-else class="packing-categories">
+          <div v-for="group in packingItemsByCategory" :key="group.cat.key" class="packing-category-group">
+            <div class="packing-cat-heading"><TravelIcon :svg="group.cat.icon" /> {{ t(group.cat.labelKey) }}</div>
+            <div class="packing-item" v-for="item in group.items" :key="item._localIndex ?? item.id">
+              <button class="packing-check" :class="{ 'packing-check--packed': item.packed }" type="button" @click="togglePackingItem(item)">
+                <el-icon v-if="item.packed"><Check /></el-icon>
+              </button>
+              <span class="packing-item-label" :class="{ 'packing-item-label--packed': item.packed }">{{ item.label }}</span>
+              <span v-if="item.quantity" class="packing-qty">×{{ item.quantity }}</span>
+              <div class="packing-item-actions">
+                <el-button circle size="small" @click="openEditPackingDrawer(item)"><el-icon style="font-size:0.72rem"><Edit /></el-icon></el-button>
+                <el-button circle size="small" @click="removePackingItem(item)"><el-icon style="font-size:0.72rem"><Delete /></el-icon></el-button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <QuickAddInput :placeholder="t('travel.planner.quickAddPacking')" @submit="quickAddPacking" />
+      </div>
+
+      <!-- ── NOTES ─────────────────────────────────────────────────────── -->
+      <div v-else-if="activeTab === 'notes'" class="tab-panel">
+        <NoteSuggestionPanel :country="itinerary.country" @add="onNoteAdd" />
+
+        <div v-if="noteItemsList.length === 0" class="list-empty">{{ t('travel.note.noItems') }}</div>
+        <div v-else class="packing-categories">
+          <div class="packing-item" v-for="item in noteItemsList" :key="item._localIndex ?? item.id">
+            <button class="packing-check" :class="{ 'packing-check--packed': item.done }" type="button" @click="toggleNoteItem(item)">
+              <el-icon v-if="item.done"><Check /></el-icon>
+            </button>
+            <span class="packing-item-label" :class="{ 'packing-item-label--packed': item.done }">{{ item.label }}</span>
+            <a v-if="item.url" :href="item.url" target="_blank" rel="noopener" class="note-item-link"><el-icon><Link /></el-icon></a>
+            <div class="packing-item-actions">
+              <el-button circle size="small" @click="removeNoteItem(item)"><el-icon style="font-size:0.72rem"><Delete /></el-icon></el-button>
+            </div>
+          </div>
+        </div>
+
+        <QuickAddInput :placeholder="t('travel.planner.quickAddNote')" @submit="quickAddNote" />
+      </div>
 
     </div><!-- end .planner-content -->
 
-    <!-- Always-mounted map panel: sidebar on desktop, full-screen on mobile map mode -->
-    <div class="planner-map-panel" :class="{ 'planner-map-panel--fullscreen': isMapFullscreen }" v-show="editMode === 'map' || isSplit">
+    <!-- Map panel: side pane on desktop, replaces the content on phones -->
+    <div v-show="showMap" class="planner-map-panel" :class="{ 'planner-map-panel--fullscreen': isMapFullscreen }">
       <TravelMapView
-        :agenda-items="itinerary.agendaItems ?? []"
+        :agenda-items="agendaItems"
+        :start-key="startKey"
         :fullscreen="isMapFullscreen"
         @toggle-fullscreen="isMapFullscreen = !isMapFullscreen"
       />
@@ -856,38 +856,39 @@ const onPrivacyClose = () => {
     </template>
   </div>
 
-  <!-- Floating action bar -->
+  <!-- Phone-only floating bar, sitting above the bottom tab bar -->
   <Teleport to="body">
-    <div class="mobile-fab-bar">
-      <el-button type="primary" size="small" :loading="saving" @click="handleSave">Save</el-button>
-      <span class="fab-divider"></span>
-      <el-button
-        v-if="editMode === 'form' && groupedByDate.length > 0"
-        size="small"
-        @click="allCollapsed ? expandAll() : collapseAll()"
-      ><el-icon><Sort /></el-icon> {{ allCollapsed ? 'Expand' : 'Collapse' }}</el-button>
-      <el-button size="small" @click="scrollToTop"><el-icon><Top /></el-icon> Top</el-button>
+    <div v-if="isMobile && (isAuthenticated || isDraft)" class="mobile-fab-bar">
+      <el-button type="primary" size="small" round @click="openAddDrawer(undefined, 'todo')">
+        <el-icon><Plus /></el-icon> {{ t('travel.planner.addItemFab') }}
+      </el-button>
+      <template v-if="hasGeo">
+        <span class="fab-divider"></span>
+        <el-button size="small" round :type="showMap ? 'primary' : 'default'" plain @click="mapOpen = !mapOpen">
+          <el-icon><MapLocation /></el-icon> {{ t('travel.planner.map') }}
+        </el-button>
+      </template>
     </div>
   </Teleport>
 
-  <!-- ── PRIVACY DIALOG ───────────────────────────────────────────────── -->
-  <PrivacyDialog
-    ref="privacyDialogRef"
-    v-model="privacyDialogVisible"
-    @save="onPrivacySave"
-    @update:model-value="(v) => { if (!v) onPrivacyClose() }"
+  <TravelShareDialog
+    v-model="shareOpen"
+    :short-code="itinerary.shortCode"
+    :challenge="itinerary.challenge"
+    :is-draft="isDraft"
+    @update:challenge="onChallengeChange"
+    @login="layoutStore.loginDialog.setTrue()"
   />
 
-  <!-- ── DRAWER ─────────────────────────────────────────────────────────── -->
   <AgendaDrawer
     v-model="drawerVisible"
     :item="drawerItem"
     :is-new="drawerIsNew"
     :drawer-direction="drawerDirection"
     :drawer-size="drawerSize"
-    :start-date="itinerary.startDate"
-    :end-date="itinerary.endDate"
-    :unknown-date="itinerary.unknownDate"
+    :day-count="dayCount"
+    :start-key="startKey"
+    :allow-images="!isDraft"
     @save="onDrawerSave"
     @sync="onDrawerSync"
     @uploading="(v: boolean) => (drawerUploading = v)"
@@ -915,18 +916,12 @@ const onPrivacyClose = () => {
   box-sizing: border-box;
 }
 
-.title-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
 /* ── Topbar ── */
 .planner-topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
   gap: 8px;
 }
 
@@ -940,11 +935,47 @@ const onPrivacyClose = () => {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.save-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text);
+  opacity: 0.7;
+  cursor: default;
+  white-space: nowrap;
+}
+
+.save-chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.save-chip--pending { color: var(--el-color-warning); opacity: 1; cursor: pointer; }
+.save-chip--saving { color: var(--color-text); }
+.save-chip--saving .save-chip-dot { animation: pulse 0.9s ease-in-out infinite; }
+.save-chip--saved { color: var(--el-color-success); opacity: 1; }
+.save-chip--error { color: var(--el-color-danger); opacity: 1; cursor: pointer; border-color: color-mix(in srgb, var(--el-color-danger) 40%, transparent); }
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
 }
 
 /* ── Trip header ── */
 .planner-header {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -964,32 +995,93 @@ const onPrivacyClose = () => {
   padding: 0;
 }
 
-.title-input {
-  flex: 1;
-}
-
 .header-meta {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  /* flex-start, not center — .destination-field is taller than its siblings
-     (input + hint line below it), and centering would vertically center
-     that whole taller block, pulling the destination input itself out of
-     line with the single-line date-picker/pax-input beside it. */
-  align-items: flex-start;
+  align-items: center;
 }
 
-.destination-field {
+.meta-destination { width: 200px; }
+.meta-dates { max-width: 260px; }
+
+.meta-days {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 6px;
 }
 
-.planner-loading {
-  padding: 20px 0;
+.meta-days :deep(.el-input-number) { width: 96px; }
+
+.meta-days-label {
+  font-size: 0.78rem;
+  color: var(--color-text);
+  opacity: 0.6;
 }
 
-/* ── Split layout ── */
+/* ── Tabs ── */
+.planner-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--color-border);
+  overflow-x: auto;
+}
+
+.planner-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  opacity: 0.7;
+  transition: opacity 0.12s, border-color 0.12s;
+}
+
+.planner-tab:hover { opacity: 1; }
+
+.planner-tab--active {
+  opacity: 1;
+  color: var(--el-color-primary);
+  border-bottom-color: var(--el-color-primary);
+}
+
+.planner-tab-icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+}
+
+.planner-tab-count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--el-fill-color, #f0f0f0);
+  color: var(--color-text);
+  font-size: 0.68rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.planner-tab--active .planner-tab-count {
+  background: var(--el-color-primary);
+  color: #fff;
+}
+
+.planner-loading { padding: 20px 0; }
+
+/* ── Layout ── */
 .planner-layout {
   display: flex;
   gap: 16px;
@@ -1004,7 +1096,7 @@ const onPrivacyClose = () => {
 }
 
 .planner-map-panel {
-  width: 400px;
+  width: 380px;
   flex-shrink: 0;
   border-radius: 12px;
   overflow: hidden;
@@ -1025,112 +1117,201 @@ const onPrivacyClose = () => {
   border: none !important;
 }
 
-@media (max-width: 900px) {
-  .planner-layout {
-    display: block;
-  }
-  .planner-map-panel {
-    width: 100%;
-    position: static;
-    height: 55vh;
-    max-height: 480px;
-    margin-top: 16px;
-    border-radius: 10px;
-  }
+/* ── Plan grid ── */
+.plan-grid {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
 }
 
-/* ── Form mode ── */
-.form-mode {
-  flex: 1;
+.plan-grid--with-map {
+  grid-template-columns: 240px minmax(0, 1fr);
 }
 
-.planner-form-layout {
+.ideas-tray {
+  position: sticky;
+  top: 16px;
   display: flex;
-  align-items: flex-start;
-  gap: 20px;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px dashed var(--color-border);
+  border-radius: 12px;
+  background: var(--color-background-soft);
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  transition: border-color 0.12s, background 0.12s;
 }
 
-.planner-section-body {
-  flex: 1;
+.ideas-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ideas-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ideas-count {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 9px;
+  background: var(--el-color-primary);
+  color: #fff;
+}
+
+.ideas-filters {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.filter-pill {
+  padding: 3px 9px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.filter-pill.active {
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  color: #fff;
+}
+
+.ideas-hint {
+  margin: 0;
+  font-size: 0.74rem;
+  color: var(--color-text);
+  opacity: 0.55;
+  line-height: 1.4;
+}
+
+.ideas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.idea-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  cursor: grab;
+  transition: background 0.12s, opacity 0.12s;
+}
+
+.idea-card:hover { background: var(--color-background-mute); }
+.idea-card.dragging { opacity: 0.4; }
+
+.idea-icon { flex-shrink: 0; font-size: 1.1rem; }
+
+.idea-body { flex: 1; min-width: 0; }
+
+.idea-title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--color-heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.idea-city {
+  font-size: 0.72rem;
+  opacity: 0.6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.idea-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.details-link {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 0.76rem;
+  color: var(--el-color-primary);
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.details-link:hover { opacity: 1; text-decoration: underline; }
+
+/* ── Day board ── */
+.day-board {
   min-width: 0;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
-  padding: 18px 20px 20px;
+  border-radius: 12px;
+  padding: 16px 18px 18px;
   background: var(--color-background);
 }
 
-.section-hint {
-  font-size: 0.8rem;
-  color: var(--el-text-color-secondary);
-  margin: 0 0 12px;
-}
-
-.section-hint--muted {
-  opacity: 0.7;
-  font-style: italic;
-}
-
-@media (max-width: 900px) {
-  .planner-form-layout {
-    flex-direction: column;
-  }
-  .planner-form-layout :deep(.planner-side-nav) {
-    width: 100% !important;
-    flex-direction: row !important;
-    overflow-x: auto;
-    border-right: none !important;
-    border-bottom: 1px solid var(--color-border);
-    padding: 0 0 8px !important;
-  }
-}
-
-/* Day groups */
-.day-group-controls {
+.board-controls {
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: 8px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.board-summary {
+  font-size: 0.78rem;
+  color: var(--color-text);
+  opacity: 0.6;
 }
 
 .day-group {
-  margin-bottom: 28px;
+  margin-bottom: 22px;
+  border-radius: 10px;
+  transition: background 0.12s, box-shadow 0.12s;
+}
+
+.day-group.drop-target,
+.ideas-tray.drop-target {
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 45%, transparent);
 }
 
 .day-group-header {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   padding-bottom: 10px;
   cursor: pointer;
   user-select: none;
-  background-repeat: no-repeat;
-  background-position: bottom left;
-  background-size: 100% 10px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 14'%3E%3Cpath d='M2 8 C 40 2, 80 13, 130 6 C 180 -1, 230 12, 298 7' stroke='%23C84B31' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  border-bottom: 1px solid var(--color-border);
 }
 
-html.dark .day-group-header {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 14'%3E%3Cpath d='M2 8 C 40 2, 80 13, 130 6 C 180 -1, 230 12, 298 7' stroke='%23E8795A' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-}
+.day-group-header--static { cursor: default; }
 
-.day-group-header:hover .day-label {
-  color: var(--el-color-primary);
-}
-
-.day-item-count {
-  font-size: 0.72rem;
-  color: var(--color-text);
-  opacity: 0.45;
-  margin-left: 2px;
-}
-
-.day-chevron {
-  margin-left: auto;
-  font-size: 1rem;
-  color: var(--color-text);
-  opacity: 0.4;
-  line-height: 1;
-}
+.day-group-header:hover .day-label { color: var(--el-color-primary); }
 
 .day-badge {
   width: 26px;
@@ -1147,18 +1328,56 @@ html.dark .day-group-header {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 14%, transparent);
 }
 
+.day-badge--muted { background: var(--el-color-warning); box-shadow: none; }
+
 .day-label {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--color-heading);
 }
 
-/* Agenda cards */
+.day-sub,
+.day-item-count {
+  font-size: 0.72rem;
+  color: var(--color-text);
+  opacity: 0.45;
+}
+
+.day-chevron {
+  margin-left: auto;
+  font-size: 1rem;
+  color: var(--color-text);
+  opacity: 0.4;
+  line-height: 1;
+}
+
+.day-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.day-empty,
+.day-drop-hint {
+  font-size: 0.76rem;
+  color: var(--color-text);
+  opacity: 0.45;
+  padding: 2px 2px 0;
+}
+
+.day-drop-hint {
+  opacity: 0.8;
+  color: var(--el-color-primary);
+  border: 1px dashed var(--el-color-primary);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+}
+
 .agenda-cards {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 8px;
 }
 
 .agenda-card {
@@ -1168,22 +1387,13 @@ html.dark .day-group-header {
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid var(--color-border);
-  border-left: 3px solid transparent;
   background: var(--color-background-soft);
-  transition: background 0.12s;
+  cursor: pointer;
+  transition: background 0.12s, opacity 0.12s;
 }
 
-.agenda-card:hover {
-  background: var(--color-background-mute);
-}
-
-.card--new {
-  border-left-color: var(--el-color-warning);
-}
-
-.card--saved {
-  border-left-color: var(--el-color-success);
-}
+.agenda-card:hover { background: var(--color-background-mute); }
+.agenda-card.dragging { opacity: 0.4; }
 
 .card-icon {
   font-size: 1.3rem;
@@ -1193,10 +1403,7 @@ html.dark .day-group-header {
   padding-top: 1px;
 }
 
-.card-body {
-  flex: 1;
-  min-width: 0;
-}
+.card-body { flex: 1; min-width: 0; }
 
 .card-title {
   font-size: 0.9rem;
@@ -1213,26 +1420,12 @@ html.dark .day-group-header {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0;
 }
 
-.card-time {
-  color: var(--el-color-primary);
-  font-weight: 600;
-  opacity: 1;
-}
-
-.card-city {
-  opacity: 0.8;
-}
-
-.card-sep {
-  opacity: 0.4;
-}
-
-.card-budget {
-  color: var(--color-text);
-}
+.card-time { color: var(--el-color-primary); font-weight: 600; opacity: 1; }
+.card-city { opacity: 0.8; }
+.card-sep { opacity: 0.4; }
+.card-budget { color: var(--color-text); }
 
 .card-notes {
   font-size: 0.75rem;
@@ -1275,56 +1468,30 @@ html.dark .day-group-header {
   margin-top: 6px;
 }
 
-.card-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
 .card-actions {
   display: flex;
   gap: 4px;
-}
-
-.card-save-status {
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-}
-
-.status--new {
-  color: var(--el-color-warning);
-}
-
-.status--saved {
-  color: var(--el-color-success);
-  opacity: 0.7;
-}
-
-/* Add to day */
-.add-to-day-btn {
-  display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
-  margin-top: 2px;
-  font-size: 0.8rem;
-  color: var(--el-color-primary);
-  background: none;
-  border: 1px dashed var(--el-color-primary);
-  border-radius: 6px;
-  cursor: pointer;
-  opacity: 0.7;
-  transition: opacity 0.12s;
+  flex-shrink: 0;
 }
 
-.add-to-day-btn:hover {
-  opacity: 1;
+/* ── Generic tab panel (packing / notes) ── */
+.tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 16px 18px 18px;
+  background: var(--color-background);
 }
 
-.form-add-global {
-  margin-top: 8px;
+.list-empty {
+  padding: 18px 12px;
+  font-size: 13px;
+  color: var(--color-text);
+  opacity: 0.6;
+  text-align: center;
 }
 
 /* ── Auth gate ── */
@@ -1336,18 +1503,23 @@ html.dark .day-group-header {
   padding: 80px 0;
 }
 
-.auth-gate-icon {
-  font-size: 2.4rem;
+.auth-gate-icon { font-size: 2.4rem; }
+
+.auth-gate-text {
+  font-size: 0.9rem;
+  color: var(--color-text);
+  opacity: 0.6;
 }
 
+/* ── Phone floating bar ── */
 .mobile-fab-bar {
   position: fixed;
-  bottom: max(24px, env(safe-area-inset-bottom, 24px));
+  bottom: calc(var(--tabbar-h, 0px) + 12px);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   gap: 8px;
-  padding: 8px 14px;
+  padding: 6px 10px;
   background: var(--color-background-soft);
   border: 1px solid var(--color-border);
   border-radius: 24px;
@@ -1362,226 +1534,13 @@ html.dark .day-group-header {
   align-self: center;
 }
 
-.auth-gate-text {
-  font-size: 0.9rem;
-  color: var(--color-text);
-  opacity: 0.6;
-}
-
-/* ── Mobile ── */
-@media (max-width: 600px) {
-  .header-meta {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .header-meta>* {
-    width: 100% !important;
-  }
-
-  .planner-topbar {
-    flex-wrap: wrap;
-  }
-
-  .planner-actions {
-    width: 100%;
-    gap: 6px;
-  }
-}
-
-/* Bookings section */
-.bookings-section {
-  margin-top: 32px;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.bookings-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: var(--color-background-soft);
-  cursor: pointer;
-  user-select: none;
-  gap: 12px;
-}
-
-.bookings-header:hover {
-  background: var(--color-background-mute);
-}
-
-.bookings-header-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.bookings-title {
-  font-weight: 700;
-  font-size: 1.1rem;
-}
-
-.bookings-pills {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.booking-pill {
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--el-color-primary-light-8);
-  color: var(--el-color-primary);
-  white-space: nowrap;
-}
-
-.bookings-header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.pax-names-display {
-  font-size: 12px;
-  color: var(--color-text);
-  opacity: 0.7;
-  cursor: pointer;
-  text-decoration: underline dashed;
-  text-underline-offset: 3px;
-}
-
-.pax-names-display:hover {
-  opacity: 1;
-}
-
-.collapse-icon {
-  transition: transform 0.2s;
-  color: var(--color-text);
-  opacity: 0.5;
-}
-
-.collapse-icon.is-collapsed {
-  transform: rotate(-90deg);
-}
-
-.bookings-empty {
-  padding: 24px 16px;
-  font-size: 13px;
-  color: var(--color-text);
-  opacity: 0.6;
-  text-align: center;
-}
-
-.bookings-add-row {
-  padding: 10px 16px;
-  border-top: 1px solid var(--color-border);
-}
-
-.booking-table {
-  width: 100%;
-}
-
-.booking-table :deep(.dim) {
-  opacity: 0.35;
-}
-
-.booking-table :deep(.booking-link) {
-  color: var(--el-color-primary);
-  text-decoration: none;
-}
-
-.booking-table :deep(.booking-link:hover) {
-  text-decoration: underline;
-}
-
-.booking-actions {
-  display: flex;
-  gap: 4px;
-}
-
-/* Mobile booking cards */
-.booking-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px 16px;
-}
-
-.booking-card {
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.booking-card-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.booking-cat-emoji {
-  font-size: 16px;
-}
-
-.booking-card-item {
-  font-weight: 500;
-  flex: 1;
-  min-width: 0;
-}
-
-.booking-card-meta {
-  display: flex;
-  gap: 10px;
-  font-size: 12px;
-  color: var(--color-text);
-  opacity: 0.75;
-  flex-wrap: wrap;
-}
-
-.booking-card-actions {
-  display: flex;
-  gap: 6px;
-  justify-content: flex-end;
-}
-
-/* ── Auto-save status ── */
-.autosave-status {
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 10px;
-  white-space: nowrap;
-}
-
-.autosave-status--saving {
-  color: var(--color-text);
-  opacity: 0.55;
-}
-
-.autosave-status--saved {
-  color: var(--el-color-success);
-}
-
-.autosave-status--error {
-  color: var(--el-color-danger);
-}
-
 /* ── Draft banner ── */
 .draft-banner {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
   background: color-mix(in srgb, var(--el-color-warning) 10%, transparent);
   border: 1px solid color-mix(in srgb, var(--el-color-warning) 30%, transparent);
   border-radius: 8px;
@@ -1589,6 +1548,7 @@ html.dark .day-group-header {
   color: var(--color-text);
 }
 
+/* ── Packing / notes lists ── */
 .packing-progress {
   display: flex;
   flex-direction: column;
@@ -1596,7 +1556,7 @@ html.dark .day-group-header {
 }
 
 .packing-progress-label {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   color: var(--color-text);
   opacity: 0.65;
 }
@@ -1696,11 +1656,47 @@ html.dark .day-group-header {
   transition: opacity 0.15s;
 }
 
-.packing-item:hover .packing-item-actions {
-  opacity: 1;
+.packing-item:hover .packing-item-actions,
+.packing-item:focus-within .packing-item-actions { opacity: 1; }
+
+.note-item-link {
+  display: inline-flex;
+  color: var(--el-color-primary);
 }
 
-.packing-add-row {
-  padding-top: 4px;
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .planner-layout { display: block; }
+
+  .planner-map-panel {
+    width: 100%;
+    position: static;
+    height: calc(100vh - 240px);
+    min-height: 320px;
+    border-radius: 10px;
+  }
+
+  .plan-grid,
+  .plan-grid--with-map { grid-template-columns: 1fr; }
+
+  .ideas-tray {
+    position: static;
+    max-height: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .planner-topbar { flex-wrap: wrap; }
+  .planner-actions { width: 100%; gap: 6px; }
+  .header-meta > * { width: 100% !important; max-width: none; }
+  .meta-destination,
+  .meta-dates { width: 100%; }
+  .meta-days { justify-content: space-between; }
+  .meta-days :deep(.el-input-number) { width: 120px; }
+  .day-board,
+  .tab-panel { padding: 12px; }
+  /* Touch has no hover: keep row actions visible */
+  .packing-item-actions { opacity: 1; }
+  .title-input :deep(.el-input__inner) { font-size: 1.5rem; }
 }
 </style>

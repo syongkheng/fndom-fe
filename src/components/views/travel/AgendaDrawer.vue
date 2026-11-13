@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { useToast } from '@/composables/useToast'
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import type { UploadFile, UploadUserFile } from 'element-plus'
@@ -13,17 +13,21 @@ import type { AgendaItem } from '@/interfaces/forms/itinerary/AgendaItem'
 import { FileWithPreview } from '@/interfaces/forms/itinerary/FileWithPreview'
 import { useTgImageUpload } from '@/composables/useTgImageUpload'
 import HttpClient from '@/interceptors/HttpClient'
+import { dateKeyForDay, formatShortDate } from '@/composables/useTravelDayGroups'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   modelValue: boolean
   item: AgendaItem | null
   isNew: boolean
   drawerDirection: 'rtl' | 'btt'
   drawerSize: string
-  startDate?: number
-  endDate?: number
-  unknownDate?: boolean
-}>()
+  // Trip days (1..dayCount) for the Day picker; startKey (YYYY-MM-DD) adds
+  // the calendar date to each option when the trip has real dates.
+  dayCount: number
+  startKey?: string
+  // Guest drafts cannot upload (the image CDN needs a signed-in session).
+  allowImages?: boolean
+}>(), { allowImages: true })
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
@@ -43,6 +47,7 @@ const makeBlankDraft = (): AgendaItem => ({
   category: undefined,
   title: '',
   desc: '',
+  day: undefined,
   date: '',
   city: '',
   cityRaw: [],
@@ -220,15 +225,21 @@ const handleExceed = () => {
 }
 
 
-const drawerDisabledDate = (time: Date) => {
-  const { startDate, endDate, unknownDate } = props
-  if (unknownDate || (!startDate && !endDate)) return false
-  const ts = time.getTime()
-  const toMid = (ms: number) => { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime() }
-  if (startDate && ts < toMid(startDate)) return true
-  if (endDate && ts > toMid(endDate)) return true
-  return false
-}
+// Day picker: 0 = unscheduled (the select needs a concrete value), 1..N = trip
+// day. The parent derives the calendar date from the day on save.
+const dayOptions = computed(() => [
+  { value: 0, label: t('travel.agenda.unscheduled'), date: '' },
+  ...Array.from({ length: Math.max(1, props.dayCount) }, (_, i) => {
+    const n = i + 1
+    const key = props.startKey ? dateKeyForDay(props.startKey, n) : undefined
+    return { value: n, label: t('travel.planner.dayN', { n }), date: key ? formatShortDate(key) : '' }
+  }),
+])
+
+const daySelect = computed({
+  get: () => (drawerForm.value.day && drawerForm.value.day > 0 ? drawerForm.value.day : 0),
+  set: (v: number) => { drawerForm.value.day = v > 0 ? v : undefined },
+})
 
 const save = () => {
   if (uploadingCount.value > 0) {
@@ -273,12 +284,15 @@ const cancel = () => {
         <el-input v-model="drawerForm.title" :placeholder="t('travel.agenda.titlePlaceholder')" size="large" />
       </div>
 
-      <!-- Date -->
+      <!-- Day -->
       <div class="form-section">
-        <div class="form-label">{{ t('travel.agenda.date') }}</div>
-        <el-date-picker v-model="drawerForm.date" type="date" :placeholder="t('travel.agenda.selectDate')"
-          style="width: 100%" value-format="YYYY-MM-DD" :disabled-date="drawerDisabledDate"
-          :default-value="startDate ? new Date(startDate) : undefined" size="large" />
+        <div class="form-label">{{ t('travel.agenda.day') }}</div>
+        <el-select v-model="daySelect" style="width: 100%" size="large">
+          <el-option v-for="opt in dayOptions" :key="opt.value" :value="opt.value" :label="opt.date ? `${opt.label} · ${opt.date}` : opt.label">
+            <span>{{ opt.label }}</span>
+            <span v-if="opt.date" class="day-opt-date">{{ opt.date }}</span>
+          </el-option>
+        </el-select>
       </div>
 
       <!-- Place search -->
@@ -331,7 +345,7 @@ const cancel = () => {
       </div>
 
       <!-- Images -->
-      <div class="form-section">
+      <div v-if="allowImages" class="form-section">
         <div class="form-label">{{ t('travel.agenda.images') }}</div>
         <el-upload v-model:file-list="uploadFileList" list-type="picture-card" :auto-upload="false" accept="image/*"
           :limit="FILE_LIMIT" :before-upload="handleBeforeUpload" :on-change="handleFileChange"
@@ -388,6 +402,12 @@ const cancel = () => {
 
 .req {
   color: #f87171;
+}
+
+.day-opt-date {
+  float: right;
+  font-size: 0.78rem;
+  color: var(--el-text-color-secondary);
 }
 
 /* Category grid */

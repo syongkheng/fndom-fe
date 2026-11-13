@@ -13,12 +13,14 @@ import LoadingDialog from './components/dialogs/LoadingDialog.vue'
 import ToastHost from './components/common/ToastHost.vue'
 import { useLocale } from './composables/useLocale'
 import { usePageTracking } from './composables/usePageTracking'
+import { useKeyboardViewport } from './composables/useKeyboardViewport'
 
 const route = useRoute()
 const layoutStore = useLayoutStateStore()
 useThemeStore() // initialises on first call — applies dark/light class before render
 const { epLocale } = useLocale()
 usePageTracking()
+useKeyboardViewport() // keeps bottom drawers above the on-screen keyboard
 
 watch(() => route.query.showLogin, (newVal) => {
   if (newVal === 'true') {

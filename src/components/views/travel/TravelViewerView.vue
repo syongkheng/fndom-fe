@@ -10,7 +10,7 @@ import TravelIcon from '@/components/icons/TravelIcon.vue'
 import OtpInput from '@/components/common/OtpInput.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import TravelMapView from '@/components/views/travel/TravelMapView.vue'
-import { useTravelDayGroups, type AgendaRow } from '@/composables/useTravelDayGroups'
+import { useTravelDayGroups, resolveStartKey, type AgendaRow } from '@/composables/useTravelDayGroups'
 import { useTravelExport } from '@/composables/useTravelExport'
 import { useCityLabel } from '@/composables/useCityLabel'
 import type { ItineraryBooking } from '@/interfaces/forms/itinerary/ItineraryBooking'
@@ -121,7 +121,11 @@ const { getCardCity: getCity } = useCityLabel()
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 const agendaItemsRef = computed(() => itinerary.value?.agendaItems ?? [])
-const { collapsedDays, toggleDay, groupedByDate, formatDate, formatHeaderRange } = useTravelDayGroups(agendaItemsRef)
+// The public DTO carries itineraryDateRaw (JSON string) and durationInDays even
+// though the viewer's local type doesn't list them.
+const startKey = computed(() => resolveStartKey((itinerary.value as any)?.itineraryDateRaw, itinerary.value?.startDate))
+const dayCtx = computed(() => ({ startKey: startKey.value, durationInDays: (itinerary.value as any)?.durationInDays as number | undefined }))
+const { collapsedDays, toggleDay, groupedByDate, formatDate, formatHeaderRange } = useTravelDayGroups(agendaItemsRef, dayCtx)
 
 // ── Export ────────────────────────────────────────────────────────────────────
 const { exportJSON, exportCSV, exportICS } = useTravelExport(itinerary, groupedByDate, getCity)
@@ -207,6 +211,33 @@ function toggleAllDays() {
   }
 }
 
+// ── Day navigation ────────────────────────────────────────────────────────────
+const tripDays = computed(() => {
+  const raw = Number((itinerary.value as any)?.durationInDays)
+  const fromGroups = groupedByDate.value.reduce((m, g) => Math.max(m, g.dayNumber ?? 0), 0)
+  return Math.max(raw > 0 ? raw : 0, fromGroups) || undefined
+})
+
+const dayAnchorId = (key: string) => `viewer-day-${key.replace(/[^a-zA-Z0-9_-]/g, '')}`
+
+const scrollToDay = (key: string) => {
+  if (collapsedDays.value.has(key)) toggleDay(key)
+  nextTick(() => {
+    const el = document.getElementById(dayAnchorId(key))
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  })
+}
+
+// Dated groups show the date as the heading; the "Day N" sub-label makes the
+// day number visible too. Undated groups already render as "Day N".
+const isDatedGroup = (key: string) => !key.startsWith('__')
+
+const mapsLink = (item: AgendaRow): string | null => {
+  const c = item.coordinates as { lat: number; lng: number } | undefined
+  if (!c || typeof c.lat !== 'number' || typeof c.lng !== 'number') return null
+  return `https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lng}`
+}
+
 // ── Mobile ────────────────────────────────────────────────────────────────────
 const isMobile = computed(() => window.innerWidth <= 600)
 const { t } = useI18n()
@@ -244,18 +275,21 @@ const { t } = useI18n()
       <div class="error-icon"><el-icon><MapLocation /></el-icon></div>
       <h2 class="error-title">{{ t('travel.viewer.notFound') }}</h2>
       <p class="error-desc">{{ t('travel.viewer.notFoundDesc') }}</p>
-      <el-button type="primary" @click="nav.redirectTo('/travel')">{{ t('travel.viewer.goToTrips') }}</el-button>
+      <el-button type="primary" @click="nav.redirectTo('/travel/trips')">{{ t('travel.viewer.goToTrips') }}</el-button>
     </div>
 
     <!-- Hero map — full-bleed, outside viewer-wrap -->
     <div v-if="itinerary && (!challengeRequired || challengeVerified)" class="viewer-hero">
-      <TravelMapView :agenda-items="(itinerary.agendaItems ?? []) as any" class="hero-map" />
+      <TravelMapView :agenda-items="(itinerary.agendaItems ?? []) as any" :start-key="startKey" class="hero-map" />
       <div class="hero-overlay">
         <p v-if="itinerary.destination" class="hero-destination">{{ itinerary.destination }}</p>
         <h1 class="hero-title">{{ itinerary.sessionTitle }}</h1>
         <div class="hero-pills">
           <span v-if="formatHeaderRange(itinerary.startDate, itinerary.endDate)" class="hero-pill">
             <el-icon><Calendar /></el-icon> {{ formatHeaderRange(itinerary.startDate, itinerary.endDate) }}
+          </span>
+          <span v-if="tripDays" class="hero-pill">
+            <el-icon><MapLocation /></el-icon> {{ t('travel.viewer.daysCount', tripDays) }}
           </span>
           <span v-if="itinerary.numberOfPax" class="hero-pill">
             <el-icon><User /></el-icon> {{ itinerary.numberOfPax }} {{ itinerary.numberOfPax === 1 ? t('travel.viewer.traveller') : t('travel.viewer.travellers') }}
@@ -287,8 +321,21 @@ const { t } = useI18n()
       <!-- Empty agenda -->
       <EmptyState v-if="groupedByDate.length === 0" :icon="MapLocation" :title="t('travel.viewer.noItems')" />
 
-      <!-- Timeline controls -->
-      <div v-if="groupedByDate.length > 0" class="timeline-controls">
+      <!-- Day jump strip (sticky) + expand/collapse -->
+      <div v-if="groupedByDate.length > 0" class="day-jump">
+        <div class="day-jump-chips">
+          <span class="day-jump-label">{{ t('travel.viewer.jumpTo') }}</span>
+          <button
+            v-for="group in groupedByDate"
+            :key="group.date"
+            type="button"
+            class="day-jump-chip"
+            @click="scrollToDay(group.date)"
+          >
+            <template v-if="group.dayNumber !== null">{{ group.dayNumber }}</template>
+            <template v-else>{{ t('travel.dayGroups.tbc') }}</template>
+          </button>
+        </div>
         <button class="timeline-toggle-all" @click="toggleAllDays">
           {{ allCollapsed ? t('travel.viewer.expandAll') : t('travel.viewer.collapseAll') }}
         </button>
@@ -296,12 +343,13 @@ const { t } = useI18n()
 
       <!-- Timeline -->
       <div v-if="groupedByDate.length > 0" class="timeline">
-        <div v-for="(group, gi) in groupedByDate" :key="group.date" class="timeline-day">
+        <div v-for="(group, gi) in groupedByDate" :key="group.date" :id="dayAnchorId(group.date)" class="timeline-day">
 
           <!-- Day heading -->
           <div class="day-heading" @click="toggleDay(group.date)">
             <div v-if="group.dayNumber !== null" class="day-badge">{{ group.dayNumber }}</div>
             <div class="day-label">{{ formatDate(group.date) }}</div>
+            <span v-if="group.dayNumber !== null && isDatedGroup(group.date)" class="day-sub">{{ t('travel.dayGroups.dayOnly', { n: group.dayNumber }) }}</span>
             <span class="day-item-count" v-if="collapsedDays.has(group.date)">{{ group.items.length }} {{ group.items.length === 1 ? t('travel.viewer.item') : t('travel.viewer.items') }}</span>
             <span class="day-chevron">{{ collapsedDays.has(group.date) ? '›' : '⌄' }}</span>
           </div>
@@ -321,6 +369,9 @@ const { t } = useI18n()
                   <span v-if="getTime(item)" class="item-time">{{ getTime(item) }}</span>
                   <span v-if="getCity(item)" class="item-city">{{ getCity(item) }}</span>
                   <span v-if="item.category" class="item-category-tag">{{ t(`travel.category.${item.category}`) }}</span>
+                  <a v-if="mapsLink(item)" :href="mapsLink(item)!" target="_blank" rel="noopener" class="item-maps-link">
+                    <el-icon><MapLocation /></el-icon> {{ t('travel.viewer.openInMaps') }}
+                  </a>
                 </div>
                 <div class="item-title">{{ item.title || t('travel.viewer.untitled') }}</div>
                 <div v-if="item.desc" class="item-desc">{{ item.desc }}</div>
@@ -462,9 +513,9 @@ const { t } = useI18n()
   <!-- CTA bar for non-users -->
   <Teleport to="body">
     <div v-if="!ctaDismissed && itinerary && (!challengeRequired || challengeVerified)" class="cta-bar">
-      <span class="cta-text"><TravelIcon :svg="CATEGORY_ICON_SVG.flight" /> Plan your own trip for free</span>
-      <el-button type="primary" size="small" @click="nav.redirectTo('/travel')">
-        Start planning <el-icon><ArrowRight /></el-icon>
+      <span class="cta-text"><TravelIcon :svg="CATEGORY_ICON_SVG.flight" /> {{ t('travel.viewer.ctaText') }}</span>
+      <el-button type="primary" size="small" round @click="nav.redirectTo('/travel/trips')">
+        {{ t('travel.viewer.ctaAction') }} <el-icon><ArrowRight /></el-icon>
       </el-button>
       <button class="cta-dismiss" @click="dismissCta">×</button>
     </div>
@@ -586,26 +637,105 @@ const { t } = useI18n()
 
 .cta-dismiss:hover { color: #fff; }
 
-/* ── Timeline controls ── */
-.timeline-controls {
+/* ── Day jump strip ── */
+.day-jump {
+  position: sticky;
+  top: 72px; /* below the 64px sticky header */
+  z-index: 20;
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: 8px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 18px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-background) 88%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-card);
 }
 
-.timeline-toggle-all {
+.day-jump-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  min-width: 0;
+}
+
+.day-jump-chips::-webkit-scrollbar { display: none; }
+
+.day-jump-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text);
+  opacity: 0.5;
+  padding: 0 4px 0 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.day-jump-chip {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  background: var(--color-background-soft);
+  color: var(--color-text);
   font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.day-jump-chip:hover {
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  color: #fff;
+}
+
+.day-sub {
+  font-size: 0.72rem;
+  color: var(--color-text);
+  opacity: 0.45;
+}
+
+.item-maps-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--el-color-primary);
+  text-decoration: none;
+  opacity: 0.85;
+}
+
+.item-maps-link:hover { opacity: 1; text-decoration: underline; }
+
+.timeline-toggle-all {
+  font-size: 0.76rem;
+  font-weight: 600;
   color: var(--el-text-color-secondary);
   background: none;
   border: none;
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 2px 8px;
   border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: color 0.12s;
 }
 
 .timeline-toggle-all:hover {
-  color: #E8795A;
+  color: var(--el-color-primary);
 }
 
 /* ── Challenge gate ── */
@@ -672,15 +802,16 @@ const { t } = useI18n()
 
 /* ── Wrapper ── */
 .viewer-wrap {
-  max-width: 640px;
+  max-width: 680px;
   margin: 0 auto;
   padding: 0 4px;
 }
 
 .trip-header-actions {
-  padding: 16px 0 8px;
+  padding: 16px 0 10px;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -726,9 +857,9 @@ const { t } = useI18n()
 }
 
 .day-badge {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  border-radius: 60% 40% 55% 45% / 45% 55% 40% 60%;
   background: var(--el-color-primary);
   color: #fff;
   font-size: 0.75rem;
@@ -737,10 +868,11 @@ const { t } = useI18n()
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 14%, transparent);
 }
 
 .day-label {
-  font-size: 0.9rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--color-heading);
 }
@@ -880,6 +1012,7 @@ const { t } = useI18n()
   .hero-title { font-size: 1.35rem; }
   .hero-overlay { padding: 18px 16px; }
   .viewer-wrap { padding: 0; }
+  .day-jump { top: 64px; border-radius: 16px; }
   .cta-text { font-size: 0.8rem; }
   .cta-bar { padding: 12px 16px; }
 }

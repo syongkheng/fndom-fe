@@ -89,6 +89,7 @@ export const ApiRoute = {
     GET_ALL: `/applepay`,
     CREATE: `/applepay`,
     DELETE: (transactionId: string) => `/applepay/${transactionId}/delete`,
+    RESTORE: (transactionId: string) => `/applepay/${transactionId}/restore`,
     UPDATE_CATEGORY: (transactionId: string) => `/applepay/${transactionId}/category`,
     SET_CARD_LABEL: (cardLast4: string) => `/applepay/card-label/${cardLast4}`,
   },

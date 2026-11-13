@@ -5,7 +5,7 @@
       <div class="map-filters-top">
         <div v-if="sorted.length > 0" class="filter-sections">
           <div v-if="sorted.length > 0" class="filter-section filter-section--bordered">
-            <span class="filter-label">Type</span>
+            <span class="filter-label">{{ t('travel.map.type') }}</span>
             <div class="filter-chips">
               <button
                 v-for="cat in availableCategories"
@@ -19,10 +19,10 @@
             </div>
           </div>
           <div v-if="availableDays.length > 1" class="filter-section filter-section--bordered">
-            <span class="filter-label">Day</span>
+            <span class="filter-label">{{ t('travel.map.day') }}</span>
             <div class="filter-chips">
               <button class="filter-chip" :class="{ active: selectedDays.length === 0 }" @click="selectedDays = []">
-                All
+                {{ t('travel.map.all') }}
               </button>
               <button
                 v-for="day in availableDays"
@@ -32,7 +32,7 @@
                 :class="{ active: selectedDays.includes(day) }"
                 @click="toggleDay(day)"
               >
-                Day {{ day }}
+                {{ t('travel.map.dayN', { n: day }) }}
               </button>
             </div>
           </div>
@@ -49,16 +49,16 @@
         {{ t('travel.mapStatus.noFilterMatches') }}
       </div>
       <div id="travel-map" class="travel-map"></div>
-      <button class="expand-btn" @click="emit('toggle-fullscreen')" :title="fullscreen ? 'Exit fullscreen' : 'Fullscreen'">
+      <button class="expand-btn" @click="emit('toggle-fullscreen')" :title="fullscreen ? t('travel.map.exitFullscreen') : t('travel.map.fullscreen')">
         <el-icon><component :is="fullscreen ? ScaleToOriginal : FullScreen" /></el-icon>
       </button>
 
       <!-- Top-right controls: Fit all + tile toggle stacked -->
       <div class="map-controls">
-        <button v-if="filteredItems.length > 0" class="fit-btn" @click="fitAll"><el-icon><Aim /></el-icon> Fit all</button>
+        <button v-if="filteredItems.length > 0" class="fit-btn" @click="fitAll"><el-icon><Aim /></el-icon> {{ t('travel.map.fitAll') }}</button>
         <div class="tile-toggle">
-          <button class="tile-btn" :class="{ active: tileMode === 'satellite' }" @click="setTileMode('satellite')"><el-icon><Compass /></el-icon> Sat</button>
-          <button class="tile-btn" :class="{ active: tileMode === 'street' }" @click="setTileMode('street')"><el-icon><MapLocation /></el-icon> Map</button>
+          <button class="tile-btn" :class="{ active: tileMode === 'satellite' }" @click="setTileMode('satellite')"><el-icon><Compass /></el-icon> {{ t('travel.map.satellite') }}</button>
+          <button class="tile-btn" :class="{ active: tileMode === 'street' }" @click="setTileMode('street')"><el-icon><MapLocation /></el-icon> {{ t('travel.map.street') }}</button>
         </div>
       </div>
 
@@ -70,7 +70,7 @@
           <span
             class="stepper-day"
             :style="{ color: getDayColor(filteredItems[activeStepIndex]?._day ?? 1) }"
-          >Day {{ filteredItems[activeStepIndex]?._day }}</span>
+          >{{ t('travel.map.dayN', { n: filteredItems[activeStepIndex]?._day }) }}</span>
           <span class="stepper-title">{{ filteredItems[activeStepIndex]?.title }}</span>
         </div>
         <button class="stepper-btn" :disabled="activeStepIndex >= filteredItems.length - 1" @click="stepNext">›</button>
@@ -86,6 +86,7 @@ import L from 'leaflet'
 import type { Map as LeafletMap, FeatureGroup, TileLayer } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { searchPlaces } from '@/composables/useGeocode'
+import { dayForDateKey } from '@/composables/useTravelDayGroups'
 import type { AgendaItem } from '@/interfaces/forms/itinerary/AgendaItem'
 import { CATEGORY_ICON_SVG, PIN_ICON_SVG, getCategoryIconSvg } from '@/constants/TravelIconSvg'
 import TravelIcon from '@/components/icons/TravelIcon.vue'
@@ -95,7 +96,9 @@ const DAY_COLORS = ['#60A5FA', '#FBBF24', '#34D399', '#F87171', '#A78BFA', '#FB9
 const getDayColor = (day: number) => DAY_COLORS[(day - 1) % DAY_COLORS.length]
 
 const { t } = useI18n()
-const props = defineProps<{ agendaItems: AgendaItem[]; fullscreen?: boolean }>()
+// startKey (local YYYY-MM-DD of trip day 1) lets dated items resolve to the
+// same day numbers the planner shows; items carrying `day` use it directly.
+const props = defineProps<{ agendaItems: AgendaItem[]; fullscreen?: boolean; startKey?: string }>()
 const emit = defineEmits<{ 'toggle-fullscreen': [] }>()
 
 // Use plain variables for Leaflet instances to avoid Vue ref type incompatibility
@@ -121,15 +124,20 @@ const coordKey = (c: { lat: number; lng: number }) => `${c.lat.toFixed(5)},${c.l
 const iconMarkup = (svgStr: string, size: number, iconColor: string) =>
   `<span style="display:inline-flex;width:${size}px;height:${size}px;color:${iconColor};vertical-align:-${Math.round(size * 0.15)}px">${svgStr}</span>`
 
-// Tile layers
+// Tile layers. Street = OpenStreetMap's own tiles (free, attribution required,
+// no key). The previous CARTO Voyager tiles now need an API key and came back
+// blank, which is why only satellite was visible. Satellite = Esri imagery.
 let satelliteBase: TileLayer | null = null
 let satelliteLabels: TileLayer | null = null
 let streetLayer: TileLayer | null = null
-const tileMode = ref<'satellite' | 'street'>('satellite')
+const TILE_MODE_KEY = 'fndom-travel-map-tiles'
+const storedTileMode = localStorage.getItem(TILE_MODE_KEY)
+const tileMode = ref<'satellite' | 'street'>(storedTileMode === 'satellite' ? 'satellite' : 'street')
 
 const setTileMode = (mode: 'satellite' | 'street') => {
   if (!mapInstance) return
   tileMode.value = mode
+  localStorage.setItem(TILE_MODE_KEY, mode)
   if (mode === 'satellite') {
     streetLayer?.removeFrom(mapInstance)
     satelliteBase?.addTo(mapInstance)
@@ -259,10 +267,13 @@ async function resolveCoordinates(items: AgendaItem[]): Promise<ResolvedItem[]> 
     }
 
     if (coords) {
+      const dateKey = toLocalDateKey(item.date)
+      const explicitDay = item.day && item.day > 0 ? item.day : undefined
+      const fromStart = props.startKey && dateKey !== '__tbc__' ? dayForDateKey(dateKey, props.startKey) : undefined
       results.push({
         ...item,
         _coords: coords,
-        _day: dateKeyToDayNum.get(toLocalDateKey(item.date)) ?? 1,
+        _day: explicitDay ?? fromStart ?? dateKeyToDayNum.get(dateKey) ?? 1,
       })
     }
   }
@@ -326,8 +337,8 @@ function renderMap(items: ResolvedItem[]) {
       const pIconHtml = iconMarkup(getCategoryIconSvg(item.category), 13, '#111')
       const timeLabel = !item.unknownTime && item.startTime ? ` · ${item.startTime}` : ''
       const dateLabel = item.date
-        ? `Day ${item._day} · ${new Date(`${item.date}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`
-        : `Day ${item._day}`
+        ? `${t('travel.map.dayN', { n: item._day })} · ${new Date(`${item.date}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`
+        : t('travel.map.dayN', { n: item._day })
       const resolvedCityRaw: string[] = item.cityRaw?.length
         ? item.cityRaw
         : (() => { try { return JSON.parse((item as any).city ?? '[]') } catch { return [] } })()
@@ -456,24 +467,34 @@ const stepPrev = () => {
 }
 
 onMounted(() => {
-  mapInstance = L.map('travel-map', { attributionControl: false }).setView([20, 0], 2)
+  mapInstance = L.map('travel-map', {
+    attributionControl: false,
+    zoomControl: false,
+  }).setView([20, 0], 2)
+  // OSM's tile usage policy requires visible attribution; keep it compact.
+  L.control.attribution({ position: 'bottomright', prefix: false }).addTo(mapInstance)
+  L.control.zoom({ position: 'topleft' }).addTo(mapInstance)
 
   // Satellite: Esri World Imagery + place name labels overlay
   satelliteBase = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     maxZoom: 19,
+    attribution: 'Tiles &copy; Esri',
   })
   satelliteLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
     maxZoom: 19,
   })
-  // Street: CartoDB Voyager (clean, stylish)
-  streetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  // Street: OpenStreetMap standard tiles
+  streetLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
-    subdomains: 'abcd',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
   })
 
-  // Default: satellite
-  satelliteBase.addTo(mapInstance)
-  satelliteLabels.addTo(mapInstance)
+  if (tileMode.value === 'satellite') {
+    satelliteBase.addTo(mapInstance)
+    satelliteLabels.addTo(mapInstance)
+  } else {
+    streetLayer.addTo(mapInstance)
+  }
 
   mapInstance.on('popupopen', () => {
     setTimeout(() => {
@@ -702,19 +723,19 @@ function onKeyDown(e: KeyboardEvent) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 5px 9px;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 6px 9px;
   font-size: 1rem;
   line-height: 1;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
-  color: #444;
+  box-shadow: var(--shadow-card);
+  color: var(--color-text);
   transition: background 0.12s;
 }
 
-.expand-btn:hover { background: #f5f5f5; }
+.expand-btn:hover { background: var(--color-background-soft); }
 
 .map-controls {
   position: absolute;
@@ -731,19 +752,32 @@ function onKeyDown(e: KeyboardEvent) {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
   padding: 6px 12px;
   font-size: 0.82rem;
   font-weight: 600;
-  color: #E8795A;
+  color: var(--el-color-primary);
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  box-shadow: var(--shadow-card);
 }
 
 .fit-btn:hover {
-  background: #f9f9f9;
+  background: var(--color-background-soft);
+}
+
+.tile-toggle {
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 2px;
+  box-shadow: var(--shadow-card);
+}
+
+.tile-toggle .tile-btn {
+  border: none;
+  box-shadow: none;
 }
 
 .map-stepper {
@@ -895,6 +929,40 @@ function onKeyDown(e: KeyboardEvent) {
   width: 42px !important;
   height: 42px !important;
   box-shadow: 0 0 0 4px rgba(255,255,255,0.55), 0 3px 12px rgba(0,0,0,0.5) !important;
+}
+
+/* Leaflet chrome tuned to the app: compact attribution, soft zoom buttons */
+.travel-map .leaflet-control-attribution {
+  font-size: 0.62rem;
+  padding: 1px 6px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #555;
+  border-radius: 6px 0 0 0;
+}
+
+.travel-map .leaflet-control-attribution a { color: #444; }
+
+/* Zoom buttons sit under the fullscreen toggle (top: 12px, ~32px tall) */
+.travel-map .leaflet-top.leaflet-left { top: 50px; }
+
+.travel-map .leaflet-bar {
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.travel-map .leaflet-bar a {
+  background: var(--color-background);
+  color: var(--color-text);
+  border-bottom-color: var(--color-border);
+}
+
+.travel-map .leaflet-bar a:hover { background: var(--color-background-soft); }
+
+.travel-map .leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  box-shadow: var(--shadow-pop);
 }
 
 .popup-add-btn {

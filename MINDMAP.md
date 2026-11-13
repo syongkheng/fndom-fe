@@ -181,10 +181,14 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   ├── featureFlags.ts     — fetch + cache feature flags
 │   ├── itinerary.ts        — travel CRUD, file upload, collaborators;
 │   │         noteItems (add/remove/update/toggle, mirrors packingItems);
-│   │         addTodoItem(title, category?, coordinates?) — lightweight
-│   │         unscheduled AgendaItem for Things-to-do/Places-to-visit,
-│   │         skips the full AgendaDrawer file-upload bookkeeping;
-│   │         assignItemDay(item, date, day) — the "assign to a day" action;
+│   │         addQuickAgendaItem(title, {listType?, day?, date?}) — lightweight
+│   │         AgendaItem for the planner's inline quick-add inputs (replaced
+│   │         the old addTodoItem), skips the AgendaDrawer file bookkeeping;
+│   │         assignItemDay(item, date, day) — the "move to a day" action
+│   │         (planner's scheduleItem derives `date` from `day`);
+│   │         `country` is now mapped in retrieveItineraryForUpdate (was the
+│   │         same silent-reset bug as `destination` below, fixed 2026-11-12);
+│   │         resetItinerary() also clears destination/country/dates/shortCode;
 │   │         retrieveItineraryForUpdate() maps each field individually from
 │   │         the fetched record onto reactive `itinerary` state (not a bulk
 │   │         Object.assign) — `destination` was added to the Itinerary
@@ -202,7 +206,11 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │         or BudgetTableView's Ctrl+Z) hits the restore endpoint and splices
 │   │         the item back into activeTable.items, re-sorted by sortOrder
 │   ├── applepay.ts         — fetch/list Apple Pay transactions + updateCategory
-│   │         (splices the updated row back in by its uuid-based `id`)
+│   │         (splices the updated row back in by its uuid-based `id`);
+│   │         deleteTransaction returns the removed row snapshot (or null);
+│   │         restoreTransaction(snapshot) hits APPLEPAY.RESTORE and re-inserts
+│   │         it by occurredDt. Dashboard deletes have NO confirm (row button,
+│   │         sheet button, long swipe) — a 6 s ring toast with Undo instead.
 │   ├── todo.ts             — to-do list: tasks[] (array order = manual order), open (pinned first) / done getters,
 │   │         optimistic add (temp id)/toggle/rename/togglePin/remove+restore (undo snapshot)/move+saveOrder
 │   │         against ApiRoute.TODO.*; fetchTasks(background) skips while inflight/dragging; reset() on sign-out
@@ -337,33 +345,50 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   ├── FlatAnalysisCard.vue
 │   │   └── ResalePriceSection.vue
 │   │
-│   ├── TRAVEL  /travel  — auth + feature
-│   │   ├── TravelListView.vue     — list of trips; "New Trip" opens CreateTripDialog
-│   │   ├── TravelPlannerView.vue  — trip planner, side-nav layout (not a long
-│   │   │     scroll): PlannerSideNav switches a single `activeSection`
-│   │   │     (todo/places/bring/note/schedule) — only that section's body
-│   │   │     renders in `.planner-section-body`.
-│   │   │       • Things to do / Places to visit: both are plain manual
-│   │   │         checklists now (Trip Recommendation feature — admin-curated
-│   │   │         suggestions + "explore the map" ghost pins — was removed).
-│   │   │         Things to do adds via `openAddDrawer()` (AgendaDrawer,
-│   │   │         listType defaults to 'todo'); Places to visit adds via the
-│   │   │         new `openAddPlaceDrawer()` (same drawer, listType: 'place'
-│   │   │         preset — AgendaDrawer itself has no listType field, it just
-│   │   │         spreads back whatever `item` prop it was given). Both tabs
-│   │   │         list their items with a day-assign popover + delete, same
-│   │   │         as before.
-│   │   │       • Things-to-do/Places-to-visit split is still driven by the
-│   │   │         explicit `listType` field on AgendaItem ('todo'|'place',
-│   │   │         qindom tb_travel_agenda_item.list_type) — unscheduled items
-│   │   │         (no date) surface in these sections; assigning a day moves
-│   │   │         them into the Schedule tab's day-group timeline.
-│   │   │       • Schedule tab: the original day-group timeline, unchanged,
-│   │   │         fed by scheduledAgendaItemsRef (items with a date) instead
-│   │   │         of the full agenda list.
-│   │   ├── PlannerSideNav.vue     — collapsible vertical nav (icon+label,
-│   │   │     collapses to icon-only, count badge per section); collapsed
-│   │   │     state persisted to localStorage (`fndom-planner-nav-collapsed`)
+│   ├── TRAVEL  /travel  — /travel/trips + /travel/:sessionId need auth; /travel/draft is a guest draft
+│   │   ├── TravelListView.vue     — trips grouped Happening now / Upcoming (incl. undated) / Past by
+│   │   │     start/end vs today; cover cards (per-trip tint from destination hash, initial, countdown
+│   │   │     badge "In N days"/"Starts today"/"On now"/"Ended", dates, N days, pax), hover/focus
+│   │   │     actions (view / copy link / delete), 3/2/1-col grid, empty hero with "Create your first
+│   │   │     trip". "New trip" opens CreateTripDialog. "Shared with Me" only renders when the API
+│   │   │     returns shared trips (qindom's add-collaborator is a stub).
+│   │   ├── TravelPlannerView.vue  — DAY-BOARD PLANNER (2026-11-12 redesign; was a 5-section side-nav).
+│   │   │     Three tabs: Plan / Packing / Notes (`activeTab`, counts). Plan = `.plan-grid`:
+│   │   │       • Ideas tray (left, sticky) = unscheduled agenda items (dayOf() undefined), filter
+│   │   │         chips All / Things to do / Places on `listType`. QuickAddInput at the foot (title +
+│   │   │         Enter -> store.addQuickAgendaItem), "Add with details" opens AgendaDrawer. Tray is
+│   │   │         also a drop zone that unschedules.
+│   │   │       • Day board (right) = Day 1..N always rendered (`board` computed; N = durationInDays,
+│   │   │         grown to the max item day on undated trips). Each day: header (badge + date or
+│   │   │         "Day n"), cards sorted by time, QuickAddInput "Add to Day n", HTML5 drop zone.
+│   │   │         `outsideItems` = dated items beyond the trip's dates (dated trips only).
+│   │   │       • Scheduling = `scheduleItem(item, day)` -> store.assignItemDay(item, date, day): sets
+│   │   │         `day` and, when the trip has a start date, the matching `date`. Entry points:
+│   │   │         drag (pointer), DayChipMenu.vue (one-tap Day grid, touch-friendly), AgendaDrawer's
+│   │   │         Day select. Items keep their day number when trip dates change (`onDatesChange`
+│   │   │         pins day then re-derives dates). Header: title, destination, date range, Days
+│   │   │         number (disabled once dated), Pax.
+│   │   │       • Cards: click = edit (AgendaDrawer), chip menu, edit, delete (toast.action Undo
+│   │   │         6 s, restores and un-queues the id from _agendaIdsToDelete). No per-card
+│   │   │         Saved/Unsaved badges any more.
+│   │   │       • Save = AUTOSAVE ONLY (no Save buttons): watch(JSON of itinerary) -> 'pending' ->
+│   │   │         1.5 s -> runSave (waits for drawer uploads, re-runs if edits landed mid-flight) ->
+│   │   │         header `save-chip` (pending = click to save now / saving / saved / error).
+│   │   │         beforeunload prompt while pending/saving. Drafts write localStorage instead.
+│   │   │       • Map is progressive: `hasGeo` (any item with coordinates/place/city) gates a
+│   │   │         "Map" toggle (topbar on desktop, FAB on phones; localStorage
+│   │   │         `fndom-planner-map-open`). Desktop = 380px sticky pane, phone = replaces content.
+│   │   │       • Share = TravelShareDialog.vue (link + copy, preview in new tab, access-code
+│   │   │         switch + OtpInput). Nothing auto-opens; PrivacyDialog.vue is no longer mounted.
+│   │   │       • Phone FAB (<=600px, Teleport to body) = "Add" + "Map", bottom offset
+│   │   │         `calc(var(--tabbar-h) + 12px)` so it clears BottomTabBar.
+│   │   │       • Guest draft (/travel/draft): add/edit are NOT auth-gated; AgendaDrawer gets
+│   │   │         `allow-images=false` (the image CDN needs a session). Sign-in migrates the draft.
+│   │   │       • Dead code dropped: table mode (TravelPlannerVTableColumns.ts no longer imported),
+│   │   │         PlannerSideNav.vue + PrivacyDialog.vue unused (files kept).
+│   │   ├── QuickAddInput.vue      — dashed one-line input, Enter/plus submits `submit(text)`
+│   │   ├── DayChipMenu.vue        — popover grid of Day 1..N (+ date when dated) + "Remove from schedule"
+│   │   ├── TravelShareDialog.vue  — share sheet (see above); emits update:challenge / login
 │   │   ├── CreateTripDialog.vue   — destination (useGeocode autocomplete,
 │   │   │     resolves country too) + exact-dates-or-days-count; emits a
 │   │   │     CreateTripPayload, caller decides guest-draft vs. authenticated
@@ -373,18 +398,28 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   ├── NoteSuggestionPanel.vue     — "Things to note", fetches
 │   │   │     ApiRoute.SUGGESTION.NOTES(country); mandatory/optional badge +
 │   │   │     deadline copy + "open official site" link — never a submit action
-│   │   ├── TravelViewerView.vue   — public share viewer
-│   │   ├── TravelMapView.vue      — plain confirmed-items map: day-colored
-│   │   │     pins/route lines, category+day filter chips, fullscreen toggle,
-│   │   │     satellite/street tile switch, stepper nav. (The `recommendations`
-│   │   │     prop, ghost/outline pins, `place-detail-panel` slide-in, and
-│   │   │     `add-recommendation` emit were removed along with Trip
-│   │   │     Recommendation — see below.) `fitToVisible()` now only bounds
-│   │   │     the confirmed-items `markerGroup`.
-│   │   ├── AgendaDrawer.vue
-│   │   ├── BookingDrawer.vue      — built, wired in the store, still unmounted
-│   │   ├── PrivacyDialog.vue
-│   │   └── TravelPlannerVTableColumns.ts
+│   │   ├── TravelViewerView.vue   — public share viewer: full-bleed map hero (title, destination,
+│   │   │     pills: dates / N days / travellers / views), sticky "Day" jump strip (chips scroll to
+│   │   │     `#viewer-day-<key>`, expand a collapsed day first) + expand/collapse all, day timeline
+│   │   │     (date heading + "Day N" sub-label, per-item "Open in Maps" Google Maps link when the
+│   │   │     item has coordinates), bookings (only when returned), i18n'd CTA bar, PIN gate.
+│   │   │     Uses useTravelDayGroups with {startKey, durationInDays} so day numbers match the planner.
+│   │   ├── TravelMapView.vue      — confirmed-items map: day-colored pins/route lines, category+day
+│   │   │     filter chips, fullscreen toggle, stepper nav, `startKey` prop for day numbers.
+│   │   │     TILES (2026-11-12): street = OpenStreetMap standard tiles (default; CARTO Voyager was
+│   │   │     dropped — it now needs an API key and rendered blank), satellite = Esri World Imagery +
+│   │   │     labels. Leaflet attribution control ON (bottom-right, OSM policy) and zoom control
+│   │   │     top-left under the fullscreen button; tile choice persisted in localStorage
+│   │   │     `fndom-travel-map-tiles`. Controls styled with theme tokens (dark-mode safe).
+│   │   │     (`recommendations` prop / ghost pins / place-detail-panel were removed with Trip
+│   │   │     Recommendation.) `fitToVisible()` bounds the confirmed-items `markerGroup`.
+│   │   ├── AgendaDrawer.vue       — props dayCount/startKey/allowImages; Date field replaced by a
+│   │   │     Day select (0 = unscheduled); the planner derives `date` from `day` on save
+│   │   ├── BookingDrawer.vue      — built, wired in the store, still unmounted (viewer only shows
+│   │   │     Bookings when the API returns some)
+│   │   ├── PrivacyDialog.vue      — unmounted since 2026-11-12 (TravelShareDialog replaced it)
+│   │   ├── PlannerSideNav.vue     — unmounted since 2026-11-12
+│   │   └── TravelPlannerVTableColumns.ts — dead (table mode removed)
 │   │
 │   ├── BUDGET  /budget  — auth required
 │   │   ├── BudgetListView.vue     — "My Tables" + "Shared with Me" grids,
@@ -559,7 +594,13 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 ├── COMPOSABLES (src/composables/)
 │   ├── usePermission.ts       — role-based access (module + system level)
 │   ├── useCityLabel.ts        — city label management
-│   ├── useTravelDayGroups.ts  — group agenda items by date
+│   ├── useTravelDayGroups.ts  — DAY MODEL (2026-11-12): useTravelDayGroups(items, ctx?{startKey,
+│   │         durationInDays}) -> dayOf(item) (explicit `day` wins, else date measured from
+│   │         startKey, else legacy distinct-date numbering), groupedByDate (keyed by date, or
+│   │         `__day_N` for undated trips, `__tbc__`), collapse helpers. Standalone exports:
+│   │         resolveStartKey(itineraryDateRaw, startDate) -> local YYYY-MM-DD of day 1,
+│   │         dateKeyForDay, dayForDateKey, formatShortDate, sortByTime, getItemTimeMinutes.
+│   │         Used by planner, viewer and TravelMapView (`startKey` prop). Labels via i18n.global.
 │   ├── useGeocode.ts          — searchPlaces() (proxies /api/geocode, now
 │   │         surfaces `country` too); dead nearbyPOIs()/POICategory direct-
 │   │         to-Nominatim code removed. (useActivitySuggestions.ts /
@@ -569,6 +610,13 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │         section above.)
 │   ├── useTravelExport.ts     — export itineraries (JSON/CSV)
 │   ├── usePageTracking.ts     — router.afterEach → Analytics.pageView; called in App.vue
+│   ├── useKeyboardViewport.ts — called once in App.vue. Mirrors window.visualViewport into
+│   │         <html> CSS vars --vv-height / --kb-inset (+ `kb-open` class) so `.el-drawer.btt`
+│   │         sheets (main.css) sit ON the iOS keyboard and cap to the visible height; focusin
+│   │         inside a drawer body scrolls the field to centre after the keyboard animates.
+│   │         Pairs with: viewport meta `interactive-widget=resizes-content` (Android) and the
+│   │         main.css touch rule forcing 16px text fields (stops iOS focus-zoom). New bottom
+│   │         sheets get this for free; don't set vh-based max-heights on them (use --vv-height).
 │   └── useToast.ts            — module-level (not Pinia) reactive `toasts`
 │         list + push/dismiss; `success/error/info(message)` for simple
 │         one-off feedback, `action(message, {label, onClick}, opts)` for a

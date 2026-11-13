@@ -278,15 +278,24 @@ const openSheet = (tx: ApplePayTransaction) => {
 }
 
 // ── Remove a transaction (soft delete server-side) ──
+// No confirm step: the row goes immediately and an Undo toast (countdown
+// ring) restores it, same pattern as the travel planner and budget tables.
+const UNDO_WINDOW_MS = 6000
 const deletingId = ref<string | null>(null)
 
 const onDeleteTransaction = async (tx: ApplePayTransaction) => {
   deletingId.value = tx.id
-  const ok = await store.deleteTransaction(tx.id)
+  const removed = await store.deleteTransaction(tx.id)
   deletingId.value = null
-  if (!ok) return toast.error(t('applepay.deleteFailed'))
-  toast.success(t('applepay.deleted'))
+  if (!removed) return toast.error(t('applepay.deleteFailed'))
   if (showDuplicatesOnly.value && duplicatePairCount.value === 0) showDuplicatesOnly.value = false
+  toast.action(t('applepay.deleted'), {
+    label: t('applepay.undo'),
+    onClick: async () => {
+      const ok = await store.restoreTransaction(removed)
+      if (!ok) toast.error(t('applepay.restoreFailed'))
+    },
+  }, { ring: true, duration: UNDO_WINDOW_MS })
 }
 
 // ── Mobile swipe-left to delete: short swipe reveals the Delete button,
@@ -980,25 +989,16 @@ const pieOptions = {
             </el-table-column>
             <el-table-column width="56" align="center">
               <template #default="{ row }">
-                <el-popconfirm
-                  :title="t('applepay.deleteConfirm')"
-                  :confirm-button-text="t('applepay.deleteAction')"
-                  :cancel-button-text="t('common.cancel')"
-                  confirm-button-type="danger"
-                  width="220"
-                  @confirm="onDeleteTransaction(row)"
-                >
-                  <template #reference>
-                    <el-button
-                      :icon="Delete"
-                      size="small"
-                      text
-                      circle
-                      :loading="deletingId === row.id"
-                      :aria-label="t('applepay.deleteAction')"
-                    />
-                  </template>
-                </el-popconfirm>
+                <el-button
+                  :icon="Delete"
+                  size="small"
+                  text
+                  circle
+                  :loading="deletingId === row.id"
+                  :aria-label="t('applepay.deleteAction')"
+                  :title="t('applepay.deleteAction')"
+                  @click.stop="onDeleteTransaction(row)"
+                />
               </template>
             </el-table-column>
           </el-table>
@@ -1216,20 +1216,9 @@ const pieOptions = {
         </label>
 
         <div class="tx-sheet-actions">
-          <el-popconfirm
-            :title="t('applepay.deleteConfirm')"
-            :confirm-button-text="t('applepay.deleteAction')"
-            :cancel-button-text="t('common.cancel')"
-            confirm-button-type="danger"
-            width="220"
-            @confirm="onDeleteTransaction(sheetTx)"
-          >
-            <template #reference>
-              <el-button type="danger" plain :icon="Delete" :loading="deletingId === sheetTx.id">
-                {{ t('applepay.deleteAction') }}
-              </el-button>
-            </template>
-          </el-popconfirm>
+          <el-button type="danger" plain :icon="Delete" :loading="deletingId === sheetTx.id" @click="onDeleteTransaction(sheetTx)">
+            {{ t('applepay.deleteAction') }}
+          </el-button>
           <el-button type="primary" @click="sheetOpen = false">{{ t('applepay.sheet.done') }}</el-button>
         </div>
       </div>
@@ -2563,9 +2552,10 @@ const pieOptions = {
 
 <!-- The drawer panel is teleported to <body>, outside this component's scope -->
 <style>
+/* Capped to the visible height (above the keyboard), see useKeyboardViewport */
 .el-drawer.tx-sheet {
-  max-height: 85vh;
-  border-radius: var(--radius) 16px 0 0;
+  max-height: min(85dvh, calc(var(--vv-height, 100dvh) - 12px));
+  border-radius: var(--radius) var(--radius) 0 0;
 }
 
 .el-drawer.tx-sheet .el-drawer__body {

@@ -320,3 +320,48 @@ html.dark {
 .el-dialog {
   border-radius: 24px;
 }
+
+/* ── Touch: no focus-zoom ─────────────────────────────────────────────────
+   iOS Safari zooms the page whenever a field under 16px gets focus, and
+   stays zoomed, which shifts every tap target. Element Plus inputs are
+   12-14px, so lift text fields to 16px on touch screens only. */
+@media (hover: none) and (pointer: coarse) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  textarea,
+  select,
+  .el-input__inner,
+  .el-textarea__inner,
+  .el-select__input,
+  .el-select__selected-item,
+  .el-input-number .el-input__inner,
+  .el-date-editor .el-range-input {
+    font-size: 16px !important;
+  }
+}
+
+/* ── Bottom sheets vs the on-screen keyboard ──────────────────────────────
+   --kb-inset / --vv-height come from composables/useKeyboardViewport.ts.
+   The sheet is lifted to sit on top of the keyboard and capped to the
+   visible height so its header and sticky actions stay on screen; its body
+   scrolls instead of the page behind it. */
+.el-drawer.btt {
+  bottom: var(--kb-inset, 0px);
+  max-height: calc(var(--vv-height, 100dvh) - 12px);
+  border-radius: 20px 20px 0 0;
+  transition: bottom 0.18s ease, max-height 0.18s ease;
+}
+
+.el-drawer.btt .el-drawer__body {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+}
+
+/* With the keyboard up the safe-area padding sits under the keyboard anyway */
+html.kb-open .el-drawer.btt .el-drawer__body {
+  padding-bottom: 12px;
+}
+
+.el-drawer {
+  touch-action: manipulation; /* no double-tap zoom delay on buttons */
+}

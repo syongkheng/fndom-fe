@@ -52,10 +52,24 @@ export const useApplePayStore = defineStore('applepay', () => {
     return true
   }
 
-  async function deleteTransaction(transactionId: string): Promise<boolean> {
+  // Returns the removed row so the caller can offer Undo with it.
+  async function deleteTransaction(transactionId: string): Promise<ApplePayTransaction | null> {
+    const snapshot = transactions.value.find((t) => t.id === transactionId) ?? null
     const res = await HttpClient.post(ApiRoute.APPLEPAY.DELETE(transactionId), {}).catch(() => null)
-    if (!res?.data?.data?.deleted) return false
+    if (!res?.data?.data?.deleted) return null
     transactions.value = transactions.value.filter((t) => t.id !== transactionId)
+    return snapshot
+  }
+
+  // Undo for deleteTransaction: restores server-side, then puts the snapshot
+  // back in date order (card labels are re-applied from current rows).
+  async function restoreTransaction(snapshot: ApplePayTransaction): Promise<boolean> {
+    const res = await HttpClient.post(ApiRoute.APPLEPAY.RESTORE(snapshot.id), {}).catch(() => null)
+    if (!res?.data?.data?.restored) return false
+    if (transactions.value.some((t) => t.id === snapshot.id)) return true
+    const label = transactions.value.find((t) => t.cardLast4 && t.cardLast4 === snapshot.cardLast4)?.cardLabel
+    const row = label !== undefined ? { ...snapshot, cardLabel: label } : snapshot
+    transactions.value = [...transactions.value, row].sort((a, b) => b.occurredDt - a.occurredDt)
     return true
   }
 
@@ -65,6 +79,7 @@ export const useApplePayStore = defineStore('applepay', () => {
     fetchTransactions,
     addTransaction,
     deleteTransaction,
+    restoreTransaction,
     updateCategory,
     setCardLabel,
   }
