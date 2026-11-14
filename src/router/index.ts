@@ -33,6 +33,12 @@ const router = createRouter({
       beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
     },
     {
+      path: '/camera',
+      name: 'camera',
+      component: () => import('../components/views/camera/CameraDashboardView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
+    },
+    {
       path: '/workbench',
       name: 'workbench',
       component: () => import('../components/views/WorkbenchView.vue'),

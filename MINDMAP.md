@@ -56,6 +56,14 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   │     (Scriptable accessoryRectangular) reads qindom `GET /v1/ss/todo` with the user's ss_ key. Add, check off, inline edit, delete with
 │   │   │     5s Undo toast, pin max 3 (MAX_PINNED), Pointer-Events drag to reorder (within pinned / unpinned
 │   │   │     group), collapsed Done section with "N done this week". Nav: TopNavigation + MobileNavigation.
+│   │   ├── /camera                camera → camera/CameraDashboardView — live previews + remote start/stop for
+│   │     phones running the fndom-react-native recorder app. AUTH REQUIRED (authGuard). "Add phone" claims the
+│   │     6-digit code shown on the phone (ApiRoute.CAMERA.CLAIM, rate-limited server-side), grid of
+│   │     CameraDeviceTile (2 per row, 1 on phones): canvas preview (createImageBitmap, newest-frame-wins),
+│   │     online/REC/elapsed/battery/free space/heat/preview fps/dropped frames, quality select, start/stop,
+│   │     remove (el-popconfirm); Start all / Stop all + start offset from phone acks; stale overlay after 3 s
+│   │     without a frame. Nav: TopNavigation + MobileNavigation (signed in only). Protocol: docs/camera-protocol.md
+│   │     (copy of qindom's).
 │   ├── /404                   404 → UnauthorizedView
 │   │   ├── /travel/v/:shortCode   travel-viewer (featureGuard)
 │   │   ├── /bus                   bus → bus/HomeView — geolocation-based nearest busstop + live LTA arrivals
@@ -214,6 +222,11 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   ├── todo.ts             — to-do list: tasks[] (array order = manual order), open (pinned first) / done getters,
 │   │         optimistic add (temp id)/toggle/rename/togglePin/remove+restore (undo snapshot)/move+saveOrder
 │   │         against ApiRoute.TODO.*; fetchTasks(background) skips while inflight/dragging; reset() on sign-out
+│   ├── camera.ts           — camera relay dashboard: devices (GET /camera/device), claim/remove, one WebSocket to
+│   │         `${VITE_SERVER_BASE_URL}/camera/ws/dashboard` (cookie auth; reconnect 1→30 s backoff with jitter),
+│   │         live[deviceId] {online,status,statusAt}; binary frames ([1B len][deviceId][JPEG]) go to per-tile
+│   │         onFrame listeners (outside reactivity) + frameAge(); sendCommand(start|stop|set_quality, id|'all');
+│   │         lastStart acks → startOffsetMs. Types in interfaces/Camera.model.ts.
 │   ├── housePlan.ts        — house planner: items, selection, mode (arrange|3d), camera preset,
 │   │         measure state, undo/redo (100), localStorage `fndom-house-layout-v1`, import/export JSON,
 │   │         custom catalogue items, conflicts (wall/item overlap via utilities/houseGeometry.ts);

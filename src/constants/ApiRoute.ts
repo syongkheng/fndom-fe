@@ -77,6 +77,13 @@ export const ApiRoute = {
     REVOKE: (token: string) => `/house/share/${token}/delete`,
     VIEW: (token: string) => `/house/view/${token}`,
   },
+  CAMERA: {
+    LIST: `/camera/device`,
+    CLAIM: `/camera/device/claim`,
+    REMOVE: (deviceId: string) => `/camera/device/${deviceId}/delete`,
+    /** WebSocket path, joined onto VITE_SERVER_BASE_URL with ws(s):// */
+    WS_DASHBOARD: `/camera/ws/dashboard`,
+  },
   TODO: {
     GET_ALL: `/todo`,
     CREATE: `/todo`,

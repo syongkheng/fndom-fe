@@ -37,6 +37,7 @@ const items = computed(() => [
   { key: 'todo', label: t('nav.todo'), path: '/todo', show: true },
   { key: 'trips', label: t('nav.trips'), path: '/travel/trips', show: true },
   { key: 'applePay', label: t('nav.applePay'), path: '/apple-pay', show: isAuthenticated.value },
+  { key: 'camera', label: t('nav.camera'), path: '/camera', show: isAuthenticated.value },
   { key: 'admin', label: t('nav.admin'), path: '/admin', show: isInternal.value },
 ].filter((i) => i.show))
 </script>
