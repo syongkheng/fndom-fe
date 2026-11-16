@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import AppIcon from '@/components/common/AppIcon.vue'
 import { useCameraStore } from '@/stores/camera'
 import type { CameraDevice, CameraQuality } from '@/interfaces/Camera.model'
 
@@ -13,6 +14,12 @@ const store = useCameraStore()
 const STALE_AFTER_MS = 3000
 
 const canvas = ref<HTMLCanvasElement | null>(null)
+const confirmOpen = ref(false)
+
+const confirmRemove = () => {
+  confirmOpen.value = false
+  emit('remove', props.device.deviceId)
+}
 const hasFrame = ref(false)
 const stale = ref(false)
 const now = ref(Date.now())
@@ -182,16 +189,36 @@ const toggleRecording = () =>
       >
         {{ recording ? t('camera.stop') : t('camera.start') }}
       </el-button>
-      <el-popconfirm
-        :title="t('camera.removeConfirm', { name: device.name })"
-        :confirm-button-text="t('camera.remove')"
-        :cancel-button-text="t('camera.cancel')"
-        @confirm="emit('remove', device.deviceId)"
+      <el-popover
+        v-model:visible="confirmOpen"
+        trigger="click"
+        placement="top"
+        :width="288"
+        popper-class="cam-confirm-popper"
       >
         <template #reference>
           <el-button text type="danger">{{ t('camera.remove') }}</el-button>
         </template>
-      </el-popconfirm>
+        <div
+          class="cam-confirm"
+          role="alertdialog"
+          :aria-label="t('camera.removeTitle', { name: device.name })"
+        >
+          <div class="cam-confirm-head">
+            <span class="cam-confirm-icon"><AppIcon name="trash" size="18px" /></span>
+            <div>
+              <p class="cam-confirm-title">{{ t('camera.removeTitle', { name: device.name }) }}</p>
+              <p class="cam-confirm-desc">{{ t('camera.removeDesc') }}</p>
+            </div>
+          </div>
+          <div class="cam-confirm-actions">
+            <el-button round @click="confirmOpen = false">{{ t('camera.cancel') }}</el-button>
+            <el-button type="danger" round @click="confirmRemove">{{
+              t('camera.remove')
+            }}</el-button>
+          </div>
+        </div>
+      </el-popover>
     </div>
   </article>
 </template>
@@ -320,5 +347,63 @@ const toggleRecording = () =>
 
 .cam-quality {
   width: 140px;
+}
+
+.cam-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cam-confirm-head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.cam-confirm-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+}
+
+.cam-confirm-title {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  overflow-wrap: anywhere;
+}
+
+.cam-confirm-desc {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--color-text-tertiary);
+}
+
+.cam-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cam-confirm-actions .el-button + .el-button {
+  margin-left: 0;
+}
+</style>
+
+<style>
+/* The popover is teleported to <body>, so its frame can't be styled from the scoped block. */
+.el-popover.el-popper.cam-confirm-popper {
+  padding: 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-pop);
 }
 </style>

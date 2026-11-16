@@ -96,7 +96,8 @@ export default {
     stop: '停止',
     remove: '移除',
     cancel: '取消',
-    removeConfirm: '移除 {name}？之后需要新的配对码才能再次添加。',
+    removeTitle: '移除 {name}？',
+    removeDesc: '它将停止在这里串流。如需再次添加，请输入手机上显示的新配对码。',
   },
   todo: {
     eyebrow: '任务',

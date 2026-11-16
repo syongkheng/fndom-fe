@@ -96,7 +96,8 @@ export default {
     stop: 'Stop',
     remove: 'Remove',
     cancel: 'Cancel',
-    removeConfirm: 'Remove {name}? It will need a new code to add again.',
+    removeTitle: 'Remove {name}?',
+    removeDesc: 'It will stop streaming here. To add it again, enter a new code from the phone.',
   },
   todo: {
     eyebrow: 'Tasks',
