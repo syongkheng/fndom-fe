@@ -10,6 +10,7 @@ import { useI18n } from 'vue-i18n'
 import { useThemeStore } from '@/stores/theme'
 import { useLocale } from '@/composables/useLocale'
 import { usePermission } from '@/composables/usePermission'
+import { useAnalyticsStore } from '@/stores/analytics'
 import StableWidth from '@/components/common/StableWidth.vue'
 
 const { redirectTo, redirectToProfile } = useNav()
@@ -21,6 +22,8 @@ const authStore = useAuthenticationStore()
 const { isAuthenticated } = storeToRefs(authStore) // Preserves reactivity
 const { hasModuleAccess } = usePermission()
 const isInternal = computed(() => hasModuleAccess('SYSTEM', 5))
+// Shown to anyone with at least one analytics dashboard (owner or granted viewer).
+const { systems: analyticsSystems } = storeToRefs(useAnalyticsStore())
 
 const { locale, setLocale } = useLocale()
 
@@ -36,6 +39,7 @@ const links = computed(() => [
   { key: 'trips', label: t('nav.trips'), path: '/travel/trips', show: true },
   { key: 'applePay', label: t('nav.applePay'), path: '/apple-pay', show: isAuthenticated.value },
   { key: 'camera', label: t('nav.camera'), path: '/camera', show: isAuthenticated.value },
+  { key: 'analytics', label: t('nav.analytics'), path: '/analytics', show: isAuthenticated.value && analyticsSystems.value.length > 0 },
   { key: 'admin', label: t('nav.admin'), path: '/admin', show: isInternal.value },
 ].filter((l) => l.show))
 

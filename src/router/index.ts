@@ -149,6 +149,26 @@ const router = createRouter({
       beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
     },
     {
+      // Analytics dashboards: any signed-in user; the list/summary endpoints only return
+      // systems the user owns (SYSTEM_R5) or has been granted.
+      path: '/analytics',
+      name: 'analytics',
+      component: () => import('../components/views/analytics/AnalyticsHomeView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
+    },
+    {
+      path: '/analytics/:systemKey',
+      name: 'analytics-dashboard',
+      component: () => import('../components/views/analytics/AnalyticsDashboardView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().authGuard({ next }),
+    },
+    {
+      path: '/admin/analytics-access',
+      name: 'admin-analytics-access',
+      component: () => import('../components/views/admin/AnalyticsAccessView.vue'),
+      beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
+    },
+    {
       path: '/admin/telegram-log-subscriptions',
       name: 'admin-telegram-log-subscriptions',
       component: () => import('../components/views/admin/TelegramLogSubscriptionView.vue'),

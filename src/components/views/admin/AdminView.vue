@@ -89,6 +89,15 @@ onMounted(async () => {
         <div class="admin-card-arrow">→</div>
       </div>
 
+      <div class="admin-card" @click="router.push('/admin/analytics-access')">
+        <div class="admin-card-icon"><AppIcon name="target" /></div>
+        <div class="admin-card-body">
+          <div class="admin-card-title">{{ t('admin.analyticsAccess.cardTile') }}</div>
+          <div class="admin-card-desc">{{ t('admin.analyticsAccess.cardDesc') }}</div>
+        </div>
+        <div class="admin-card-arrow">→</div>
+      </div>
+
     </div>
   </div>
 </template>

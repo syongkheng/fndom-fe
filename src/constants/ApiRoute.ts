@@ -46,6 +46,16 @@ export const ApiRoute = {
     SEARCH_REQUEST_LOG: (requestId: string) => `/auth/admin/request-logs/${requestId}`,
     RECENT_REQUEST_LOGS: (limit: number) => `/auth/admin/recent-request-logs?limit=${limit}`,
   },
+  ANALYTICS: {
+    COLLECT: `/analytics/collect`,
+    SYSTEMS: `/analytics/systems`,
+    SUMMARY: (key: string, hours: number) =>
+      `/analytics/systems/${encodeURIComponent(key)}/summary?hours=${hours}`,
+    ADMIN_SYSTEMS: `/analytics/admin/systems`,
+    ADMIN_ACCESS: (key: string) => `/analytics/admin/systems/${encodeURIComponent(key)}/access`,
+    ADMIN_REVOKE: (key: string, userId: number) =>
+      `/analytics/admin/systems/${encodeURIComponent(key)}/access/${userId}/revoke`,
+  },
   TELEGRAM_LOG_SUBSCRIPTION: {
     ADMIN_LIST: `/auth/admin/telegram-log-subscriptions`,
     ADMIN_TOGGLE: (chatId: number, moduleKey: string) =>

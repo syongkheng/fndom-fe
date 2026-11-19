@@ -503,6 +503,8 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   │     non-admin sub-feature) are untouched.
 │   │   ├── UserManagementView.vue
 │   │   ├── TgImageAdminView.vue    (/admin/tg-image)
+│   │   ├── AnalyticsAccessView.vue  (/admin/analytics-access) — per analytics system: grant/revoke
+│   │   │     viewers by awense.com username, edit allowed origins (ApiRoute.ANALYTICS.ADMIN_*).
 │   │   ├── LogSearcherView.vue  (/admin/log-searcher) — paste a req_xxxxx
 │   │   │     Request ID, hits GET ApiRoute.ADMIN.SEARCH_REQUEST_LOG →
 │   │   │     qindom's RequestLogSearch (parses qindom.out.log on the EC2 box,
@@ -601,7 +603,12 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   └── wrappers/RoleGuard.vue
 │
 ├── ANALYTICS (src/analytics/)
-│   ├── index.ts               — track() core; fetch POST to VITE_SERVER_BASE_URL/api/analytics; system='fndom'
+│   ├── index.ts               — track() core; fetch POST to VITE_SERVER_BASE_URL/analytics/collect (contract v1: v, screen.{width,height,breakpoint S|M|CALENDAR|L, size small|medium|large}); system='fndom'
+│   ├── DASHBOARDS: /analytics (AnalyticsHomeView, authGuard) lists systems from stores/analytics.ts
+│   │     (GET ApiRoute.ANALYTICS.SYSTEMS — server returns all for SYSTEM_R5, granted ones otherwise);
+│   │     /analytics/:systemKey (AnalyticsDashboardView) — KPI tiles, chart.js hourly line (24h/7d),
+│   │     horizontal bars + tables for sessions by breakpoint and by size, top pages. "Analytics" nav
+│   │     link (Top/MobileNavigation) shows when the list is non-empty; loaded in AppInitializer on login.
 │   └── events.ts              — Analytics.{pageView, authLogin, authRegister, authVerified, authLogout, featureAccess, buttonClick}
 │
 ├── COMPOSABLES (src/composables/)

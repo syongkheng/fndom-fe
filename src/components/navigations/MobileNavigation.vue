@@ -5,6 +5,7 @@ import { useLayoutStateStore } from '@/stores/layoutState'
 import { useNav } from '@/hooks/useNav'
 import { useAuthenticationStore } from '@/stores/authentication'
 import { usePermission } from '@/composables/usePermission'
+import { useAnalyticsStore } from '@/stores/analytics'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 
@@ -17,6 +18,7 @@ const toast = useToast()
 
 const { isAuthenticated } = storeToRefs(authStore)
 const isInternal = computed(() => hasModuleAccess('SYSTEM', 5))
+const { systems: analyticsSystems } = storeToRefs(useAnalyticsStore())
 
 const handleMenuClick = (action: () => void) => {
   action()
@@ -38,6 +40,7 @@ const items = computed(() => [
   { key: 'trips', label: t('nav.trips'), path: '/travel/trips', show: true },
   { key: 'applePay', label: t('nav.applePay'), path: '/apple-pay', show: isAuthenticated.value },
   { key: 'camera', label: t('nav.camera'), path: '/camera', show: isAuthenticated.value },
+  { key: 'analytics', label: t('nav.analytics'), path: '/analytics', show: isAuthenticated.value && analyticsSystems.value.length > 0 },
   { key: 'admin', label: t('nav.admin'), path: '/admin', show: isInternal.value },
 ].filter((i) => i.show))
 </script>

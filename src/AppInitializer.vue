@@ -1,10 +1,23 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useTokenVerification } from './hooks/useTokenVerification'
 import { StorageUtils } from './utilities/StorageUtils'
 import { startHeartbeat } from './utilities/HeartbeatUtils'
+import { useAuthenticationStore } from './stores/authentication'
+import { useAnalyticsStore } from './stores/analytics'
 
 const { verifyToken, isVerifying } = useTokenVerification()
+
+// Load the analytics dashboards this user can see (drives the "Analytics" nav link);
+// clear them on logout so the next account doesn't inherit the list.
+const analyticsStore = useAnalyticsStore()
+const { isAuthenticated } = storeToRefs(useAuthenticationStore())
+watch(
+  isAuthenticated,
+  (authed) => (authed ? analyticsStore.loadSystems(true) : analyticsStore.reset()),
+  { immediate: false },
+)
 
 let stopHeartbeat: (() => void) | null = null
 
