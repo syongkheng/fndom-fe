@@ -48,6 +48,14 @@ const isEmpty = computed(() => !isLoading.value && transactions.value.length ===
 const formatAmount = (n: number) =>
   n.toLocaleString(undefined, { style: 'currency', currency: 'SGD' })
 
+// Split so the currency code can be rendered smaller than the digits,
+// keeping locale-correct ordering (prefix or suffix).
+const monthTotalParts = computed(() =>
+  new Intl.NumberFormat(undefined, { style: 'currency', currency: 'SGD' })
+    .formatToParts(monthTotal.value)
+    .map((p) => ({ value: p.value, isCurrency: p.type === 'currency' })),
+)
+
 const formatDate = (ts: number) =>
   new Date(ts).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
@@ -89,7 +97,14 @@ const openTracker = () => nav.redirectTo('/apple-pay')
     <div v-else class="expense-hero-body">
       <div class="expense-hero-stat">
         <span class="expense-hero-stat-label">{{ t('dashboard.expenseTracker.spentIn', { month: monthLabel }) }}</span>
-        <span class="expense-hero-stat-value">{{ formatAmount(monthTotal) }}</span>
+        <span class="expense-hero-stat-value"
+          ><span
+            v-for="(part, i) in monthTotalParts"
+            :key="i"
+            :class="{ 'expense-hero-stat-currency': part.isCurrency }"
+            >{{ part.value }}</span
+          ></span
+        >
         <span class="expense-hero-stat-sub">{{ t('dashboard.expenseTracker.paymentCount', monthTransactions.length) }}</span>
       </div>
 
@@ -119,6 +134,8 @@ const openTracker = () => nav.redirectTo('/apple-pay')
   background: var(--color-background-soft);
   border: 1px solid var(--el-color-primary-light-7);
   box-shadow: 0 1px 0 var(--el-color-primary-light-9) inset;
+  /* The card is user-resizable, so layout responds to its own width. */
+  container-type: inline-size;
 }
 
 .expense-hero-head {
@@ -148,8 +165,10 @@ const openTracker = () => nav.redirectTo('/apple-pay')
 /* ── Filled state ─────────────────────────────────────── */
 .expense-hero-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
-  gap: 24px;
+  /* Stat column sizes to its content so the total never spills into the
+     list; the list takes the rest and truncates merchant names instead. */
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 36px;
   align-items: start;
 }
 
@@ -171,6 +190,14 @@ const openTracker = () => nav.redirectTo('/apple-pay')
   color: var(--color-heading);
   line-height: 1.15;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.expense-hero-stat-currency {
+  font-size: 0.55em;
+  font-weight: 700;
+  opacity: 0.7;
+  letter-spacing: 0.02em;
 }
 
 .expense-hero-stat-sub {
@@ -262,10 +289,18 @@ const openTracker = () => nav.redirectTo('/apple-pay')
   .expense-hero {
     padding: 16px;
   }
+}
 
+/* Narrow card: stack the total above the list instead of squeezing. */
+@container (max-width: 560px) {
   .expense-hero-body {
     grid-template-columns: minmax(0, 1fr);
     gap: 16px;
+  }
+
+  .expense-hero-stat-value {
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }
 </style>
