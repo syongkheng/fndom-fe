@@ -1459,7 +1459,8 @@ export default {
     add: {
       button: '添加交易',
       title: '添加一笔交易',
-      amount: '金额（SGD）',
+      amount: '金额',
+      currency: '币种',
       merchant: '商家',
       merchantPlaceholder: '例如：小贩中心、现金',
       date: '日期与时间',
@@ -1491,6 +1492,7 @@ export default {
       noData: '暂无数据',
       close: '关闭',
       amountsIn: '金额单位：{currency}',
+      currencySection: '{currency} 消费',
     },
     setup: {
       title: '如何设置',
@@ -1505,6 +1507,8 @@ export default {
       step2Desc: '大多数银行只有在超过一定金额时才会发送短信。请在银行 App 的通知设置中，将交易提醒门槛设为 $0.01（或允许的最低值），这样无论金额多小的消费都会发送短信并被记录到这里。以下是各银行的通知设置位置，以及各自现成的 Shortcut：',
       bankImagePending: '截图即将上传',
       bankShortcutLink: '获取 {bank} Shortcut ↗',
+      bankSupportedNote: '已支持 {bank} 短信提醒。目前还没有现成的 Shortcut —— 请在「快捷指令」App 中创建一个收到信息时运行的个人自动化，并将完整短信内容发送到第 3 步中的接口。',
+      bankTriggerLabel: '自动化触发条件设置为信息包含：',
       step3Title: '将密钥粘贴到 Shortcut 中',
       step3Desc: '打开你刚获取的 Shortcut（如果是自行创建的，请建立一个由"信息"／"邮件"规则触发的个人捷径自动化，匹配你银行的交易提醒短信），并确认它会调用：',
       step3Header: '请求头：',

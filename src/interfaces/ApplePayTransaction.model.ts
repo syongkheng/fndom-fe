@@ -2,6 +2,8 @@ export interface ApplePayTransaction {
   /** Opaque public identifier (server-generated UUID) — never the DB row's auto-increment id. */
   id: string
   amount: number
+  /** ISO 4217 code as reported by the bank alert (e.g. 'SGD', 'CNY'). Never converted — totals are grouped per currency. */
+  currency: string
   merchant: string
   /** Apple Pay device/payment label — only ever set on 'v1' (NFC tap) rows. */
   name: string | null

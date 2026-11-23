@@ -39,19 +39,35 @@ const monthTransactions = computed(() => {
   return transactions.value.filter((tx) => tx.occurredDt >= start)
 })
 
-const monthTotal = computed(() => monthTransactions.value.reduce((sum, tx) => sum + tx.amount, 0))
+// Headline total is SGD only (amounts are never converted); other currencies
+// are listed underneath as their own totals.
+const HOME_CURRENCY = 'SGD'
+const txCurrency = (tx: { currency?: string }) => tx.currency || HOME_CURRENCY
+
+const monthTotal = computed(() =>
+  monthTransactions.value.filter((tx) => txCurrency(tx) === HOME_CURRENCY).reduce((sum, tx) => sum + tx.amount, 0),
+)
+
+const monthForeignTotals = computed(() => {
+  const totals = new Map<string, number>()
+  for (const tx of monthTransactions.value) {
+    const currency = txCurrency(tx)
+    if (currency !== HOME_CURRENCY) totals.set(currency, (totals.get(currency) ?? 0) + tx.amount)
+  }
+  return Array.from(totals, ([currency, amount]) => ({ currency, amount })).sort((a, b) => b.amount - a.amount)
+})
 
 const monthLabel = computed(() => new Date().toLocaleString(undefined, { month: 'long' }))
 
 const isEmpty = computed(() => !isLoading.value && transactions.value.length === 0)
 
-const formatAmount = (n: number) =>
-  n.toLocaleString(undefined, { style: 'currency', currency: 'SGD' })
+const formatAmount = (n: number, currency: string = HOME_CURRENCY) =>
+  n.toLocaleString(undefined, { style: 'currency', currency })
 
 // Split so the currency code can be rendered smaller than the digits,
 // keeping locale-correct ordering (prefix or suffix).
 const monthTotalParts = computed(() =>
-  new Intl.NumberFormat(undefined, { style: 'currency', currency: 'SGD' })
+  new Intl.NumberFormat(undefined, { style: 'currency', currency: HOME_CURRENCY })
     .formatToParts(monthTotal.value)
     .map((p) => ({ value: p.value, isCurrency: p.type === 'currency' })),
 )
@@ -105,6 +121,9 @@ const openTracker = () => nav.redirectTo('/apple-pay')
             >{{ part.value }}</span
           ></span
         >
+        <span v-for="c in monthForeignTotals" :key="c.currency" class="expense-hero-stat-sub">
+          + {{ formatAmount(c.amount, c.currency) }}
+        </span>
         <span class="expense-hero-stat-sub">{{ t('dashboard.expenseTracker.paymentCount', monthTransactions.length) }}</span>
       </div>
 
@@ -116,7 +135,7 @@ const openTracker = () => nav.redirectTo('/apple-pay')
               <span class="expense-hero-merchant">{{ tx.merchant }}</span>
               <span class="expense-hero-date">{{ formatDate(tx.occurredDt) }}</span>
             </div>
-            <span class="expense-hero-amount">{{ formatAmount(tx.amount) }}</span>
+            <span class="expense-hero-amount">{{ formatAmount(tx.amount, txCurrency(tx)) }}</span>
           </li>
         </ul>
       </div>
