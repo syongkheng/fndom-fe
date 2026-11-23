@@ -89,8 +89,11 @@ interface BankGuideImage {
 interface BankGuide {
   key: string
   name: string
-  shortcutUrl: string
+  /** Omitted until a ready-made Shortcut is published for this bank. */
+  shortcutUrl?: string
   images: BankGuideImage[]
+  /** Text the Message automation should match on ("Message contains …"). Shown when there's no ready-made Shortcut. */
+  triggerPhrase?: string
 }
 
 const bankGuides: BankGuide[] = [
@@ -113,6 +116,14 @@ const bankGuides: BankGuide[] = [
       { src: uobCardActivityImage, captionKey: 'applepay.setup.bankImages.uob2' },
       { src: uobCardChargesImage, captionKey: 'applepay.setup.bankImages.uob3' },
     ],
+  },
+  {
+    // Parsing is supported server-side (ApplePay.v2.controller.ts); no
+    // published Shortcut or screenshots yet.
+    key: 'citi',
+    name: 'Citibank',
+    images: [],
+    triggerPhrase: 'There was a charge of',
   },
 ]
 
@@ -187,6 +198,40 @@ const categoryOptions = computed(() => {
   return Array.from(new Set([...DEFAULT_APPLEPAY_CATEGORIES, ...used]))
 })
 
+// ── Currencies: amounts are never converted. SGD (home) drives the headline
+// totals, month-over-month delta, sparkline and calendar; any other currency
+// gets its own totals line and its own set of pie charts. ──
+const HOME_CURRENCY = 'SGD'
+const CURRENCY_CODE_REGEX = /^[A-Z]{3}$/
+const COMMON_CURRENCIES = ['SGD', 'CNY', 'MYR', 'USD', 'JPY', 'THB', 'KRW', 'EUR', 'GBP', 'AUD']
+
+const txCurrency = (tx: ApplePayTransaction) => tx.currency || HOME_CURRENCY
+const isHomeCurrency = (tx: ApplePayTransaction) => txCurrency(tx) === HOME_CURRENCY
+
+const currencyOptions = computed(() =>
+  Array.from(new Set([...COMMON_CURRENCIES, ...transactions.value.map(txCurrency)])),
+)
+
+const formatAmount = (n: number, currency: string = HOME_CURRENCY) =>
+  n.toLocaleString(undefined, { style: 'currency', currency })
+
+interface CurrencyTotal {
+  currency: string
+  amount: number
+}
+
+// Home currency first, then the rest by amount (largest first).
+function totalsByCurrency(rows: ApplePayTransaction[]): CurrencyTotal[] {
+  const totals = new Map<string, number>()
+  for (const tx of rows) totals.set(txCurrency(tx), (totals.get(txCurrency(tx)) ?? 0) + tx.amount)
+  return Array.from(totals, ([currency, amount]) => ({ currency, amount })).sort((a, b) =>
+    a.currency === HOME_CURRENCY ? -1 : b.currency === HOME_CURRENCY ? 1 : b.amount - a.amount,
+  )
+}
+
+const foreignTotals = (rows: ApplePayTransaction[]) =>
+  totalsByCurrency(rows).filter((c) => c.currency !== HOME_CURRENCY)
+
 // ── Likely duplicates: one Apple Pay tap can be logged by both the NFC
 // automation (v1) and the bank SMS (v2). Pair each v1 row with the closest
 // unmatched v2 row of the same amount within the window.
@@ -200,7 +245,7 @@ const duplicateIds = computed(() => {
     if (tap.source !== 'v1') continue
     let best: ApplePayTransaction | null = null
     for (const sms of smsRows) {
-      if (matched.has(sms.id) || toCents(sms.amount) !== toCents(tap.amount)) continue
+      if (matched.has(sms.id) || txCurrency(sms) !== txCurrency(tap) || toCents(sms.amount) !== toCents(tap.amount)) continue
       const gap = Math.abs(sms.occurredDt - tap.occurredDt)
       if (gap <= DUPLICATE_WINDOW_MS && (!best || gap < Math.abs(best.occurredDt - tap.occurredDt))) best = sms
     }
@@ -239,18 +284,23 @@ const dayHeading = (key: string) => {
 // Relies on filteredTransactions already being newest-first (server ORDER BY
 // occurred_dt DESC; the store re-sorts after a manual add).
 const transactionsByDay = computed(() => {
-  const groups: Array<{ key: string; label: string; total: number; items: ApplePayTransaction[] }> = []
+  const groups: Array<{ key: string; label: string; items: ApplePayTransaction[] }> = []
   for (const tx of filteredTransactions.value) {
     const key = dayKey(new Date(tx.occurredDt))
     let group = groups[groups.length - 1]
     if (!group || group.key !== key) {
-      group = { key, label: dayHeading(key), total: 0, items: [] }
+      group = { key, label: dayHeading(key), items: [] }
       groups.push(group)
     }
     group.items.push(tx)
-    group.total += tx.amount
   }
-  return groups
+  // One total per currency (SGD first), e.g. "S$12.30 · CN¥88.00"
+  return groups.map((g) => ({
+    ...g,
+    totalText: totalsByCurrency(g.items)
+      .map((c) => formatAmount(c.amount, c.currency))
+      .join(' · '),
+  }))
 })
 
 const formatTime = (ts: number) => new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -373,15 +423,26 @@ const onRowClick = (tx: ApplePayTransaction) => {
 // ── Manual entry (cash, missed alerts) ──
 const addDialogVisible = ref(false)
 const addSaving = ref(false)
-const addForm = ref({ amount: undefined as number | undefined, merchant: '', occurredAt: new Date(), category: '' })
+const addForm = ref({
+  amount: undefined as number | undefined,
+  currency: HOME_CURRENCY,
+  merchant: '',
+  occurredAt: new Date(),
+  category: '',
+})
 
 const openAddDialog = () => {
-  addForm.value = { amount: undefined, merchant: '', occurredAt: new Date(), category: '' }
+  addForm.value = { amount: undefined, currency: HOME_CURRENCY, merchant: '', occurredAt: new Date(), category: '' }
   addDialogVisible.value = true
 }
 
 const canSubmitAdd = computed(
-  () => !!addForm.value.amount && addForm.value.amount > 0 && !!addForm.value.merchant.trim() && !!addForm.value.occurredAt,
+  () =>
+    !!addForm.value.amount &&
+    addForm.value.amount > 0 &&
+    CURRENCY_CODE_REGEX.test(addForm.value.currency.trim().toUpperCase()) &&
+    !!addForm.value.merchant.trim() &&
+    !!addForm.value.occurredAt,
 )
 
 const disableFutureDates = (d: Date) => d.getTime() > Date.now()
@@ -391,6 +452,7 @@ const submitAdd = async () => {
   addSaving.value = true
   const ok = await store.addTransaction({
     amount: addForm.value.amount!,
+    currency: addForm.value.currency.trim().toUpperCase(),
     merchant: addForm.value.merchant.trim(),
     occurredDt: addForm.value.occurredAt.getTime(),
     category: addForm.value.category.trim() || null,
@@ -416,7 +478,7 @@ const exportCsv = () => {
     new Date(tx.occurredDt).toISOString(),
     tx.merchant,
     tx.amount.toFixed(2),
-    CURRENCY,
+    txCurrency(tx),
     tx.category ?? '',
     tx.name ?? tx.cardLabel ?? (tx.cardLast4 ? `•• ${tx.cardLast4}` : ''),
     sourceLabel(tx.source),
@@ -433,11 +495,6 @@ const exportCsv = () => {
   URL.revokeObjectURL(url)
 }
 
-
-const CURRENCY = 'SGD'
-
-const formatAmount = (n: number) =>
-  n.toLocaleString(undefined, { style: 'currency', currency: CURRENCY })
 
 // Calendar cells and the day-detail list sit under one "Amounts in SGD"
 // note (see .calendar-card-header), so they only need the number — repeating
@@ -534,20 +591,24 @@ const calendarCells = computed(() => {
       key,
       day: date.getDate(),
       inMonth: date.getMonth() === m,
-      total: items.reduce((sum, tx) => sum + tx.amount, 0),
+      // SGD only — foreign-currency spend is flagged by its code instead
+      total: items.filter(isHomeCurrency).reduce((sum, tx) => sum + tx.amount, 0),
+      foreignCodes: Array.from(new Set(items.filter((tx) => !isHomeCurrency(tx)).map(txCurrency))),
       items,
     }
   })
 })
 
-const monthTotal = computed(() => monthTransactions.value.reduce((sum, tx) => sum + tx.amount, 0))
+const monthTotal = computed(() => sumAmounts(monthTransactions.value.filter(isHomeCurrency)))
+const monthForeignTotals = computed(() => foreignTotals(monthTransactions.value))
 
 // ── Summary card (Transactions tab): month total, change vs last month, and
 // a daily-spend sparkline — all respecting the category filter.
 const sumAmounts = (rows: ApplePayTransaction[]) => rows.reduce((sum, tx) => sum + tx.amount, 0)
 
 const summaryRows = computed(() => byCategory(monthTransactions.value))
-const summaryTotal = computed(() => sumAmounts(summaryRows.value))
+const summaryTotal = computed(() => sumAmounts(summaryRows.value.filter(isHomeCurrency)))
+const summaryForeignTotals = computed(() => foreignTotals(summaryRows.value))
 
 const previousMonthTotal = computed(() => {
   const prev = new Date(calendarMonth.value.getFullYear(), calendarMonth.value.getMonth() - 1, 1)
@@ -555,7 +616,7 @@ const previousMonthTotal = computed(() => {
     const d = new Date(tx.occurredDt)
     return d.getFullYear() === prev.getFullYear() && d.getMonth() === prev.getMonth()
   })
-  return sumAmounts(byCategory(rows))
+  return sumAmounts(byCategory(rows).filter(isHomeCurrency))
 })
 
 const previousMonthShortLabel = computed(() =>
@@ -583,6 +644,7 @@ const sparkDays = computed(() => {
   const todayKey = dayKey(new Date())
   const totals = new Map<string, number>()
   for (const tx of summaryRows.value) {
+    if (!isHomeCurrency(tx)) continue
     const key = dayKey(new Date(tx.occurredDt))
     totals.set(key, (totals.get(key) ?? 0) + tx.amount)
   }
@@ -606,8 +668,8 @@ const daysInCalendarMonth = computed(
 )
 const dailyAverage = computed(() => monthTotal.value / daysInCalendarMonth.value)
 
-const selectDay = (cell: { key: string; total: number }) => {
-  if (cell.total <= 0) return
+const selectDay = (cell: { key: string; items: ApplePayTransaction[] }) => {
+  if (cell.items.length === 0) return
   selectedDayKey.value = selectedDayKey.value === cell.key ? null : cell.key
 }
 
@@ -675,8 +737,6 @@ const cardLabelFor = (tx: ApplePayTransaction) =>
   tx.cardLabel ??
   (tx.cardLast4 ? `•• ${tx.cardLast4}` : tx.source === 'manual' ? t('applepay.sourceManual') : t('applepay.stats.uncategorized'))
 
-const categoryBreakdown = computed(() => buildBreakdown(monthTransactions.value, categoryLabelFor))
-const cardBreakdown = computed(() => buildBreakdown(monthTransactions.value, cardLabelFor))
 
 function toChartData(entries: BreakdownEntry[]) {
   return {
@@ -692,24 +752,40 @@ function toChartData(entries: BreakdownEntry[]) {
   }
 }
 
-const categoryChartData = computed(() => toChartData(categoryBreakdown.value))
-const cardChartData = computed(() => toChartData(cardBreakdown.value))
-
 // Legend is disabled here — each pie has its own breakdown list (with
 // swatch + label + amount) right below it, which does the same job with
 // exact figures and works on touch, so a Chart.js legend would be redundant.
-const pieOptions = {
+const pieOptionsFor = (currency: string) => ({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
     legend: { display: false },
     tooltip: {
       callbacks: {
-        label: (ctx: any) => `${ctx.label}: ${formatAmount(ctx.parsed)}`,
+        label: (ctx: any) => `${ctx.label}: ${formatAmount(ctx.parsed, currency)}`,
       },
     },
   },
-}
+})
+
+// One set of pies (category + card) per currency in the month, SGD first.
+// With no spend at all, a single empty SGD section keeps the "No data" state.
+const currencySections = computed(() => {
+  const currencies = totalsByCurrency(monthTransactions.value).map((c) => c.currency)
+  return (currencies.length ? currencies : [HOME_CURRENCY]).map((currency) => {
+    const rows = monthTransactions.value.filter((tx) => txCurrency(tx) === currency)
+    const category = buildBreakdown(rows, categoryLabelFor)
+    const card = buildBreakdown(rows, cardLabelFor)
+    return {
+      currency,
+      category,
+      card,
+      categoryChartData: toChartData(category),
+      cardChartData: toChartData(card),
+      pieOptions: pieOptionsFor(currency),
+    }
+  })
+})
 </script>
 
 <template>
@@ -794,7 +870,14 @@ const pieOptions = {
                 </el-radio-group>
 
                 <div class="bank-guide">
-                  <template v-if="selectedBank.images.length">
+                  <div v-if="selectedBank.triggerPhrase" class="bank-guide-note">
+                    <p>{{ t('applepay.setup.bankSupportedNote', { bank: selectedBank.name }) }}</p>
+                    <p>
+                      {{ t('applepay.setup.bankTriggerLabel') }}
+                      <code class="bank-guide-trigger">{{ selectedBank.triggerPhrase }}</code>
+                    </p>
+                  </div>
+                  <template v-else-if="selectedBank.images.length">
                     <figure v-for="image in selectedBank.images" :key="image.captionKey" class="setup-guide-image">
                       <img :src="image.src" :alt="t(image.captionKey)" />
                       <figcaption>{{ t(image.captionKey) }}</figcaption>
@@ -802,7 +885,13 @@ const pieOptions = {
                   </template>
                   <p v-else class="bank-guide-image-pending">{{ t('applepay.setup.bankImagePending') }}</p>
 
-                  <a :href="selectedBank.shortcutUrl" target="_blank" rel="noopener" class="bank-guide-shortcut-link">
+                  <a
+                    v-if="selectedBank.shortcutUrl"
+                    :href="selectedBank.shortcutUrl"
+                    target="_blank"
+                    rel="noopener"
+                    class="bank-guide-shortcut-link"
+                  >
                     {{ t('applepay.setup.bankShortcutLink', { bank: selectedBank.name }) }}
                   </a>
                 </div>
@@ -857,6 +946,9 @@ const pieOptions = {
                 {{ categoryFilter ? t('applepay.summary.spentOn', { category: categoryFilter }) : t('applepay.summary.spent') }}
               </span>
               <span class="month-summary-value">{{ formatAmount(summaryTotal) }}</span>
+              <span v-for="c in summaryForeignTotals" :key="c.currency" class="month-summary-foreign">
+                + {{ formatAmount(c.amount, c.currency) }}
+              </span>
             </div>
             <div class="month-summary-meta">
               <span>{{ t('applepay.summary.payments', summaryRows.length) }}</span>
@@ -968,7 +1060,7 @@ const pieOptions = {
               </template>
             </el-table-column>
             <el-table-column :label="t('applepay.col.amount')" width="120" align="right">
-              <template #default="{ row }">{{ formatAmount(row.amount) }}</template>
+              <template #default="{ row }">{{ formatAmount(row.amount, txCurrency(row)) }}</template>
             </el-table-column>
             <el-table-column :label="t('applepay.col.category')" min-width="180">
               <template #default="{ row }">
@@ -1008,7 +1100,7 @@ const pieOptions = {
             <section v-for="group in transactionsByDay" :key="group.key" class="tx-day">
               <header class="tx-day-header">
                 <span>{{ group.label }}</span>
-                <span class="tx-day-total">{{ formatAmount(group.total) }}</span>
+                <span class="tx-day-total">{{ group.totalText }}</span>
               </header>
               <ul class="tx-rows">
                 <li v-for="tx in group.items" :key="tx.id" class="tx-swipe">
@@ -1037,7 +1129,7 @@ const pieOptions = {
                   >
                     <span class="tx-row-line">
                       <span class="tx-row-merchant">{{ tx.merchant }}</span>
-                      <span class="tx-row-amount">{{ formatAmount(tx.amount) }}</span>
+                      <span class="tx-row-amount">{{ formatAmount(tx.amount, txCurrency(tx)) }}</span>
                     </span>
                     <span class="tx-row-line">
                       <span class="tx-row-meta">{{ rowMeta(tx) }}</span>
@@ -1074,6 +1166,9 @@ const pieOptions = {
             <div class="stat-tile">
               <span class="stat-tile-label">{{ t('applepay.stats.total') }}</span>
               <span class="stat-tile-value">{{ formatAmount(monthTotal) }}</span>
+              <span v-for="c in monthForeignTotals" :key="c.currency" class="stat-tile-sub">
+                + {{ formatAmount(c.amount, c.currency) }}
+              </span>
             </div>
             <div class="stat-tile">
               <span class="stat-tile-label">{{ t('applepay.stats.transactions') }}</span>
@@ -1082,44 +1177,50 @@ const pieOptions = {
             <div class="stat-tile">
               <span class="stat-tile-label">{{ t('applepay.stats.dailyAverage') }}</span>
               <span class="stat-tile-value">{{ formatAmount(dailyAverage) }}</span>
+              <span v-if="monthForeignTotals.length" class="stat-tile-sub">{{ HOME_CURRENCY }}</span>
             </div>
           </div>
 
-          <div class="stats-charts-row">
-            <div class="chart-card">
-              <div class="chart-title">{{ t('applepay.stats.byCategory') }}</div>
-              <div class="pie-wrap">
-                <Pie v-if="categoryBreakdown.length" :data="categoryChartData" :options="pieOptions" />
-                <div v-else class="chart-empty">{{ t('applepay.stats.noData') }}</div>
-              </div>
-              <ul v-if="categoryBreakdown.length" class="pie-breakdown">
-                <li v-for="entry in categoryBreakdown" :key="entry.label" class="pie-breakdown-item">
-                  <span class="pie-breakdown-swatch" :style="{ background: entry.color }" />
-                  <span class="pie-breakdown-label">{{ entry.label }}</span>
-                  <span class="pie-breakdown-amount">{{ formatAmount(entry.amount) }}</span>
-                </li>
-              </ul>
+          <section v-for="section in currencySections" :key="section.currency" class="currency-section">
+            <div v-if="currencySections.length > 1" class="currency-section-title">
+              {{ t('applepay.stats.currencySection', { currency: section.currency }) }}
             </div>
+            <div class="stats-charts-row">
+              <div class="chart-card">
+                <div class="chart-title">{{ t('applepay.stats.byCategory') }}</div>
+                <div class="pie-wrap">
+                  <Pie v-if="section.category.length" :data="section.categoryChartData" :options="section.pieOptions" />
+                  <div v-else class="chart-empty">{{ t('applepay.stats.noData') }}</div>
+                </div>
+                <ul v-if="section.category.length" class="pie-breakdown">
+                  <li v-for="entry in section.category" :key="entry.label" class="pie-breakdown-item">
+                    <span class="pie-breakdown-swatch" :style="{ background: entry.color }" />
+                    <span class="pie-breakdown-label">{{ entry.label }}</span>
+                    <span class="pie-breakdown-amount">{{ formatAmount(entry.amount, section.currency) }}</span>
+                  </li>
+                </ul>
+              </div>
 
-            <div class="chart-card">
-              <div class="chart-title">{{ t('applepay.stats.byCard') }}</div>
-              <div class="pie-wrap">
-                <Pie v-if="cardBreakdown.length" :data="cardChartData" :options="pieOptions" />
-                <div v-else class="chart-empty">{{ t('applepay.stats.noData') }}</div>
+              <div class="chart-card">
+                <div class="chart-title">{{ t('applepay.stats.byCard') }}</div>
+                <div class="pie-wrap">
+                  <Pie v-if="section.card.length" :data="section.cardChartData" :options="section.pieOptions" />
+                  <div v-else class="chart-empty">{{ t('applepay.stats.noData') }}</div>
+                </div>
+                <ul v-if="section.card.length" class="pie-breakdown">
+                  <li v-for="entry in section.card" :key="entry.label" class="pie-breakdown-item">
+                    <span class="pie-breakdown-swatch" :style="{ background: entry.color }" />
+                    <span class="pie-breakdown-label">{{ entry.label }}</span>
+                    <span class="pie-breakdown-amount">{{ formatAmount(entry.amount, section.currency) }}</span>
+                  </li>
+                </ul>
               </div>
-              <ul v-if="cardBreakdown.length" class="pie-breakdown">
-                <li v-for="entry in cardBreakdown" :key="entry.label" class="pie-breakdown-item">
-                  <span class="pie-breakdown-swatch" :style="{ background: entry.color }" />
-                  <span class="pie-breakdown-label">{{ entry.label }}</span>
-                  <span class="pie-breakdown-amount">{{ formatAmount(entry.amount) }}</span>
-                </li>
-              </ul>
             </div>
-          </div>
+          </section>
 
           <div class="calendar-card">
             <div class="calendar-card-header">
-              <span class="calendar-currency-note">{{ t('applepay.stats.amountsIn', { currency: CURRENCY }) }}</span>
+              <span class="calendar-currency-note">{{ t('applepay.stats.amountsIn', { currency: HOME_CURRENCY }) }}</span>
             </div>
             <div class="calendar-grid">
               <div v-for="wd in WEEKDAY_LABELS" :key="wd" class="calendar-weekday">{{ wd }}</div>
@@ -1129,13 +1230,16 @@ const pieOptions = {
                 class="calendar-cell"
                 :class="{
                   'calendar-cell--out': !cell.inMonth,
-                  'calendar-cell--has-spend': cell.total > 0,
+                  'calendar-cell--has-spend': cell.items.length > 0,
                   'calendar-cell--selected': selectedDayKey === cell.key,
                 }"
                 @click="selectDay(cell)"
               >
                 <span class="calendar-cell-date">{{ cell.day }}</span>
                 <span v-if="cell.total > 0" class="calendar-cell-amount">-{{ formatNumber(cell.total) }}</span>
+                <span v-if="cell.foreignCodes.length" class="calendar-cell-foreign">
+                  {{ cell.total > 0 ? '+' : '' }}{{ cell.foreignCodes.join(' ') }}
+                </span>
               </div>
             </div>
           </div>
@@ -1148,7 +1252,7 @@ const pieOptions = {
             <ul class="day-detail-list">
               <li v-for="tx in selectedDayTransactions" :key="tx.id" class="day-detail-item">
                 <span class="day-detail-merchant">{{ tx.merchant }}</span>
-                <span class="day-detail-amount">-{{ formatNumber(tx.amount) }}</span>
+                <span class="day-detail-amount">-{{ isHomeCurrency(tx) ? formatNumber(tx.amount) : formatAmount(tx.amount, txCurrency(tx)) }}</span>
               </li>
             </ul>
           </div>
@@ -1171,7 +1275,7 @@ const pieOptions = {
             <span class="tx-sheet-merchant">{{ sheetTx.merchant }}</span>
             <span class="tx-sheet-date">{{ formatDate(sheetTx.occurredDt) }}</span>
           </div>
-          <span class="tx-sheet-amount">{{ formatAmount(sheetTx.amount) }}</span>
+          <span class="tx-sheet-amount">{{ formatAmount(sheetTx.amount, txCurrency(sheetTx)) }}</span>
         </div>
 
         <div class="tx-sheet-tags">
@@ -1237,6 +1341,17 @@ const pieOptions = {
             class="add-amount-input"
             :placeholder="'0.00'"
           />
+        </el-form-item>
+        <el-form-item :label="t('applepay.add.currency')" required>
+          <el-select
+            v-model="addForm.currency"
+            filterable
+            allow-create
+            default-first-option
+            class="add-currency-input"
+          >
+            <el-option v-for="code in currencyOptions" :key="code" :label="code" :value="code" />
+          </el-select>
         </el-form-item>
         <el-form-item :label="t('applepay.add.merchant')" required>
           <el-input v-model="addForm.merchant" maxlength="255" :placeholder="t('applepay.add.merchantPlaceholder')" />
@@ -1536,6 +1651,33 @@ const pieOptions = {
   font-style: italic;
 }
 
+.bank-guide-note {
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--el-color-primary-light-9);
+  border: 1px solid var(--el-color-primary-light-7);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.bank-guide-note p {
+  margin: 0;
+}
+
+.bank-guide-note p + p {
+  margin-top: 6px;
+}
+
+.bank-guide-trigger {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
 .bank-guide-shortcut-link {
   font-size: 0.78rem;
   font-weight: 600;
@@ -1638,6 +1780,14 @@ const pieOptions = {
   font-weight: 800;
   line-height: 1.15;
   color: var(--color-heading);
+  white-space: nowrap;
+}
+
+.month-summary-foreign {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  opacity: 0.75;
   white-space: nowrap;
 }
 
@@ -1753,7 +1903,8 @@ const pieOptions = {
 
 .add-amount-input,
 .add-date-input,
-.add-category-input {
+.add-category-input,
+.add-currency-input {
   width: 100%;
 }
 
@@ -2193,6 +2344,31 @@ const pieOptions = {
   white-space: nowrap;
 }
 
+.stat-tile-sub {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text);
+  opacity: 0.7;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.currency-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.currency-section-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-heading);
+  opacity: 0.7;
+}
+
 /* Mobile-first: stacked by default, side-by-side only once there's
    comfortably enough width for both — flex-wrap alone wasn't reliably
    wrapping these before the content (long labels, unshrinkable amounts)
@@ -2364,6 +2540,17 @@ const pieOptions = {
   font-size: 0.75rem;
   font-weight: 700;
   color: #e64545;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.calendar-cell-foreign {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--color-text);
+  opacity: 0.7;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2542,6 +2729,10 @@ const pieOptions = {
 
   .calendar-cell-amount {
     font-size: 0.6rem;
+  }
+
+  .calendar-cell-foreign {
+    font-size: 0.55rem;
   }
 
   .day-detail-item {

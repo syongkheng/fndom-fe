@@ -1460,7 +1460,8 @@ export default {
     add: {
       button: 'Add transaction',
       title: 'Add a transaction',
-      amount: 'Amount (SGD)',
+      amount: 'Amount',
+      currency: 'Currency',
       merchant: 'Merchant',
       merchantPlaceholder: 'e.g. Hawker centre, cash',
       date: 'Date & time',
@@ -1492,6 +1493,7 @@ export default {
       noData: 'No data',
       close: 'Close',
       amountsIn: 'Amounts in {currency}',
+      currencySection: '{currency} spending',
     },
     setup: {
       title: 'How to set this up',
@@ -1506,6 +1508,8 @@ export default {
       step2Desc: 'Most banks only text you above a set amount. Open your banking app\'s notification settings and set the transaction alert threshold to $0.01 (or the lowest allowed) so every purchase — no matter how small — sends an SMS and gets logged here. Below is where to manage this per bank, along with each bank\'s ready-made Shortcut:',
       bankImagePending: 'Screenshots coming soon',
       bankShortcutLink: 'Get the {bank} Shortcut ↗',
+      bankSupportedNote: '{bank} SMS alerts are supported. There\'s no ready-made Shortcut yet — create a personal automation in the Shortcuts app that runs when a message arrives, and forward the full message text to the endpoint in step 3.',
+      bankTriggerLabel: 'Set the automation to run when the message contains:',
       step3Title: 'Paste your key into the Shortcut',
       step3Desc: 'Open the Shortcut you got above (or, if you built your own, create a personal Shortcuts automation triggered by a Message/Mail rule matching your bank\'s alerts) and make sure it calls:',
       step3Header: 'Header:',
