@@ -111,7 +111,6 @@ export const ApiRoute = {
     SET_CARD_LABEL: (cardLast4: string) => `/applepay/card-label/${cardLast4}`,
   },
   FILE: {
-    CREATE_TG: `/file/tg`,
     DELETE: `/file/delete`,
   },
   TG_IMG: {
