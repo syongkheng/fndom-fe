@@ -134,6 +134,7 @@ export const ApiRoute = {
   SS_KEY: {
     API_KEY:  `/ss-key/api-key`,
     RENAME_API_KEY: `/ss-key/api-key/name`,
+    REVOKE_API_KEY: `/ss-key/api-key/delete`,
   },
   DATA_GOV_SG: {
     // HDB Resale Flat Prices (Jan 2017 onwards) — update resource ID here if dataset changes
