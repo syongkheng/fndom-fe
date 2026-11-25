@@ -126,9 +126,9 @@ export const ApiRoute = {
     PACKING:    `/suggestion/packing`,
     NOTES:      (country: string) => `/suggestion/note?country=${encodeURIComponent(country)}`,
     CREATE_PACKING:  `/suggestion/packing`,
-    DELETE_PACKING:  (id: number) => `/suggestion/packing/${id}`,
+    DELETE_PACKING:  (id: number) => `/suggestion/packing/${id}/delete`,
     CREATE_NOTE:     `/suggestion/note`,
-    DELETE_NOTE:     (id: number) => `/suggestion/note/${id}`,
+    DELETE_NOTE:     (id: number) => `/suggestion/note/${id}/delete`,
   },
   SS_KEY: {
     API_KEY:  `/ss-key/api-key`,

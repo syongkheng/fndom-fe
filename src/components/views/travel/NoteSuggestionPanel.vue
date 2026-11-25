@@ -11,9 +11,9 @@ export interface NoteSuggestion {
   title: string
   url: string
   category: string | null
-  mandatory: number
-  min_days_before_arrival: number | null
-  max_advance_hours: number | null
+  mandatory: boolean
+  minDaysBeforeArrival: number | null
+  maxAdvanceHours: number | null
   notes: string | null
 }
 
@@ -41,8 +41,8 @@ const load = async () => {
 watch(() => props.country, load, { immediate: true })
 
 const deadlineCopy = (s: NoteSuggestion): string | undefined => {
-  if (s.min_days_before_arrival) return t('travel.note.deadlineWithinDays', { days: s.min_days_before_arrival })
-  if (s.max_advance_hours) return t('travel.note.deadlineBeforeLanding', { hours: s.max_advance_hours })
+  if (s.minDaysBeforeArrival) return t('travel.note.deadlineWithinDays', { days: s.minDaysBeforeArrival })
+  if (s.maxAdvanceHours) return t('travel.note.deadlineBeforeLanding', { hours: s.maxAdvanceHours })
   return undefined
 }
 </script>
