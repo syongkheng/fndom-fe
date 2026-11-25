@@ -103,6 +103,7 @@ const submitNew = async () => {
             allow-create
             default-first-option
             clearable
+            :value-on-clear="() => null"
             :placeholder="t('budget.table.newCategory')"
             @change="save(row, 'category')"
           >
