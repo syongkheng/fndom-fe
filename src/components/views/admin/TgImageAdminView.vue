@@ -12,8 +12,8 @@ const toast = useToast()
 
 interface AdminRecord {
   id: number
-  telegram_user_id: number
-  added_dt: number
+  telegramUserId: number
+  addedAt: number
 }
 
 const admins = ref<AdminRecord[]>([])
@@ -61,7 +61,7 @@ const submitAdd = async () => {
 
 const removeAdmin = async (record: AdminRecord) => {
   removing.value[record.id] = true
-  const res = await HttpClient.post(ApiRoute.TG_IMG.ADMIN.REMOVE, { telegramUserId: record.telegram_user_id }).catch(() => null)
+  const res = await HttpClient.post(ApiRoute.TG_IMG.ADMIN.REMOVE, { telegramUserId: record.telegramUserId }).catch(() => null)
   removing.value[record.id] = false
   if (res?.data?.data?.removed) {
     admins.value = admins.value.filter(a => a.id !== record.id)
@@ -94,10 +94,10 @@ const removeAdmin = async (record: AdminRecord) => {
     <div class="tgia-list">
       <div v-for="record in admins" :key="record.id" class="tgia-card">
         <div class="tgia-card-left">
-          <div class="tgia-avatar">{{ String(record.telegram_user_id).charAt(0) }}</div>
+          <div class="tgia-avatar">{{ String(record.telegramUserId).charAt(0) }}</div>
           <div class="tgia-info">
-            <code class="tgia-uid">{{ record.telegram_user_id }}</code>
-            <span class="tgia-date">Added {{ formatDt(record.added_dt) }}</span>
+            <code class="tgia-uid">{{ record.telegramUserId }}</code>
+            <span class="tgia-date">Added {{ formatDt(record.addedAt) }}</span>
           </div>
         </div>
         <el-button
