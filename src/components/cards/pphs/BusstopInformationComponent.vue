@@ -21,9 +21,9 @@ const props = defineProps<{
         Available Bus Services: {{ props.busServices[value.busstop_code].length }}
       </div>
       <div class="bus-services-grid">
-        <el-tag v-for="service in props.busServices[value.busstop_code]" :key="service.service_no" type="info"
+        <el-tag v-for="service in props.busServices[value.busstop_code]" :key="service.serviceNo" type="info"
           size="small">
-          {{ service.service_no }}
+          {{ service.serviceNo }}
         </el-tag>
       </div>
     </div>

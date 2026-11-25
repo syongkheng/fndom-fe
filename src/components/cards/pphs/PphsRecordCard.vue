@@ -74,12 +74,12 @@ const retrieveBusstopsWithinProximityToPphs = async (pphs: PphsRecord) => {
 const retrieveBusServicesParallel = async () => {
   try {
     const requests = busstopRecords.value.map(busstop =>
-      HttpClient.post(ApiRoute.LTA.GET_BUS_SVC_BY_BUSSTOP_CODE, { busStopCode: busstop.busstop_code })
-        .then(res => ({ code: busstop.busstop_code, data: res.data.data }))
-        .catch(() => ({ code: busstop.busstop_code, data: [] }))
+      HttpClient.get(ApiRoute.LTA.GET_BUS_SVC_BY_BUSSTOP_CODE, { params: { busStopCode: busstop.busstop_code } })
+        .then(res => ({ code: busstop.busstop_code, services: res.data.data.services as BusRouteInformation[] }))
+        .catch(() => ({ code: busstop.busstop_code, services: [] as BusRouteInformation[] }))
     );
     const results = await Promise.all(requests);
-    results.forEach(r => { busServicesByBusstop.value[r.code] = r.data.rows; });
+    results.forEach(r => { busServicesByBusstop.value[r.code] = r.services; });
   } catch (error) {
     console.error("Error fetching bus services", error);
   }
