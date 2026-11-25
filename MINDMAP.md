@@ -302,9 +302,6 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   ├── SAMPLE HOME (2026-11-07): constants/houseplan/presets.ts `couplesHome` (21 catalogue pieces for two: main bedroom,
 │   │   │     gaming room = Bedroom 2, closet room = Bedroom 3, study nook, living/dining, kitchen). Toolbar "Sample home" (More row)
 │   │   │     -> housePlan.applyLayout (one undo step; inline confirm when items exist). Conflict- and clearance-warning-free.
-│   │   ├── MCP (2026-11-08): the house MCP server lives in qindom (/mcp) and is PUBLIC + STATELESS (no key, nothing stored): tools take the
-│   │   │     planner's layout JSON and return the edited JSON -> user saves it and uses Import JSON. Unused for now (kept, not mounted):
-│   │   │     stores/mcpApiKey.ts, views/ss-key/McpKeyCard.vue, ApiRoute.MCP_KEY, `mcpKey.*` i18n — for a future authenticated variant.
 │   │   ├── WALL EDITOR (2026-11-04): store.walls = editable copy of floorplan.walls (axis-aligned only); wallTool
 │   │   │     'draw'|'erase'|null + wallKind (wall|door|parapet), toolbar "Edit walls" + sub-row. interaction.ts: taps
 │   │   │     place start/end (5 cm grid, snaps to wall ends, end aligns to nearby wall coords, chain until the last point

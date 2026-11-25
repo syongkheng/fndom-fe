@@ -582,19 +582,6 @@ export default {
     usageEndpointsTitle: '接口',
     usageBodyLabel: '请求体：',
   },
-  mcpKey: {
-    cardTitle: 'MCP 密钥（AI 助手）',
-    desc: '让 Claude Desktop 或 Claude Code 读取并修改你已保存的住宅布局，例如“在主卧加一个到顶衣柜”。与 Siri 快捷指令密钥相互独立。',
-    noKeyDesc: '生成 MCP 密钥，即可将 AI 助手连接到你已保存的住宅布局。',
-    regenerateConfirmMessage: '重新生成会撤销当前的 MCP 密钥，是否继续？',
-    revokeConfirmMessage: '这将永久撤销你的 MCP 密钥，已连接的助手将停止工作，直到你生成新密钥。',
-    usageTitle: '连接 Claude Code',
-    usageStep1: '先保存一个布局：打开“住宅”，搭建或载入布局，再用“布局”保存',
-    usageStep2: '在终端运行下面的命令，并填入你的密钥',
-    usageStep3: '对 Claude 说，例如“列出我的布局，然后在主卧西墙加一个到顶衣柜”，然后在“住宅”中重新载入该布局',
-    keyFailed: '生成 MCP 密钥失败。',
-    keyRevoked: 'MCP 密钥已撤销。',
-  },
   travel: {
     landing: {
       eyebrow: '旅行',

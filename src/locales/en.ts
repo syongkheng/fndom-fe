@@ -583,19 +583,6 @@ export default {
     usageEndpointsTitle: 'Endpoints',
     usageBodyLabel: 'Body:',
   },
-  mcpKey: {
-    cardTitle: 'MCP key (AI assistants)',
-    desc: 'Lets Claude Desktop or Claude Code read and edit your saved house layouts, e.g. "add a floor-to-ceiling wardrobe to the main bedroom". Separate from your Siri Shortcuts key.',
-    noKeyDesc: 'Generate an MCP key to connect an AI assistant to your saved house layouts.',
-    regenerateConfirmMessage: 'Regenerating will revoke your current MCP key. Continue?',
-    revokeConfirmMessage: 'This will permanently revoke your MCP key. Connected assistants will stop working until you generate a new one.',
-    usageTitle: 'Connect Claude Code',
-    usageStep1: 'Save a layout first: open House, build or load one, then use Layouts to save it',
-    usageStep2: 'Run the command below in your terminal, with your key pasted in',
-    usageStep3: 'Ask Claude, e.g. "list my layouts, then add a floor-to-ceiling wardrobe on the west wall of the main bedroom", then reload the layout in House',
-    keyFailed: 'Failed to generate MCP key.',
-    keyRevoked: 'MCP key revoked.',
-  },
   travel: {
     landing: {
       eyebrow: 'Travel',
