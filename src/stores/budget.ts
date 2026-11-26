@@ -140,6 +140,14 @@ export const useBudgetStore = defineStore('budget', () => {
     return !!res?.data?.data?.removed
   }
 
+  // Collaborators only (the owner gets 403 and deletes the table instead).
+  async function leaveTable(sessionId: string): Promise<boolean> {
+    const res = await HttpClient.post(ApiRoute.BUDGET.LEAVE(sessionId), {}).catch(() => null)
+    if (!res?.data?.data?.left) return false
+    sharedTables.value = sharedTables.value.filter((t) => t.sessionId !== sessionId)
+    return true
+  }
+
   return {
     myTables,
     sharedTables,
@@ -160,6 +168,7 @@ export const useBudgetStore = defineStore('budget', () => {
     clearPendingUndo,
     addCollaborator,
     removeCollaborator,
+    leaveTable,
   }
 })
 

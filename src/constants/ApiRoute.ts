@@ -72,6 +72,7 @@ export const ApiRoute = {
     RESTORE_ITEM: (sessionId: string, itemId: string) => `/budget/${sessionId}/item/${itemId}/restore`,
     ADD_COLLABORATOR: (sessionId: string) => `/budget/${sessionId}/collaborator`,
     REMOVE_COLLABORATOR: (sessionId: string, userId: number) => `/budget/${sessionId}/collaborator/${userId}/delete`,
+    LEAVE: (sessionId: string) => `/budget/${sessionId}/leave`,
   },
   HOUSE_LAYOUT: {
     GET_ALL: `/house-layout`,

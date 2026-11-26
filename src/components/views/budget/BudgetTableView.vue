@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { ElMessageBox } from 'element-plus'
 import { ArrowLeft, User } from '@element-plus/icons-vue'
 import { useNav } from '@/hooks/useNav'
 import { useBudgetStore } from '@/stores/budget'
@@ -127,6 +128,35 @@ const removeCollaborator = async (userId: number) => {
   const ok = await budgetStore.removeCollaborator(sessionId.value, userId)
   if (!ok) toast.error(t('budget.table.removeCollaboratorFailed'))
 }
+
+const leaving = ref(false)
+
+const confirmLeave = () => {
+  if (!activeTable.value || activeTable.value.isOwner) return
+  ElMessageBox.confirm(
+    t('budget.table.leaveConfirm', { name: activeTable.value.name }),
+    t('budget.table.leaveTitle'),
+    {
+      confirmButtonText: t('budget.table.leave'),
+      cancelButtonText: t('budget.table.leaveCancel'),
+      type: 'warning',
+      confirmButtonClass: 'el-button--danger',
+    },
+  )
+    .then(async () => {
+      leaving.value = true
+      const ok = await budgetStore.leaveTable(sessionId.value)
+      leaving.value = false
+      if (!ok) {
+        toast.error(t('budget.table.leaveFailed'))
+        return
+      }
+      toast.success(t('budget.table.leaveSuccess'))
+      await budgetStore.fetchTables()
+      nav.redirectTo('/budget')
+    })
+    .catch(() => {})
+}
 </script>
 
 <template>
@@ -170,6 +200,9 @@ const removeCollaborator = async (userId: number) => {
             </el-avatar>
           </el-tooltip>
           <el-button size="small" @click="showShareDialog = true">{{ t('budget.table.share') }}</el-button>
+          <el-button v-if="!activeTable.isOwner" size="small" type="danger" plain :loading="leaving" @click="confirmLeave">
+            {{ t('budget.table.leave') }}
+          </el-button>
         </div>
       </header>
 
