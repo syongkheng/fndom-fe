@@ -1389,7 +1389,7 @@ export default {
   applepay: {
     eyebrow: 'Apple Pay',
     title: 'Transactions',
-    subtitle: 'Logged automatically from the "When Apple Pay is used" Shortcut and from forwarded bank transaction SMS.',
+    subtitle: 'Logged automatically from forwarded bank transaction SMS.',
     connection: {
       active: 'Connected',
       stale: 'No recent payments',

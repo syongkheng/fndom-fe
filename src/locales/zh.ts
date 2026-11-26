@@ -1388,7 +1388,7 @@ export default {
   applepay: {
     eyebrow: 'Apple Pay',
     title: '交易记录',
-    subtitle: '通过“使用 Apple Pay 时”捷径与银行交易提醒短信转发自动记录。',
+    subtitle: '通过银行交易提醒短信转发自动记录。',
     connection: {
       active: '已连接',
       stale: '近期没有新消费',

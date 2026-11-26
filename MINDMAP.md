@@ -163,9 +163,11 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   │     soft-deleted rows, owner + collaborator access (see qindom
 │   │   │     MINDMAP's BUDGET section: tb_budget_table/_item/_collaborator)
 │   │   └── /apple-pay             apple-pay → applepay/ApplePayDashboardView
-│   │         — table of transactions logged by the "When Apple Pay is used"
-│   │         Shortcut (ingested via qindom's api-key-gated /v1/ss route, see
-│   │         siri-shortcut/ApplePay.v1.controller.ts), with a per-row
+│   │         — table of transactions logged by the bank-SMS Shortcut
+│   │         (ingested via qindom's api-key-gated /v2/ss/ap/sms, see
+│   │         siri-shortcut/ApplePay.v2.controller.ts; the V1 "When Apple Pay
+│   │         is used" route was removed Nov 2026, old v1 rows still list),
+│   │         plus manual entries, with a per-row
 │   │         category el-select (filterable + allow-create, same pattern as
 │   │         Budget's) and a category filter above the table
 │   │
@@ -671,8 +673,8 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │       │         summaries (GET /api/budget) similarly carry only sessionId,
 │       │         never the table's own auto-increment id.
 │       ├── /api/applepay/*    — GET list + POST :id/category (mw.auth, the
-│       │         web dashboard), backed by the same SsApplePayV1Service as
-│       │         qindom's api-key-gated /v1/ss/ap/transaction (the Shortcuts
+│       │         web dashboard), backed by the same ApplePayService as
+│       │         qindom's api-key-gated /v2/ss/ap/sms (the Shortcuts
 │       │         ingestion endpoint) — same uuid-as-public-id pattern as
 │       │         budget items; occurred_dt is stamped server-side (Date.now())
 │       │         rather than trusted from the Shortcut's own date format

@@ -190,11 +190,11 @@ onMounted(refreshApiKeyStatus)
 
         <div class="endpoint-row">
           <span class="endpoint-method">POST</span>
-          <code class="endpoint-path">{{ serverBaseUrl }}/v1/ss/ap/transaction</code>
+          <code class="endpoint-path">{{ serverBaseUrl }}/v2/ss/ap/sms</code>
         </div>
         <div class="endpoint-body">
           {{ t('ssKey.usageBodyLabel') }}
-          <code>{{ '{ "amount": "12.50", "merchant": "Starbucks", "name": "..." }' }}</code>
+          <code>{{ '{ "smsBody": "..." }' }}</code>
         </div>
       </div>
     </div>
