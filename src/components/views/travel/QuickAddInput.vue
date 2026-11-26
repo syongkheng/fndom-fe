@@ -8,7 +8,9 @@ const props = withDefaults(defineProps<{
   placeholder: string
   compact?: boolean
   autofocus?: boolean
-}>(), { compact: false, autofocus: false })
+  // Column width of whatever the parent creates from the text (see constants/TravelLimits).
+  maxlength?: number
+}>(), { compact: false, autofocus: false, maxlength: undefined })
 
 const emit = defineEmits<{ (e: 'submit', text: string): void }>()
 
@@ -32,6 +34,7 @@ defineExpose({ focus: () => inputRef.value?.focus() })
       ref="inputRef"
       v-model="text"
       :placeholder="props.placeholder"
+      :maxlength="props.maxlength"
       :autofocus="props.autofocus"
       :size="props.compact ? 'small' : 'default'"
       clearable

@@ -21,6 +21,13 @@ import PackingDrawer from '@/components/views/travel/PackingDrawer.vue'
 import TravelMapView from '@/components/views/travel/TravelMapView.vue'
 import TravelShareDialog from '@/components/views/travel/TravelShareDialog.vue'
 import QuickAddInput from '@/components/views/travel/QuickAddInput.vue'
+import {
+  AGENDA_TITLE_MAX_LENGTH,
+  NOTE_LABEL_MAX_LENGTH,
+  PACKING_LABEL_MAX_LENGTH,
+  TRIP_DESTINATION_MAX_LENGTH,
+  TRIP_TITLE_MAX_LENGTH,
+} from '@/constants/TravelLimits'
 import DayChipMenu from '@/components/views/travel/DayChipMenu.vue'
 import PackingSuggestionPanel, { type PackingSuggestion } from '@/components/views/travel/PackingSuggestionPanel.vue'
 import NoteSuggestionPanel, { type NoteSuggestion } from '@/components/views/travel/NoteSuggestionPanel.vue'
@@ -125,9 +132,11 @@ const scheduleItem = (item: AgendaItem, day: number | undefined) => {
 const onDatesChange = (v: string[] | null) => {
   const pinned = agendaItems.value.map((it) => dayOf(it))
   if (!v || v.length !== 2) {
-    itinerary.value.itineraryDateRaw = undefined
-    itinerary.value.startDate = undefined
-    itinerary.value.endDate = undefined
+    // null (not undefined, which JSON drops) so clearing the dates persists; the public viewer
+    // reads startDate / itineraryDateRaw without looking at unknownDate.
+    itinerary.value.itineraryDateRaw = null
+    itinerary.value.startDate = null
+    itinerary.value.endDate = null
     itinerary.value.unknownDate = true
   } else {
     itinerary.value.unknownDate = false
@@ -252,7 +261,8 @@ const openEditDrawer = (item: AgendaItem) => {
     endTime: item.endTime ?? (row.end_time as string | undefined) ?? undefined,
     unknownTime: item.unknownTime !== undefined ? item.unknownTime : !!row.unknown_time,
     cityRaw,
-    coordinates: item.coordinates ?? undefined,
+    // null when unset: a later "save without touching the place" then sends null (no-op), never drops the key.
+    coordinates: item.coordinates ?? null,
     _filesToInsert: item._filesToInsert ?? [],
     _fileIdsToDelete: item._fileIdsToDelete ?? [],
     _agendaToFileMapping: item._agendaToFileMapping ?? [],
@@ -556,10 +566,11 @@ const onChallengeChange = (code: string | undefined) => { itinerary.value.challe
 
     <!-- Trip header -->
     <div class="planner-header">
-      <el-input v-model="itinerary.sessionTitle" class="title-input" :placeholder="t('travel.planner.tripTitle')" />
+      <el-input v-model="itinerary.sessionTitle" class="title-input" :maxlength="TRIP_TITLE_MAX_LENGTH" :placeholder="t('travel.planner.tripTitle')" />
       <div class="header-meta">
         <el-autocomplete
           v-model="itinerary.destination"
+          :maxlength="TRIP_DESTINATION_MAX_LENGTH"
           :fetch-suggestions="fetchDestinationSuggestions"
           :placeholder="t('travel.planner.destination')"
           size="small"
@@ -673,7 +684,7 @@ const onChallengeChange = (code: string | undefined) => { itinerary.value.challe
             </div>
           </div>
 
-          <QuickAddInput :placeholder="t('travel.planner.quickAddIdea')" compact @submit="quickAddIdea" />
+          <QuickAddInput :placeholder="t('travel.planner.quickAddIdea')" :maxlength="AGENDA_TITLE_MAX_LENGTH" compact @submit="quickAddIdea" />
           <button type="button" class="details-link" @click="openAddDrawer(undefined, ideasFilter === 'place' ? 'place' : 'todo')">
             <el-icon><Plus /></el-icon> {{ t('travel.planner.addWithDetails') }}
           </button>
@@ -760,7 +771,7 @@ const onChallengeChange = (code: string | undefined) => { itinerary.value.challe
                 </div>
               </div>
 
-              <QuickAddInput :placeholder="t('travel.planner.quickAddToDay', { n: day.n })" compact @submit="(text) => quickAddToDay(day.n, text)" />
+              <QuickAddInput :placeholder="t('travel.planner.quickAddToDay', { n: day.n })" :maxlength="AGENDA_TITLE_MAX_LENGTH" compact @submit="(text) => quickAddToDay(day.n, text)" />
             </div>
           </div>
 
@@ -816,7 +827,7 @@ const onChallengeChange = (code: string | undefined) => { itinerary.value.challe
           </div>
         </div>
 
-        <QuickAddInput :placeholder="t('travel.planner.quickAddPacking')" @submit="quickAddPacking" />
+        <QuickAddInput :placeholder="t('travel.planner.quickAddPacking')" :maxlength="PACKING_LABEL_MAX_LENGTH" @submit="quickAddPacking" />
       </div>
 
       <!-- ── NOTES ─────────────────────────────────────────────────────── -->
@@ -837,7 +848,7 @@ const onChallengeChange = (code: string | undefined) => { itinerary.value.challe
           </div>
         </div>
 
-        <QuickAddInput :placeholder="t('travel.planner.quickAddNote')" @submit="quickAddNote" />
+        <QuickAddInput :placeholder="t('travel.planner.quickAddNote')" :maxlength="NOTE_LABEL_MAX_LENGTH" @submit="quickAddNote" />
       </div>
 
     </div><!-- end .planner-content -->

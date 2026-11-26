@@ -21,7 +21,8 @@ interface AgendaItem {
   desc?: string
   cityRaw?: string[]
   city?: string
-  coordinates?: { lat: number; lng: number }
+  /** null = place cleared (sent so the backend clears the stored coordinates). */
+  coordinates?: { lat: number; lng: number } | null
   placeDisplay?: string
   durationTimingRaw?: string[]
   startTime?: string
