@@ -1,8 +1,9 @@
 interface BusstopInformation {
-  busstop_code: string
-  road_name: string
-  desc: string
-  distance_m: string
+  busStopCode: string
+  roadName: string
+  description: string
+  /** Whole metres from the searched point. */
+  distanceM: number
 }
 
 export type { BusstopInformation }

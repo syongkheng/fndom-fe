@@ -15,6 +15,8 @@ const pphsStore = usePphsStore();
 const { pphsRecords, selectedRecord } = storeToRefs(pphsStore);
 
 // Auto-generate even-month batches from Oct 2025 up to today — no code changes needed for new releases
+// The default (latest even month) must match qindom's currentPphsBatch() (src/hdb/Hdb.service.ts):
+// it's the only unstored batch the server will scrape; other unstored batches answer 404.
 const pphsBatch = (() => {
   const batches: { value: string; label: string }[] = []
   const cursor = new Date(2025, 9, 1) // Oct 2025 — earliest known batch

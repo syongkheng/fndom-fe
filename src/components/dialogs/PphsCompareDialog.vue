@@ -23,12 +23,10 @@ const fetchMrt = async () => {
   loadingMrt.value = true
   try {
     const requests = mapped.map((r) =>
-      HttpClient.post(ApiRoute.PPHS.GET_NEAREST_MRT_STATIONS, {
-        lat: r.lat,
-        lng: r.lng,
-        limit: 3,
+      HttpClient.get(ApiRoute.PPHS.GET_NEAREST_MRT_STATIONS, {
+        params: { lat: r.lat, lng: r.lng, limit: 3 },
       })
-        .then((res) => ({ address: r.address, rows: res.data.data.rows as MrtStationInformation[] }))
+        .then((res) => ({ address: r.address, rows: res.data.data.stations as MrtStationInformation[] }))
         .catch(() => ({ address: r.address, rows: [] }))
     )
     const results = await Promise.all(requests)
@@ -83,7 +81,7 @@ const getCellValue = (record: PphsRecord, key: string): string => {
     const stations = mrtByAddress.value[record.address]
     if (!stations?.[idx]) return '—'
     const s = stations[idx]
-    return `${s.station} (~${Number(s.distance_m).toFixed(0)}m)`
+    return `${s.station} (~${s.distanceM}m)`
   }
 
   return '—'

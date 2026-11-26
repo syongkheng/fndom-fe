@@ -39,7 +39,7 @@ export const usePphsStore = defineStore('pphsStore', {
     /** Retrieve all PPHS records by batch */
     async retrieveAllPphsbByBatch(batch: string) {
       try {
-        const res = await HttpClient.post(ApiRoute.PPHS.GET_PPHS_DATA, { batch })
+        const res = await HttpClient.get(ApiRoute.PPHS.GET_PPHS_DATA, { params: { batch } })
         this.pphsRecords = res.data.data.records as PphsRecord[]
       } catch (err) {
         console.error('Failed to retrieve PPHS records', err)
@@ -83,21 +83,23 @@ export const usePphsStore = defineStore('pphsStore', {
     /** Update PPHS coordinates and mutate the object directly */
     async updatePphsCoordinates(record: PphsRecord): Promise<boolean> {
       try {
+        // The server builds formedUrl from lat/lng and returns the saved point.
         const res = await HttpClient.post(ApiRoute.PPHS.UPDATE_PPHS_COORDINATES, {
           address: record.address,
           lat: record.lat,
           lng: record.lng,
-          formedUrl: record.formedUrl,
         })
-        if (!res.data.data) return false
+        const saved = res.data.data as { lat: string; lng: string; formedUrl: string } | undefined
+        if (!saved) return false
+        const updated = { ...record, lat: saved.lat, lng: saved.lng, formedUrl: saved.formedUrl }
 
         const index = this.pphsRecords.findIndex((r) => r.address === record.address)
         if (index !== -1) {
-          Object.assign(this.pphsRecords[index], record) // keep reference
+          Object.assign(this.pphsRecords[index], updated) // keep reference
         }
 
         if (this.selectedRecord?.address === record.address) {
-          Object.assign(this.selectedRecord, record) // keep reference
+          Object.assign(this.selectedRecord, updated) // keep reference
         }
 
         return true
