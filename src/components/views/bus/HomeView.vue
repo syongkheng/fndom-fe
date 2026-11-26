@@ -91,7 +91,7 @@ async function fetchNearestBusstops() {
   try {
     let rows: BusstopInformation[] = []
     for (const radius of RADII) {
-      const res = await HttpClient.get(ApiRoute.PPHS.GET_NEAREST_BUSSTOPS, {
+      const res = await HttpClient.get(ApiRoute.LTA.GET_NEARBY_BUS_STOPS, {
         params: { lat: coords.value.lat, lng: coords.value.lng, radius },
       })
       rows = (res.data.data as { busStops: BusstopInformation[] }).busStops ?? []

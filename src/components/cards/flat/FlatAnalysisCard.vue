@@ -7,7 +7,7 @@ import type { BusstopInformation } from '@/interfaces/BusstopInformation.model'
 import type { MrtStationInformation } from '@/interfaces/MrtStationInformation.model'
 import type { OneMapResult } from '@/interfaces/OneMapResult.model'
 import { computed, onMounted, ref } from 'vue'
-import BusstopInformationComponent from '@/components/cards/pphs/BusstopInformationComponent.vue'
+import BusstopInformationComponent from '@/components/cards/flat/BusstopInformationComponent.vue'
 import ResalePriceSection from './ResalePriceSection.vue'
 
 const props = defineProps<{
@@ -39,7 +39,7 @@ function openMaps() { window.open(googleMapsUrl.value, '_blank') }
 
 const retrieveBusstops = async () => {
   try {
-    const response = await HttpClient.get(ApiRoute.PPHS.GET_NEAREST_BUSSTOPS, {
+    const response = await HttpClient.get(ApiRoute.LTA.GET_NEARBY_BUS_STOPS, {
       params: { lat: props.result.LATITUDE, lng: props.result.LONGITUDE, radius: proximityInMeters.value },
     }).then((res) => res.data.data as { busStops: BusstopInformation[]; count: number })
 
@@ -69,7 +69,7 @@ const retrieveBusServicesParallel = async () => {
 
 const retrieveMrtStops = async () => {
   try {
-    const response = await HttpClient.get(ApiRoute.PPHS.GET_NEAREST_MRT_STATIONS, {
+    const response = await HttpClient.get(ApiRoute.LTA.GET_NEAREST_MRT_STATIONS, {
       params: { lat: props.result.LATITUDE, lng: props.result.LONGITUDE, limit: 3 },
     }).then((res) => res.data.data.stations as MrtStationInformation[])
     mrtStationRecords.value = response

@@ -13,7 +13,7 @@ const handleHabitTrackingClick = () => {
 };
 
 const handleFlatAnalysisClick = () => {
-  nav.redirectToPphs();
+  nav.redirectTo('/flat');
 };
 
 
@@ -47,7 +47,7 @@ const handleFlatAnalysisClick = () => {
         </div>
         <div class="feature-card">
           <h3>Flat Analysis</h3>
-          <p>Search what is within the vicinity of a location, including the recent PPHS exercise.</p>
+          <p>Search what is within the vicinity of a location.</p>
           <el-button type="primary" @click="handleFlatAnalysisClick">Start Analysis</el-button>
         </div>
       </div>

@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { useToast } from '@/composables/useToast'
-import { Bell, HomeFilled, House, MoonNight, Notification, Operation, StarFilled } from '@element-plus/icons-vue'
+import { Bell, House, MoonNight, Notification, Operation, StarFilled } from '@element-plus/icons-vue'
 import { useLayoutStateStore } from '@/stores/layoutState'
 import { useNav } from '@/hooks/useNav'
 import { useAuthenticationStore } from '@/stores/authentication';
@@ -38,15 +38,6 @@ const handleSetting = () => {
           <House />
         </el-icon>
         <template #title>{{ 'Home' }}</template>
-      </el-menu-item>
-    </span>
-    <el-divider />
-    <span @click="navigate.redirectToPphs()">
-      <el-menu-item index="7">
-        <el-icon>
-          <HomeFilled />
-        </el-icon>
-        <template #title>{{ 'PPHS' }}</template>
       </el-menu-item>
     </span>
     <el-divider />

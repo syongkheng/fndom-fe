@@ -507,7 +507,6 @@ export default {
     title: '您的工作台',
     subtitle: '选择一个模块开始使用',
     tiles: {
-      pphs:        { label: 'PPHS',            desc: '公共住房信息、公交站与地铁距离' },
       flat:        { label: '房屋分析',         desc: '按邮编搜索 · 地铁与公交距离' },
       travel:      { label: '旅行',             desc: '行程规划与协作' },
       imghost:     { label: '图片 CDN',         desc: '上传图片 · 获取可分享的 CDN 链接' },
@@ -1168,9 +1167,6 @@ export default {
     itineraryAccessDenied: '您无权编辑此行程，请联系所有者。',
     loginRequired: '您必须先登录。',
     accessDenied: '访问被拒绝。',
-
-    pphsUpdateSuccess: 'PPHS 记录更新成功。',
-    pphsUpdateFailed: '更新 PPHS 记录失败。',
 
     imghostImagesOnly: '仅支持图片文件。',
     imghostUploadFailed: '上传失败，请重试。',

@@ -83,10 +83,6 @@ export function useNav() {
     redirectTo('/profile')
   }
 
-  const redirectToPphs = () => {
-    redirectTo('/pphs')
-  }
-
   const redirectToHabit = () => {
     redirectTo('/habit')
   }
@@ -104,7 +100,6 @@ export function useNav() {
     redirectToDashboard,
     redirectToUnauthorized,
     redirectToProfile,
-    redirectToPphs,
     redirectToTravel,
     redirectToHabit,
   }

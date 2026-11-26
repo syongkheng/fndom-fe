@@ -508,7 +508,6 @@ export default {
     title: 'Your Workbench',
     subtitle: 'Select a module to get started',
     tiles: {
-      pphs:        { label: 'PPHS',             desc: 'Public housing info, bus stops and MRT proximity' },
       flat:        { label: 'Flat Analysis',     desc: 'Search by postal code · MRT and bus stop proximity' },
       travel:      { label: 'Travel',            desc: 'Itinerary planning and collaboration' },
       imghost:     { label: 'Image CDN',         desc: 'Upload an image · Get a shareable CDN link' },
@@ -1169,9 +1168,6 @@ export default {
     itineraryAccessDenied: 'You are not allowed to edit this itinerary. Please contact the owner.',
     loginRequired: 'You must be logged in.',
     accessDenied: 'Access denied.',
-
-    pphsUpdateSuccess: 'PPHS record updated successfully.',
-    pphsUpdateFailed: 'Failed to update PPHS record.',
 
     imghostImagesOnly: 'Only image files are supported.',
     imghostUploadFailed: 'Upload failed. Please try again.',

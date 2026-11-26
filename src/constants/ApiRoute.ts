@@ -17,18 +17,11 @@ export const ApiRoute = {
     UPDATE_PASSWORD: `/auth/password/update`,
     UPDATE_USERNAME: `/pfp/user/username`,
   },
-  PPHS: {
-    GET_PPHS_DATA: `/hdb/pphs`,
-    UPDATE_PPHS_COORDINATES: `/hdb/pphs/update`,
-    GET_NEAREST_BUSSTOPS: `/hdb/pphs/busstops`,
-    GET_NEAREST_MRT_STATIONS: `/hdb/pphs/mrt`,
-    REFRESH_PPHS_COORDINATES: `/hdb/pphs/refresh`,
-    GET_COORDINATE_OPTIONS: `/hdb/pphs/geocode-options`,
-    CLEAR_PPHS_COORDINATES: `/hdb/pphs/clear-coordinates`,
-  },
   LTA: {
     GET_BUS_SVC_BY_BUSSTOP_CODE: `/lta/bus/services`,
     GET_BUS_ARRIVAL_TIMING: `/lta/timing`,
+    GET_NEARBY_BUS_STOPS: `/lta/bus-stops/nearby`,
+    GET_NEAREST_MRT_STATIONS: `/lta/mrt-stations/nearest`,
   },
   ITINERARY: {
     GET_ALL: `/itinerary`,
