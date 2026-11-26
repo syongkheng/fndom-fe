@@ -63,6 +63,7 @@ const termsMessage = computed(() => {
 // ── Actions ───────────────────────────────────────────────────────────────────
 const _handleAuthenticate = async () => {
   const exists = await handleAuthenticate()
+  if (exists === null) return // invalid email / network / rate limited: error shown, stay on the email step
   authenticationStep.value = exists ? 'login' : 'register'
 }
 

@@ -1115,6 +1115,7 @@ export default {
       weak_password: '密码强度不足，请使用至少 8 位字符，并包含大写字母、小写字母、数字和特殊字符。',
       registration_failed: '注册失败，请重试。',
       code_expired: '验证码已过期，请点击"重新发送"获取新验证码。',
+      too_many_attempts: '尝试次数过多，请稍后再试。',
       max_verify_attempts: '尝试次数过多，请点击"重新发送"获取新验证码。',
       invalid_request_email: '请输入有效的邮箱地址。',
       invalid_request_password: '密码不符合要求。',

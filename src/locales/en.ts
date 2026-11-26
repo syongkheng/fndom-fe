@@ -1116,6 +1116,7 @@ export default {
       weak_password: 'Password is too weak. Use at least 8 characters with uppercase, lowercase, a number, and a special character.',
       registration_failed: 'Registration failed. Please try again.',
       code_expired: "Your code has expired. Click 'Resend code' to get a new one.",
+      too_many_attempts: 'Too many attempts. Please try again later.',
       max_verify_attempts: "Too many incorrect attempts. Click 'Resend code' for a new code.",
       invalid_request_email: 'Please enter a valid email address.',
       invalid_request_password: 'Password does not meet the requirements.',

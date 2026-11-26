@@ -62,8 +62,8 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │     CameraDeviceTile (2 per row, 1 on phones): canvas preview (createImageBitmap, newest-frame-wins),
 │   │     online/REC/elapsed/battery/free space/heat/preview fps/dropped frames, quality select, start/stop,
 │   │     remove (el-popconfirm); Start all / Stop all + start offset from phone acks; stale overlay after 3 s
-│   │     without a frame. Nav: TopNavigation + MobileNavigation (signed in only). Protocol: docs/camera-protocol.md
-│   │     (copy of qindom's).
+│   │     without a frame. Nav: TopNavigation + MobileNavigation (signed in only). Protocol:
+│   │     qindom/docs/camera-protocol.md (master copy).
 │   ├── /404                   404 → UnauthorizedView
 │   │   ├── /travel/v/:shortCode   travel-viewer (featureGuard)
 │   │   ├── /bus                   bus → bus/HomeView — geolocation-based nearest busstop + live LTA arrivals

@@ -1,4 +1,4 @@
-// Camera relay protocol types — see docs/camera-protocol.md (source of truth in qindom).
+// Camera relay protocol types — see qindom/docs/camera-protocol.md (master copy).
 
 export type CameraQuality = '4k' | '1080p'
 export type CameraThermalState = 'nominal' | 'fair' | 'serious' | 'critical'
