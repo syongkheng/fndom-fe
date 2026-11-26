@@ -11,7 +11,7 @@ import OtpInput from '@/components/common/OtpInput.vue'
 const props = defineProps<{
   modelValue: boolean
   shortCode?: string
-  challenge?: string
+  challenge?: string | null
   isDraft?: boolean
 }>()
 

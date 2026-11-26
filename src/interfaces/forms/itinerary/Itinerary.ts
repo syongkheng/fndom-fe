@@ -19,7 +19,8 @@ interface Itinerary {
   endDate?: number
   unknownDate: boolean
   durationInDays: number
-  challenge?: string
+  /** null = remove the access code on save (undefined is dropped from the JSON and keeps it). */
+  challenge?: string | null
   agendaItems: AgendaItem[]
   bookings: ItineraryBooking[]
   packingItems: PackingItem[]

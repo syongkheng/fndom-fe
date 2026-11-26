@@ -35,10 +35,9 @@ export const ApiRoute = {
     RETRIEVE_BY_ID: (sessionId: string | undefined) => `/itinerary/${sessionId}`,
     RETRIEVE_BY_SHORT_CODE: (shortCode: string) => `/itinerary/v/${shortCode}`,
     CREATE: `/itinerary`,
-    MODIFY: `/itinerary/edit`,
+    MODIFY: (sessionId: string) => `/itinerary/${sessionId}/update`,
     CHECK_PERMISSION: `/itinerary/challenge`,
-    ADD_COLLABORATOR: `/itinerary/add-collaborator`,
-    DELETE: (sessionId: string) => `/itinerary/delete/${sessionId}`,
+    DELETE: (sessionId: string) => `/itinerary/${sessionId}/delete`,
   },
   ADMIN: {
     LIST_USERS: `/auth/admin/users`,

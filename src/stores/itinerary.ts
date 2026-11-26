@@ -169,10 +169,7 @@ export const useItineraryStore = defineStore('itinerary', () => {
       }
 
       // Update itinerary
-      const response = await HttpClient.post(
-        `${ApiRoute.ITINERARY.MODIFY}/${itinerary.sessionId}`,
-        payload,
-      )
+      const response = await HttpClient.post(ApiRoute.ITINERARY.MODIFY(itinerary.sessionId), payload)
         .then((res) => {
           return res
         })

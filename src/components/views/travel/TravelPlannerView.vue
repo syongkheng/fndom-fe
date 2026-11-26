@@ -501,7 +501,8 @@ watch(isAuthenticated, async (authed) => {
 
 // ── Share ────────────────────────────────────────────────────────────────────
 const shareOpen = ref(false)
-const onChallengeChange = (code: string | undefined) => { itinerary.value.challenge = code }
+// null (not undefined) so the key is sent and the server clears the code; undefined would be dropped and keep it.
+const onChallengeChange = (code: string | undefined) => { itinerary.value.challenge = code ?? null }
 </script>
 
 <template>
