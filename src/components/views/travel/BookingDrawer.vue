@@ -4,6 +4,14 @@ import type { ItineraryBooking } from '@/interfaces/forms/itinerary/ItineraryBoo
 import { useI18n } from 'vue-i18n'
 import { CATEGORY_ICON_SVG } from '@/constants/TravelIconSvg'
 import TravelIcon from '@/components/icons/TravelIcon.vue'
+import {
+  BOOKING_DEPOSIT_MAX_LENGTH,
+  BOOKING_FREE_CANCELLATION_MAX_LENGTH,
+  BOOKING_ITEM_MAX_LENGTH,
+  BOOKING_LINK_MAX_LENGTH,
+  BOOKING_PAYMENT_DATE_MAX_LENGTH,
+  BOOKING_REMARKS_MAX_LENGTH,
+} from '@/constants/TravelLimits'
 
 const props = defineProps<{
   modelValue: boolean
@@ -40,7 +48,7 @@ const form = ref<ItineraryBooking>(makeBlank())
 const paymentType = ref<'instant' | 'delayed' | ''>('')
 const paymentDate = ref<string>('')
 
-function parsePaymentString(raw: string | undefined) {
+function parsePaymentString(raw: string | null | undefined) {
   if (!raw) return { type: '' as const, date: '' }
   const lc = raw.toLowerCase()
   if (lc.startsWith('instant')) return { type: 'instant' as const, date: '' }
@@ -51,10 +59,13 @@ function parsePaymentString(raw: string | undefined) {
   return { type: '' as const, date: '' }
 }
 
-function buildPaymentString(): string | undefined {
+function buildPaymentString(): string | null | undefined {
   if (paymentType.value === 'instant') return 'Instant'
   if (paymentType.value === 'delayed') return paymentDate.value ? `Delayed (${paymentDate.value})` : 'Delayed'
-  return undefined
+  // Picker empty: a value it can show (Instant / Delayed) was cleared → null clears it; a legacy
+  // free-text value the picker can't show is kept as is.
+  const original = props.item?.payment
+  return parsePaymentString(original).type ? null : original
 }
 
 watch(
@@ -96,7 +107,7 @@ function setPax(name: string, value: number | undefined) {
     delete form.value.paxBreakdown[name]
   }
   const sum = props.paxNames.reduce((s, n) => s + (Number(form.value.paxBreakdown?.[n]) || 0), 0)
-  form.value.price = sum || undefined
+  form.value.price = sum || null
 }
 
 function getPax(name: string): number | undefined {
@@ -104,7 +115,7 @@ function getPax(name: string): number | undefined {
 }
 
 // When total price changes → reset breakdown and split evenly across current pax names
-function onPriceChange(val: number | undefined) {
+function onPriceChange(val: number | null | undefined) {
   if (val == null || !props.paxNames.length) return
   const per = Math.round((val / props.paxNames.length) * 100) / 100
   form.value.paxBreakdown = {}
@@ -127,11 +138,12 @@ function onCancel() {
 function onCategorySelect(val: string) {
   form.value.category = val as ItineraryBooking['category']
   // Clear accommodation-specific fields when switching away
+  // null (not undefined, which JSON drops) so the save clears them.
   if (val !== 'accommodation') {
-    form.value.startDate = undefined
-    form.value.endDate = undefined
-    form.value.nights = undefined
-    form.value.freeCancellation = undefined
+    form.value.startDate = null
+    form.value.endDate = null
+    form.value.nights = null
+    form.value.freeCancellation = null
     form.value.breakfast = false
   }
 }
@@ -168,19 +180,19 @@ function onCategorySelect(val: string) {
       <!-- Item name -->
       <div class="form-section">
         <div class="form-label">{{ t('travel.booking.item') }} <span class="required">*</span></div>
-        <el-input v-model="form.item" :placeholder="t('travel.booking.itemPlaceholder')" />
+        <el-input v-model="form.item" :maxlength="BOOKING_ITEM_MAX_LENGTH" :placeholder="t('travel.booking.itemPlaceholder')" />
       </div>
 
       <!-- Location -->
       <div class="form-section">
         <div class="form-label">{{ t('travel.booking.remarks') }}</div>
-        <el-input v-model="form.remarks" :placeholder="t('travel.booking.remarksPlaceholder')" />
+        <el-input v-model="form.remarks" :maxlength="BOOKING_REMARKS_MAX_LENGTH" :placeholder="t('travel.booking.remarksPlaceholder')" />
       </div>
 
       <!-- Link -->
       <div class="form-section">
         <div class="form-label">{{ t('travel.booking.bookingLink') }}</div>
-        <el-input v-model="form.link" placeholder="https://..." />
+        <el-input v-model="form.link" :maxlength="BOOKING_LINK_MAX_LENGTH" placeholder="https://..." />
       </div>
 
       <!-- Per-person costs -->
@@ -227,6 +239,7 @@ function onCategorySelect(val: string) {
           <el-input
             v-if="paymentType === 'delayed'"
             v-model="paymentDate"
+            :maxlength="BOOKING_PAYMENT_DATE_MAX_LENGTH"
             :placeholder="t('travel.booking.paymentDatePlaceholder')"
             class="payment-date-input"
           />
@@ -280,7 +293,7 @@ function onCategorySelect(val: string) {
       <!-- Free cancellation (accommodation + booked) -->
       <div class="form-section" v-if="isAccommodation">
         <div class="form-label">{{ t('travel.booking.freeCancellation') }}</div>
-        <el-input v-model="form.freeCancellation" :placeholder="t('travel.booking.cancellationPlaceholder')" />
+        <el-input v-model="form.freeCancellation" :maxlength="BOOKING_FREE_CANCELLATION_MAX_LENGTH" :placeholder="t('travel.booking.cancellationPlaceholder')" />
       </div>
 
       <!-- Breakfast (accommodation only) -->
@@ -292,7 +305,7 @@ function onCategorySelect(val: string) {
       <!-- Deposit -->
       <div class="form-section">
         <div class="form-label">{{ t('travel.booking.deposit') }}</div>
-        <el-input v-model="form.deposit" :placeholder="t('travel.booking.depositPlaceholder')" />
+        <el-input v-model="form.deposit" :maxlength="BOOKING_DEPOSIT_MAX_LENGTH" :placeholder="t('travel.booking.depositPlaceholder')" />
       </div>
     </div>
 

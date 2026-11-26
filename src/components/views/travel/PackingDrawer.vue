@@ -5,6 +5,7 @@ import { Check } from '@element-plus/icons-vue'
 import { PACKING_CATEGORIES } from '@/constants/TravelCategories'
 import TravelIcon from '@/components/icons/TravelIcon.vue'
 import type { PackingItem } from '@/interfaces/forms/itinerary/PackingItem'
+import { PACKING_LABEL_MAX_LENGTH } from '@/constants/TravelLimits'
 
 const props = defineProps<{
   modelValue: boolean
@@ -84,6 +85,7 @@ const handleCancel = () => {
         <div class="field-label">{{ t('travel.packing.label') }} *</div>
         <el-input
           v-model="form.label"
+          :maxlength="PACKING_LABEL_MAX_LENGTH"
           :placeholder="t('travel.packing.labelPlaceholder')"
           :status="labelError ? 'error' : ''"
           @input="labelError = false"

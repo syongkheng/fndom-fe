@@ -27,7 +27,7 @@ export const useSsApiKeyStore = defineStore('ssApiKey', () => {
   }
 
   async function revokeApiKey(): Promise<void> {
-    await HttpClient.delete(ApiRoute.SS_KEY.API_KEY)
+    await HttpClient.post(ApiRoute.SS_KEY.REVOKE_API_KEY, {})
     StorageUtils.remove(StorageKey.SS_API_KEY, 'local')
   }
 

@@ -9,21 +9,21 @@ const props = defineProps<{
 </script>
 
 <template>
-  <div v-for="value in props.records" :key="value.busstop_code" class="busstop-card">
+  <div v-for="value in props.records" :key="value.busStopCode" class="busstop-card">
     <div class="busstop-line">
-      <span class="busstop-code">{{ value.busstop_code }}</span>
-      <span class="busstop-road">{{ value.road_name }}</span>
-      <span class="busstop-distance">~ {{ Number(value.distance_m).toFixed(0) }} m</span>
+      <span class="busstop-code">{{ value.busStopCode }}</span>
+      <span class="busstop-road">{{ value.roadName }}</span>
+      <span class="busstop-distance">~ {{ value.distanceM }} m</span>
     </div>
-    <div class="busstop-desc">{{ value.desc }}</div>
-    <div v-if="props.busServices[value.busstop_code]?.length" class="bus-services-wrapper">
+    <div class="busstop-desc">{{ value.description }}</div>
+    <div v-if="props.busServices[value.busStopCode]?.length" class="bus-services-wrapper">
       <div class="bus-services-label">
-        Available Bus Services: {{ props.busServices[value.busstop_code].length }}
+        Available Bus Services: {{ props.busServices[value.busStopCode].length }}
       </div>
       <div class="bus-services-grid">
-        <el-tag v-for="service in props.busServices[value.busstop_code]" :key="service.service_no" type="info"
+        <el-tag v-for="service in props.busServices[value.busStopCode]" :key="service.serviceNo" type="info"
           size="small">
-          {{ service.service_no }}
+          {{ service.serviceNo }}
         </el-tag>
       </div>
     </div>

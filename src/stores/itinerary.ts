@@ -169,10 +169,7 @@ export const useItineraryStore = defineStore('itinerary', () => {
       }
 
       // Update itinerary
-      const response = await HttpClient.post(
-        `${ApiRoute.ITINERARY.MODIFY}/${itinerary.sessionId}`,
-        payload,
-      )
+      const response = await HttpClient.post(ApiRoute.ITINERARY.MODIFY(itinerary.sessionId), payload)
         .then((res) => {
           return res
         })
@@ -351,7 +348,9 @@ export const useItineraryStore = defineStore('itinerary', () => {
   const assignItemDay = (item: AgendaItem, date: string | undefined, day: number | undefined) => {
     const index = itinerary.agendaItems.findIndex((i) => i._localIndex === item._localIndex || (i.id && i.id === item.id))
     if (index === -1) return
-    itinerary.agendaItems[index] = { ...itinerary.agendaItems[index], date, day }
+    // `date: ''` (not undefined, which JSON drops) so unscheduling persists: qindom clears `day` too
+    // when `date` is sent blank without a day.
+    itinerary.agendaItems[index] = { ...itinerary.agendaItems[index], date: date ?? '', day }
     if (itinerary.agendaItems[index].id) {
       itinerary._agendaIdsToUpdate?.push(itinerary.agendaItems[index].id!)
       itinerary.agendaItems[index]._isDirty = true

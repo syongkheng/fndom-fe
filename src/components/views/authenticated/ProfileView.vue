@@ -143,10 +143,11 @@ const handleChangePassword = async () => {
     return
   }
 
+  // updatePassword throws on 400/401 (weak or wrong password); treat that as a failed change
   const result = await updatePassword(
     passwordForm.value.currentPassword,
     passwordForm.value.newPassword,
-  )
+  ).catch(() => false)
 
   if (result) {
     passwordForm.value = { currentPassword: '', newPassword: '', confirmPassword: '' }

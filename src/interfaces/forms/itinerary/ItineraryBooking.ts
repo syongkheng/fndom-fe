@@ -4,17 +4,19 @@ export interface ItineraryBooking {
   itineraryId?: number
   category?: 'flight' | 'accommodation' | 'transport' | 'other'
   item: string
-  remarks?: string
-  link?: string
-  payment?: string
-  startDate?: string
-  endDate?: string
-  nights?: number
-  price?: number
+  // null = cleared. The GET returns null for unset columns, and a cleared field must be sent as
+  // null/"" (undefined is dropped from the JSON, which qindom reads as "unchanged").
+  remarks?: string | null
+  link?: string | null
+  payment?: string | null
+  startDate?: string | null
+  endDate?: string | null
+  nights?: number | null
+  price?: number | null
   booked?: boolean
-  freeCancellation?: string
+  freeCancellation?: string | null
   breakfast?: boolean
-  deposit?: string
+  deposit?: string | null
   paxBreakdown?: Record<string, number>
   sortOrder?: number
 }

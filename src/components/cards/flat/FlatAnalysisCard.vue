@@ -7,7 +7,7 @@ import type { BusstopInformation } from '@/interfaces/BusstopInformation.model'
 import type { MrtStationInformation } from '@/interfaces/MrtStationInformation.model'
 import type { OneMapResult } from '@/interfaces/OneMapResult.model'
 import { computed, onMounted, ref } from 'vue'
-import BusstopInformationComponent from '@/components/cards/pphs/BusstopInformationComponent.vue'
+import BusstopInformationComponent from '@/components/cards/flat/BusstopInformationComponent.vue'
 import ResalePriceSection from './ResalePriceSection.vue'
 
 const props = defineProps<{
@@ -39,13 +39,11 @@ function openMaps() { window.open(googleMapsUrl.value, '_blank') }
 
 const retrieveBusstops = async () => {
   try {
-    const response = await HttpClient.post(ApiRoute.PPHS.GET_NEAREST_BUSSTOPS, {
-      lat: props.result.LATITUDE,
-      lng: props.result.LONGITUDE,
-      radius: proximityInMeters.value,
-    }).then((res) => res.data.data as { rows: BusstopInformation[]; count: number })
+    const response = await HttpClient.get(ApiRoute.LTA.GET_NEARBY_BUS_STOPS, {
+      params: { lat: props.result.LATITUDE, lng: props.result.LONGITUDE, radius: proximityInMeters.value },
+    }).then((res) => res.data.data as { busStops: BusstopInformation[]; count: number })
 
-    busstopRecords.value = response.rows
+    busstopRecords.value = response.busStops
     busstopCounts.value = response.count
     await retrieveBusServicesParallel()
   } catch (error) {
@@ -56,13 +54,13 @@ const retrieveBusstops = async () => {
 const retrieveBusServicesParallel = async () => {
   try {
     const requests = busstopRecords.value.map((busstop) =>
-      HttpClient.post(ApiRoute.LTA.GET_BUS_SVC_BY_BUSSTOP_CODE, { busStopCode: busstop.busstop_code })
-        .then((res) => ({ code: busstop.busstop_code, data: res.data.data }))
-        .catch(() => ({ code: busstop.busstop_code, data: [] }))
+      HttpClient.get(ApiRoute.LTA.GET_BUS_SVC_BY_BUSSTOP_CODE, { params: { busStopCode: busstop.busStopCode } })
+        .then((res) => ({ code: busstop.busStopCode, services: res.data.data.services as BusRouteInformation[] }))
+        .catch(() => ({ code: busstop.busStopCode, services: [] as BusRouteInformation[] }))
     )
     const results = await Promise.all(requests)
     results.forEach((r) => {
-      busServicesByBusstop.value[r.code] = r.data.rows
+      busServicesByBusstop.value[r.code] = r.services
     })
   } catch (error) {
     console.error('Error fetching bus services', error)
@@ -71,11 +69,9 @@ const retrieveBusServicesParallel = async () => {
 
 const retrieveMrtStops = async () => {
   try {
-    const response = await HttpClient.post(ApiRoute.PPHS.GET_NEAREST_MRT_STATIONS, {
-      lat: props.result.LATITUDE,
-      lng: props.result.LONGITUDE,
-      limit: 3,
-    }).then((res) => res.data.data.rows)
+    const response = await HttpClient.get(ApiRoute.LTA.GET_NEAREST_MRT_STATIONS, {
+      params: { lat: props.result.LATITUDE, lng: props.result.LONGITUDE, limit: 3 },
+    }).then((res) => res.data.data.stations as MrtStationInformation[])
     mrtStationRecords.value = response
   } catch (error) {
     console.error('Error fetching MRT stations', error)
@@ -121,7 +117,7 @@ onMounted(() => {
       <div class="mrt-tags">
         <span v-for="station in mrtStationRecords" :key="station.station" class="mrt-tag">
           {{ station.station }}
-          <span class="mrt-dist">~{{ Number(station.distance_m).toFixed(0) }}m</span>
+          <span class="mrt-dist">~{{ station.distanceM }}m</span>
         </span>
       </div>
     </div>

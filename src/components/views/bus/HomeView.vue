@@ -91,12 +91,10 @@ async function fetchNearestBusstops() {
   try {
     let rows: BusstopInformation[] = []
     for (const radius of RADII) {
-      const res = await HttpClient.post(ApiRoute.PPHS.GET_NEAREST_BUSSTOPS, {
-        lat: String(coords.value.lat),
-        lng: String(coords.value.lng),
-        radius,
+      const res = await HttpClient.get(ApiRoute.LTA.GET_NEARBY_BUS_STOPS, {
+        params: { lat: coords.value.lat, lng: coords.value.lng, radius },
       })
-      rows = (res.data.data as { rows: BusstopInformation[] }).rows ?? []
+      rows = (res.data.data as { busStops: BusstopInformation[] }).busStops ?? []
       if (rows.length) break
     }
 
@@ -106,8 +104,8 @@ async function fetchNearestBusstops() {
     }
 
     busstops.value = rows.slice(0, MAX_STOPS_SHOWN)
-    busstops.value.forEach((stop) => stopState(stop.busstop_code))
-    activeStop.value = busstops.value[0].busstop_code
+    busstops.value.forEach((stop) => stopState(stop.busStopCode))
+    activeStop.value = busstops.value[0].busStopCode
   } catch {
     busstopsErrorMsg.value = t('bus.errors.busstopFetchFailed')
   } finally {
@@ -245,46 +243,46 @@ onMounted(requestLocation)
           </div>
 
           <el-collapse v-model="activeStop" accordion class="stops-accordion">
-            <el-collapse-item v-for="(stop, idx) in busstops" :key="stop.busstop_code" :name="stop.busstop_code">
+            <el-collapse-item v-for="(stop, idx) in busstops" :key="stop.busStopCode" :name="stop.busStopCode">
               <template #title>
                 <div class="stop-accordion-title">
                   <span class="stop-road">
-                    {{ stop.road_name }}
+                    {{ stop.roadName }}
                     <span v-if="idx === 0" class="nearest-badge">{{ t('bus.nearestBadge') }}</span>
                   </span>
                   <span class="stop-meta-line">
-                    <span class="stop-code">{{ stop.busstop_code }}</span>
-                    <span class="stop-distance">{{ formatDistance(Number(stop.distance_m)) }}</span>
-                    <span v-if="stop.desc" class="stop-desc">{{ stop.desc }}</span>
+                    <span class="stop-code">{{ stop.busStopCode }}</span>
+                    <span class="stop-distance">{{ formatDistance(stop.distanceM) }}</span>
+                    <span v-if="stop.description" class="stop-desc">{{ stop.description }}</span>
                   </span>
                 </div>
               </template>
 
               <div class="accordion-arrivals">
                 <div
-                  v-if="stopState(stop.busstop_code).loading && !stopState(stop.busstop_code).loaded"
+                  v-if="stopState(stop.busStopCode).loading && !stopState(stop.busStopCode).loaded"
                   v-loading="true" class="arrivals-loading"
                 />
 
-                <div v-else-if="stopState(stop.busstop_code).errorMsg" class="status-card status-card--error status-card--inline">
-                  <span>{{ stopState(stop.busstop_code).errorMsg }}</span>
-                  <el-button size="small" type="primary" @click="fetchArrivalsForStop(stop.busstop_code, true)">
+                <div v-else-if="stopState(stop.busStopCode).errorMsg" class="status-card status-card--error status-card--inline">
+                  <span>{{ stopState(stop.busStopCode).errorMsg }}</span>
+                  <el-button size="small" type="primary" @click="fetchArrivalsForStop(stop.busStopCode, true)">
                     {{ t('bus.retry') }}
                   </el-button>
                 </div>
 
-                <template v-else-if="stopState(stop.busstop_code).loaded">
-                  <div v-if="!sortServices(stopState(stop.busstop_code).services).length" class="no-services">
+                <template v-else-if="stopState(stop.busStopCode).loaded">
+                  <div v-if="!sortServices(stopState(stop.busStopCode).services).length" class="no-services">
                     {{ t('bus.noServices') }}
                   </div>
 
                   <template v-else>
-                    <div v-if="stopState(stop.busstop_code).lastUpdated" class="updated-text updated-text--accordion">
-                      {{ t('bus.updated', { time: formatUpdatedTime(stopState(stop.busstop_code).lastUpdated!) }) }}
+                    <div v-if="stopState(stop.busStopCode).lastUpdated" class="updated-text updated-text--accordion">
+                      {{ t('bus.updated', { time: formatUpdatedTime(stopState(stop.busStopCode).lastUpdated!) }) }}
                     </div>
 
                     <div class="services-list">
-                      <div v-for="svc in sortServices(stopState(stop.busstop_code).services)" :key="svc.ServiceNo" class="service-row">
+                      <div v-for="svc in sortServices(stopState(stop.busStopCode).services)" :key="svc.ServiceNo" class="service-row">
                         <div class="service-no">{{ svc.ServiceNo }}</div>
                         <div class="service-etas">
                           <div

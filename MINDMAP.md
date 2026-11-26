@@ -1,7 +1,7 @@
 # fndom — Project Mindmap
 > Brand: the product is **Awense** (awense.com). The repo, package name, analytics `system='fndom'` and all localStorage keys keep the `fndom` name on purpose (renaming keys would wipe saved data). Only user-facing text says Awense.
 > **Look (2026-11-02, v2): warm "super-app" style replaced Blueprint/CAD** — cream/vermilion/gold palette, 16px radius, soft shadows, pill buttons, Nunito + Noto Sans SC, SVG line icons via `components/common/AppIcon.vue` (name -> path map; no emoji anywhere in UI), lantern-glow body background. Token and class names (`--color-*`, `--font-mono`, `.bp-*`) are unchanged but now mean the soft versions; `--font-mono` is a rounded sans. Phones get `BottomTabBar.vue` (fixed, 4 tabs; `--tabbar-h` var offsets main + /house height). Workbench has hero banner (daily tip), quick-entry tiles + Surprise-me. Older notes below that say "blueprint/drafting grid/mono" are historical.
-> Redesign (House + Budget, blueprint style): `/` is now a workbench home (transactions, budget tables, flat plan, itinerary). Nav = Workbench, House, Budget, Trips, Apple Pay, Admin. PPHS/Flat/Bus/IPPT/Imghost/ss-key remain routable but are out of the nav. Kingshot/Douyin do not exist in this codebase.
+> Redesign (House + Budget, blueprint style): `/` is now a workbench home (transactions, budget tables, flat plan, itinerary). Nav = Workbench, House, Budget, Trips, Apple Pay, Admin. Flat/Bus/IPPT/Imghost/ss-key remain routable but are out of the nav. Kingshot/Douyin do not exist in this codebase.
 
 
 ```
@@ -62,15 +62,14 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │     CameraDeviceTile (2 per row, 1 on phones): canvas preview (createImageBitmap, newest-frame-wins),
 │   │     online/REC/elapsed/battery/free space/heat/preview fps/dropped frames, quality select, start/stop,
 │   │     remove (el-popconfirm); Start all / Stop all + start offset from phone acks; stale overlay after 3 s
-│   │     without a frame. Nav: TopNavigation + MobileNavigation (signed in only). Protocol: docs/camera-protocol.md
-│   │     (copy of qindom's).
+│   │     without a frame. Nav: TopNavigation + MobileNavigation (signed in only). Protocol:
+│   │     qindom/docs/camera-protocol.md (master copy).
 │   ├── /404                   404 → UnauthorizedView
 │   │   ├── /travel/v/:shortCode   travel-viewer (featureGuard)
 │   │   ├── /bus                   bus → bus/HomeView — geolocation-based nearest busstop + live LTA arrivals
 │   │
 │   │
 │   ├── FEATURE-GATED (featureGuard)
-│   │   ├── /pphs                  pphs → hdb/HomeView
 │   │   └── /flat                  flat → flat/HomeView
 │   │
 │   ├── AUTH REQUIRED (authGuard)
@@ -163,9 +162,11 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   │     soft-deleted rows, owner + collaborator access (see qindom
 │   │   │     MINDMAP's BUDGET section: tb_budget_table/_item/_collaborator)
 │   │   └── /apple-pay             apple-pay → applepay/ApplePayDashboardView
-│   │         — table of transactions logged by the "When Apple Pay is used"
-│   │         Shortcut (ingested via qindom's api-key-gated /v1/ss route, see
-│   │         siri-shortcut/ApplePay.v1.controller.ts), with a per-row
+│   │         — table of transactions logged by the bank-SMS Shortcut
+│   │         (ingested via qindom's api-key-gated /v2/ss/ap/sms, see
+│   │         siri-shortcut/ApplePay.v2.controller.ts; the V1 "When Apple Pay
+│   │         is used" route was removed Nov 2026, old v1 rows still list),
+│   │         plus manual entries, with a per-row
 │   │         category el-select (filterable + allow-create, same pattern as
 │   │         Budget's) and a category filter above the table
 │   │
@@ -204,7 +205,6 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │         reset to blank on every page refresh despite being saved fine.
 │   │         New itinerary fields need adding to BOTH this function's
 │   │         mapping list AND the save payload to actually round-trip.
-│   ├── pphs.ts             — PPHS/HDB records + coordinate updates
 │   ├── budget.ts           — budget table CRUD (tables/items/collaborators);
 │   │         activeTable holds the currently open table's items in-place so
 │   │         BudgetItemTable's inline el-input/-number edits mutate it directly;
@@ -302,9 +302,6 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   ├── SAMPLE HOME (2026-11-07): constants/houseplan/presets.ts `couplesHome` (21 catalogue pieces for two: main bedroom,
 │   │   │     gaming room = Bedroom 2, closet room = Bedroom 3, study nook, living/dining, kitchen). Toolbar "Sample home" (More row)
 │   │   │     -> housePlan.applyLayout (one undo step; inline confirm when items exist). Conflict- and clearance-warning-free.
-│   │   ├── MCP (2026-11-08): the house MCP server lives in qindom (/mcp) and is PUBLIC + STATELESS (no key, nothing stored): tools take the
-│   │   │     planner's layout JSON and return the edited JSON -> user saves it and uses Import JSON. Unused for now (kept, not mounted):
-│   │   │     stores/mcpApiKey.ts, views/ss-key/McpKeyCard.vue, ApiRoute.MCP_KEY, `mcpKey.*` i18n — for a future authenticated variant.
 │   │   ├── WALL EDITOR (2026-11-04): store.walls = editable copy of floorplan.walls (axis-aligned only); wallTool
 │   │   │     'draw'|'erase'|null + wallKind (wall|door|parapet), toolbar "Edit walls" + sub-row. interaction.ts: taps
 │   │   │     place start/end (5 cm grid, snaps to wall ends, end aligns to nearby wall coords, chain until the last point
@@ -334,16 +331,8 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │   │     house.furniture.<id>); utilities/houseGeometry.ts; interfaces/House.model.ts
 │   │   └── dashboard/HousePlanCard.vue — item/overlap summary from the housePlan store
 │
-│   ├── HDB / PPHS  /pphs
-│   │   ├── HomeView.vue           — public housing info
-│   │   ├── DebugView.vue
-│   │   ├── PphsRecordCard.vue
-│   │   ├── BusstopInformationComponent.vue
-│   │   ├── ManagePphsDialog.vue
-│   │   └── PphsCompareDialog.vue
-│   │
 │   ├── BUS TIMINGS  /bus  — public, no guard
-│   │   └── HomeView.vue           — browser geolocation → nearest busstop(s) via PPHS.GET_NEAREST_BUSSTOPS
+│   │   └── HomeView.vue           — browser geolocation → nearest busstop(s) via LTA.GET_NEARBY_BUS_STOPS
 │   │                                (radius auto-expands 300/500/1000/2000m); stops rendered as an
 │   │                                el-collapse accordion (single-open) — arrivals fetched lazily per
 │   │                                stop on expand via LTA.GET_BUS_ARRIVAL_TIMING, cached in
@@ -355,7 +344,8 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   │
 │   ├── FLAT ANALYSIS  /flat
 │   │   ├── HomeView.vue           — HDB resale price lookup
-│   │   ├── FlatAnalysisCard.vue
+│   │   ├── FlatAnalysisCard.vue     — nearby bus stops (LTA.GET_NEARBY_BUS_STOPS) + nearest MRT (LTA.GET_NEAREST_MRT_STATIONS)
+│   │   ├── BusstopInformationComponent.vue
 │   │   └── ResalePriceSection.vue
 │   │
 │   ├── TRAVEL  /travel  — /travel/trips + /travel/:sessionId need auth; /travel/draft is a guest draft
@@ -588,17 +578,13 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   ├── dialogs/
 │   │   ├── LoadingDialog.vue
 │   │   ├── LoginAdvisoryDialog.vue
-│   │   ├── ManagePphsDialog.vue
-│   │   └── PphsCompareDialog.vue
 │   ├── cards/
 │   │   ├── flat/FlatAnalysisCard.vue
-│   │   ├── flat/ResalePriceSection.vue
-│   │   └── pphs/PphsRecordCard.vue
+│   │   ├── flat/BusstopInformationComponent.vue
+│   │   └── flat/ResalePriceSection.vue
 │   ├── map/
-│   │   ├── MapComponent.vue       — Leaflet map
-│   │   └── FlatMapComponent.vue
+│   │   └── FlatMapComponent.vue   — Leaflet map
 │   ├── clocks/UtcClock.vue
-│   ├── accordions/HomeStageAccordion.vue
 │   ├── icons/IconWithText.vue
 │   └── wrappers/RoleGuard.vue
 │
@@ -651,16 +637,14 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │   ├── useNav.ts              — redirectTo*, navigation helpers
 │   ├── useTokenVerification.ts — JWT validation on app init
 │   ├── useBreakpointManager.ts — responsive breakpoint detection
-│   ├── useProfileManager.ts   — user profile management
-│   └── usePphsManager.ts      — PPHS record management
+│   └── useProfileManager.ts   — user profile management
 │
 ├── HTTP / API (src/interceptors/ + src/constants/ApiRoute.ts)
 │   ├── HttpClient.ts          — Axios + auto JWT Bearer header injection
 │   └── ApiRoute.ts            — all endpoint constants
 │       ├── /api/auth/*        — preflight, login, register, verify, password
 │       ├── /api/pfp/*         — profile photo, country
-│       ├── /api/hdb/*         — pphs, coordinates, busstops, mrt
-│       ├── /api/lta/*         — bus services, live bus arrival timing (/timing)
+│       ├── /api/lta/*         — bus services, live bus arrival timing (/timing), nearby bus stops, nearest MRT
 │       ├── /api/itinerary/*   — CRUD, share, collaborator, challenge
 │       ├── /api/budget/*      — table CRUD, item CRUD (soft delete + a restore
 │       │         endpoint that flips record_status back to 'A', used by the
@@ -674,8 +658,8 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │       │         summaries (GET /api/budget) similarly carry only sessionId,
 │       │         never the table's own auto-increment id.
 │       ├── /api/applepay/*    — GET list + POST :id/category (mw.auth, the
-│       │         web dashboard), backed by the same SsApplePayV1Service as
-│       │         qindom's api-key-gated /v1/ss/ap/transaction (the Shortcuts
+│       │         web dashboard), backed by the same ApplePayService as
+│       │         qindom's api-key-gated /v2/ss/ap/sms (the Shortcuts
 │       │         ingestion endpoint) — same uuid-as-public-id pattern as
 │       │         budget items; occurred_dt is stamped server-side (Date.now())
 │       │         rather than trusted from the Shortcut's own date format
@@ -714,7 +698,7 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │
 ├── INTERFACES (src/interfaces/)  — 16 TypeScript interface files
 │   ├── Itinerary.ts / AgendaItem.ts / ItineraryBooking.ts / FileWithPreview.ts
-│   ├── PphsRecord.model.ts / ResaleTransaction.model.ts
+│   ├── ResaleTransaction.model.ts
 │   ├── BusstopInformation.model.ts / BusRouteInformation.model.ts / MrtStationInformation.model.ts / BusArrivalTiming.model.ts
 │   ├── OneMapResult.model.ts
 │   ├── LoginForm.model.tsx / RegisterForm.model.ts
@@ -734,7 +718,7 @@ fndom (Vue 3 + TypeScript + Vite + Pinia + Element Plus)
 │
 ├── ROLES & PERMISSIONS
 │   ├── Format: {MODULE}_{LEVEL}
-│   ├── Modules: PPHS, TRAVEL, SLP, SYSTEM
+│   ├── Modules: TRAVEL, SLP, SYSTEM (PPHS removed Nov 2026; stored PPHS_R* roles are inert)
 │   ├── Levels: R3 (officer), R4 (admin), R5 (super admin)
 │   ├── SYSTEM_R5 = full platform access
 │   └── Checked via usePermission composable + RoleGuard.vue wrapper

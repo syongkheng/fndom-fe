@@ -234,7 +234,8 @@ const foreignTotals = (rows: ApplePayTransaction[]) =>
 
 // ── Likely duplicates: one Apple Pay tap can be logged by both the NFC
 // automation (v1) and the bank SMS (v2). Pair each v1 row with the closest
-// unmatched v2 row of the same amount within the window.
+// unmatched v2 row of the same amount within the window. V1 ingestion was
+// removed in Nov 2026, so this only flags pairs among the older rows.
 const DUPLICATE_WINDOW_MS = 10 * 60 * 1000
 
 const duplicateIds = computed(() => {
@@ -504,7 +505,7 @@ const formatNumber = (n: number) => n.toLocaleString(undefined, { minimumFractio
 const formatDate = (ts: number) =>
   new Date(ts).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
-// V1 rows (NFC taps) carry an Apple Pay device name; V2 rows (bank SMS
+// Legacy V1 rows (NFC taps, ingestion removed Nov 2026) carry an Apple Pay device name; V2 rows (bank SMS
 // forwarding) carry a card number instead — surface whichever the row has.
 // V2 rows are also user-labelable (see isCardRow), so their fallback here
 // is only ever shown before a label has been set.

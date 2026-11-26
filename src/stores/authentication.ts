@@ -14,6 +14,7 @@ import { Analytics } from '@/analytics/events'
 
 const t = (key: string) => i18n.global.t(key)
 const isNetworkError = (err: AxiosError) => !err.response && !!err.request
+const HTTP_TOO_MANY_REQUESTS = 429
 
 export const useAuthenticationStore = defineStore('authentication', () => {
   const isAuthenticated = ref(false)
@@ -51,24 +52,44 @@ export const useAuthenticationStore = defineStore('authentication', () => {
   }
 
   // ── Preflight ────────────────────────────────────────────────────────────────
-  const handleAuthenticate = async () => {
+  /**
+   * true = account exists, false = new email; null = stay on the email step with the error shown
+   * (invalid email format, network error, rate limited 429, unexpected failure).
+   */
+  const handleAuthenticate = async (): Promise<boolean | null> => {
     loading.value = true
     registerError.value = ''
+    let stayOnEmailStep = false
     try {
       if (!form.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
         registerError.value = t('auth.errors.invalid_email_format')
-        return
+        return null
       }
       const res = await HttpClient.post(ApiRoute.AUTHENTICATE.PREFLIGHT, {
         email: form.email,
         system: 'fnd',
       }).catch((err: AxiosError) => {
-        if (isNetworkError(err)) registerError.value = t('auth.errors.network')
+        if (isNetworkError(err)) {
+          registerError.value = t('auth.errors.network')
+          stayOnEmailStep = true
+        }
+        // preflightLimiter (30 / 15 min per IP): not "no account", so don't move to the register step.
+        else if (err.response?.status === HTTP_TOO_MANY_REQUESTS) {
+          registerError.value = t('auth.errors.too_many_attempts')
+          stayOnEmailStep = true
+        }
+        // Any other failure (400, 500 e.g. a DB outage) says nothing about whether the account exists.
+        else {
+          registerError.value = t('auth.errors.unknown')
+          stayOnEmailStep = true
+        }
         return null
       })
+      if (stayOnEmailStep) return null
       return res?.data?.data?.exist ?? false
     } catch {
       registerError.value = t('auth.errors.unknown')
+      return null
     } finally {
       loading.value = false
     }

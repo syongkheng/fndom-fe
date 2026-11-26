@@ -508,7 +508,6 @@ export default {
     title: 'Your Workbench',
     subtitle: 'Select a module to get started',
     tiles: {
-      pphs:        { label: 'PPHS',             desc: 'Public housing info, bus stops and MRT proximity' },
       flat:        { label: 'Flat Analysis',     desc: 'Search by postal code · MRT and bus stop proximity' },
       travel:      { label: 'Travel',            desc: 'Itinerary planning and collaboration' },
       imghost:     { label: 'Image CDN',         desc: 'Upload an image · Get a shareable CDN link' },
@@ -582,19 +581,6 @@ export default {
     usageStep4: 'Set the URL to the endpoint below',
     usageEndpointsTitle: 'Endpoints',
     usageBodyLabel: 'Body:',
-  },
-  mcpKey: {
-    cardTitle: 'MCP key (AI assistants)',
-    desc: 'Lets Claude Desktop or Claude Code read and edit your saved house layouts, e.g. "add a floor-to-ceiling wardrobe to the main bedroom". Separate from your Siri Shortcuts key.',
-    noKeyDesc: 'Generate an MCP key to connect an AI assistant to your saved house layouts.',
-    regenerateConfirmMessage: 'Regenerating will revoke your current MCP key. Continue?',
-    revokeConfirmMessage: 'This will permanently revoke your MCP key. Connected assistants will stop working until you generate a new one.',
-    usageTitle: 'Connect Claude Code',
-    usageStep1: 'Save a layout first: open House, build or load one, then use Layouts to save it',
-    usageStep2: 'Run the command below in your terminal, with your key pasted in',
-    usageStep3: 'Ask Claude, e.g. "list my layouts, then add a floor-to-ceiling wardrobe on the west wall of the main bedroom", then reload the layout in House',
-    keyFailed: 'Failed to generate MCP key.',
-    keyRevoked: 'MCP key revoked.',
   },
   travel: {
     landing: {
@@ -1130,6 +1116,7 @@ export default {
       weak_password: 'Password is too weak. Use at least 8 characters with uppercase, lowercase, a number, and a special character.',
       registration_failed: 'Registration failed. Please try again.',
       code_expired: "Your code has expired. Click 'Resend code' to get a new one.",
+      too_many_attempts: 'Too many attempts. Please try again later.',
       max_verify_attempts: "Too many incorrect attempts. Click 'Resend code' for a new code.",
       invalid_request_email: 'Please enter a valid email address.',
       invalid_request_password: 'Password does not meet the requirements.',
@@ -1182,9 +1169,6 @@ export default {
     itineraryAccessDenied: 'You are not allowed to edit this itinerary. Please contact the owner.',
     loginRequired: 'You must be logged in.',
     accessDenied: 'Access denied.',
-
-    pphsUpdateSuccess: 'PPHS record updated successfully.',
-    pphsUpdateFailed: 'Failed to update PPHS record.',
 
     imghostImagesOnly: 'Only image files are supported.',
     imghostUploadFailed: 'Upload failed. Please try again.',
@@ -1280,6 +1264,12 @@ export default {
       remove: 'Remove',
       removeCollaboratorFailed: 'Failed to remove collaborator',
       noCollaborators: 'No collaborators yet.',
+      leave: 'Leave table',
+      leaveTitle: 'Leave budget table',
+      leaveConfirm: 'Leave "{name}"? You will lose access until the owner invites you again.',
+      leaveCancel: 'Cancel',
+      leaveSuccess: 'You left the table',
+      leaveFailed: 'Failed to leave table',
       renameFailed: 'Failed to rename table',
       notFound: 'Budget table not found.',
       noItems: 'No items yet — add one below.',
@@ -1396,7 +1386,7 @@ export default {
   applepay: {
     eyebrow: 'Apple Pay',
     title: 'Transactions',
-    subtitle: 'Logged automatically from the "When Apple Pay is used" Shortcut and from forwarded bank transaction SMS.',
+    subtitle: 'Logged automatically from forwarded bank transaction SMS.',
     connection: {
       active: 'Connected',
       stale: 'No recent payments',

@@ -10,14 +10,14 @@ const { hasModuleAccess } = usePermission()
 const { t } = useI18n()
 
 const MODULE_ICONS: Record<string, string> = {
-  pphs: 'building', flat: 'home', travel: 'plane',
+  flat: 'home', travel: 'plane',
   imghost: 'image', ippt: 'shield', bus: 'bus',
 }
 const MODULE_PATHS: Record<string, string> = {
-  pphs: '/pphs', flat: '/flat', travel: '/travel',
+  flat: '/flat', travel: '/travel',
   imghost: '/imghost', ippt: '/ippt', bus: '/bus',
 }
-const MODULE_KEYS = ['pphs', 'flat', 'travel', 'imghost', 'ippt', 'bus'] as const
+const MODULE_KEYS = ['flat', 'travel', 'imghost', 'ippt', 'bus'] as const
 
 const modules = computed(() =>
   MODULE_KEYS.map(key => ({

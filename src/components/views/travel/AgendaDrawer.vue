@@ -14,6 +14,7 @@ import { FileWithPreview } from '@/interfaces/forms/itinerary/FileWithPreview'
 import { useTgImageUpload } from '@/composables/useTgImageUpload'
 import HttpClient from '@/interceptors/HttpClient'
 import { dateKeyForDay, formatShortDate } from '@/composables/useTravelDayGroups'
+import { AGENDA_TITLE_MAX_LENGTH } from '@/constants/TravelLimits'
 
 const props = withDefaults(defineProps<{
   modelValue: boolean
@@ -88,7 +89,8 @@ const onPlaceSelect = (placeId: string) => {
 
 const clearPlace = () => {
   drawerForm.value.placeDisplay = undefined
-  drawerForm.value.coordinates = undefined
+  // null (not undefined, which JSON drops) so the save clears the stored coordinates.
+  drawerForm.value.coordinates = null
   drawerForm.value.cityRaw = []
   drawerForm.value.city = ''
   placeOptions.value = []
@@ -281,7 +283,7 @@ const cancel = () => {
       <!-- Title -->
       <div class="form-section">
         <div class="form-label">{{ t('travel.agenda.title') }} <span class="req">*</span></div>
-        <el-input v-model="drawerForm.title" :placeholder="t('travel.agenda.titlePlaceholder')" size="large" />
+        <el-input v-model="drawerForm.title" :maxlength="AGENDA_TITLE_MAX_LENGTH" :placeholder="t('travel.agenda.titlePlaceholder')" size="large" />
       </div>
 
       <!-- Day -->

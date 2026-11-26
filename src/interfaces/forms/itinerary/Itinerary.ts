@@ -14,12 +14,14 @@ interface Itinerary {
   destination?: string
   numberOfPax?: number
   paxNames?: string[]
-  itineraryDateRaw?: string[]
-  startDate?: number
-  endDate?: number
+  /** null = dates cleared (sent so the backend clears them; undefined is dropped from the JSON). */
+  itineraryDateRaw?: string[] | null
+  startDate?: number | null
+  endDate?: number | null
   unknownDate: boolean
   durationInDays: number
-  challenge?: string
+  /** null = remove the access code on save (undefined is dropped from the JSON and keeps it). */
+  challenge?: string | null
   agendaItems: AgendaItem[]
   bookings: ItineraryBooking[]
   packingItems: PackingItem[]

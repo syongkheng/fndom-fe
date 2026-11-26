@@ -9,9 +9,9 @@ import TravelIcon from '@/components/icons/TravelIcon.vue'
 
 export interface PackingSuggestion {
   id: number
-  trip_type: string
+  tripType: string
   label: string
-  label_key: string | null
+  labelKey: string | null
   category: string | null
 }
 
@@ -52,9 +52,9 @@ const onDragStart = (s: PackingSuggestion, e: DragEvent) => {
         @dragstart="onDragStart(s, $event)"
         @dragend="emit('drag-end')"
         @click="emit('add', s)"
-        :title="s.trip_type"
+        :title="s.tripType"
       >
-        <TravelIcon :svg="getPackingCategoryIcon(s.category ?? undefined)" /> {{ s.label_key ? t(s.label_key) : s.label }}
+        <TravelIcon :svg="getPackingCategoryIcon(s.category ?? undefined)" /> {{ s.labelKey ? t(s.labelKey) : s.label }}
       </div>
     </div>
   </div>

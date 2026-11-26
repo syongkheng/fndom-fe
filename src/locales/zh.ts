@@ -507,7 +507,6 @@ export default {
     title: '您的工作台',
     subtitle: '选择一个模块开始使用',
     tiles: {
-      pphs:        { label: 'PPHS',            desc: '公共住房信息、公交站与地铁距离' },
       flat:        { label: '房屋分析',         desc: '按邮编搜索 · 地铁与公交距离' },
       travel:      { label: '旅行',             desc: '行程规划与协作' },
       imghost:     { label: '图片 CDN',         desc: '上传图片 · 获取可分享的 CDN 链接' },
@@ -581,19 +580,6 @@ export default {
     usageStep4: '将 URL 设置为下方的接口地址',
     usageEndpointsTitle: '接口',
     usageBodyLabel: '请求体：',
-  },
-  mcpKey: {
-    cardTitle: 'MCP 密钥（AI 助手）',
-    desc: '让 Claude Desktop 或 Claude Code 读取并修改你已保存的住宅布局，例如“在主卧加一个到顶衣柜”。与 Siri 快捷指令密钥相互独立。',
-    noKeyDesc: '生成 MCP 密钥，即可将 AI 助手连接到你已保存的住宅布局。',
-    regenerateConfirmMessage: '重新生成会撤销当前的 MCP 密钥，是否继续？',
-    revokeConfirmMessage: '这将永久撤销你的 MCP 密钥，已连接的助手将停止工作，直到你生成新密钥。',
-    usageTitle: '连接 Claude Code',
-    usageStep1: '先保存一个布局：打开“住宅”，搭建或载入布局，再用“布局”保存',
-    usageStep2: '在终端运行下面的命令，并填入你的密钥',
-    usageStep3: '对 Claude 说，例如“列出我的布局，然后在主卧西墙加一个到顶衣柜”，然后在“住宅”中重新载入该布局',
-    keyFailed: '生成 MCP 密钥失败。',
-    keyRevoked: 'MCP 密钥已撤销。',
   },
   travel: {
     landing: {
@@ -1129,6 +1115,7 @@ export default {
       weak_password: '密码强度不足，请使用至少 8 位字符，并包含大写字母、小写字母、数字和特殊字符。',
       registration_failed: '注册失败，请重试。',
       code_expired: '验证码已过期，请点击"重新发送"获取新验证码。',
+      too_many_attempts: '尝试次数过多，请稍后再试。',
       max_verify_attempts: '尝试次数过多，请点击"重新发送"获取新验证码。',
       invalid_request_email: '请输入有效的邮箱地址。',
       invalid_request_password: '密码不符合要求。',
@@ -1181,9 +1168,6 @@ export default {
     itineraryAccessDenied: '您无权编辑此行程，请联系所有者。',
     loginRequired: '您必须先登录。',
     accessDenied: '访问被拒绝。',
-
-    pphsUpdateSuccess: 'PPHS 记录更新成功。',
-    pphsUpdateFailed: '更新 PPHS 记录失败。',
 
     imghostImagesOnly: '仅支持图片文件。',
     imghostUploadFailed: '上传失败，请重试。',
@@ -1279,6 +1263,12 @@ export default {
       remove: '移除',
       removeCollaboratorFailed: '移除协作者失败',
       noCollaborators: '暂无协作者。',
+      leave: '退出表格',
+      leaveTitle: '退出预算表',
+      leaveConfirm: '确定退出“{name}”吗？退出后需由所有者重新邀请才能访问。',
+      leaveCancel: '取消',
+      leaveSuccess: '已退出该表格',
+      leaveFailed: '退出表格失败',
       renameFailed: '重命名表格失败',
       notFound: '未找到该预算表。',
       noItems: '暂无项目 — 请在下方添加。',
@@ -1395,7 +1385,7 @@ export default {
   applepay: {
     eyebrow: 'Apple Pay',
     title: '交易记录',
-    subtitle: '通过“使用 Apple Pay 时”捷径与银行交易提醒短信转发自动记录。',
+    subtitle: '通过银行交易提醒短信转发自动记录。',
     connection: {
       active: '已连接',
       stale: '近期没有新消费',

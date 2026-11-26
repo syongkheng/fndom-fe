@@ -5,10 +5,10 @@ export interface ApplePayTransaction {
   /** ISO 4217 code as reported by the bank alert (e.g. 'SGD', 'CNY'). Never converted — totals are grouped per currency. */
   currency: string
   merchant: string
-  /** Apple Pay device/payment label — only ever set on 'v1' (NFC tap) rows. */
+  /** Apple Pay device/payment label — only ever set on legacy 'v1' (NFC tap) rows. */
   name: string | null
   category?: string
-  /** 'v1' = NFC-tap automation, 'v2' = bank transaction-alert SMS forwarding, 'manual' = added on the dashboard. */
+  /** 'v1' = legacy NFC-tap automation (ingestion removed Nov 2026, old rows still listed), 'v2' = bank transaction-alert SMS forwarding, 'manual' = added on the dashboard. */
   source: string
   /** Last 3-4 digits of the card — only ever set on 'v2' rows. */
   cardLast4: string | null

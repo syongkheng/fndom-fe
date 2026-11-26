@@ -23,6 +23,13 @@ const nav = useNav()
 const shortCode = route.params.shortCode as string
 
 
+/** Booking as the public view returns it: no `id` / `itineraryId` (qindom PublicItineraryDto). */
+type PublicBooking = Omit<ItineraryBooking, 'id' | 'itineraryId' | '_localIndex'>
+
+/**
+ * `GET /itinerary/v/:shortCode` / `POST /itinerary/challenge`: no trip id, owner sessionId, access code or child
+ * ids, except agenda item ids (useTravelExport's ICS UIDs).
+ */
 interface ItineraryData {
   sessionTitle: string
   destination?: string
@@ -31,7 +38,7 @@ interface ItineraryData {
   numberOfPax?: number
   viewCount?: number
   agendaItems: AgendaRow[]
-  bookings?: ItineraryBooking[]
+  bookings?: PublicBooking[]
   paxNames?: string[]
 }
 
@@ -411,7 +418,7 @@ const { t } = useI18n()
         <div v-show="!bookingsCollapsed">
           <!-- Mobile: card list -->
           <div v-if="isMobile" class="booking-cards">
-            <div v-for="booking in viewerBookings" :key="booking.id" class="booking-card">
+            <div v-for="(booking, bi) in viewerBookings" :key="bi" class="booking-card">
               <div class="booking-card-header">
                 <span class="booking-cat-emoji"><TravelIcon :svg="getBookingIcon(booking.category)" /></span>
                 <span class="booking-card-item">{{ booking.item }}</span>

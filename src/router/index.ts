@@ -57,12 +57,6 @@ const router = createRouter({
       redirect: '/',
     },
     {
-      path: '/pphs',
-      name: 'pphs',
-      component: () => import('../components/views/hdb/HomeView.vue'),
-      beforeEnter: async (to, from, next) => useRouteGuards().systemR5Guard({ next }),
-    },
-    {
       path: '/flat',
       name: 'flat',
       component: () => import('../components/views/flat/HomeView.vue'),
