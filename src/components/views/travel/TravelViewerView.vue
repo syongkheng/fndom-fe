@@ -13,6 +13,7 @@ import TravelMapView from '@/components/views/travel/TravelMapView.vue'
 import { useTravelDayGroups, resolveStartKey, type AgendaRow } from '@/composables/useTravelDayGroups'
 import { useTravelExport } from '@/composables/useTravelExport'
 import { useCityLabel } from '@/composables/useCityLabel'
+import { hasAgendaBudget } from '@/utilities/AgendaUtils'
 import type { ItineraryBooking } from '@/interfaces/forms/itinerary/ItineraryBooking'
 import { ArrowDown, ArrowRight, Lock, MapLocation, Calendar, User, View, Money, Refresh, Check, Close } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
@@ -382,7 +383,7 @@ const { t } = useI18n()
                 </div>
                 <div class="item-title">{{ item.title || t('travel.viewer.untitled') }}</div>
                 <div v-if="item.desc" class="item-desc">{{ item.desc }}</div>
-                <div v-if="item.budget" class="item-budget">
+                <div v-if="hasAgendaBudget(item.budget)" class="item-budget">
                   <span class="budget-pill"><el-icon><Money /></el-icon> {{ item.budget.toLocaleString() }}</span>
                 </div>
                 <div v-if="item.files?.length" class="item-images">

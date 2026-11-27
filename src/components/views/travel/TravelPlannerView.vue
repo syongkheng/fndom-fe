@@ -37,6 +37,7 @@ import {
 import { useTravelExport } from '@/composables/useTravelExport'
 import { useCityLabel } from '@/composables/useCityLabel'
 import { searchPlaces } from '@/composables/useGeocode'
+import { hasAgendaBudget } from '@/utilities/AgendaUtils'
 import { useI18n } from 'vue-i18n'
 import { Delete, Lock, Money, Camera, Check, Link, Edit, Share, MapLocation, Plus, ArrowDown, Sort } from '@element-plus/icons-vue'
 
@@ -733,10 +734,10 @@ const onChallengeChange = (code: string | undefined) => { itinerary.value.challe
                   <div class="card-icon"><TravelIcon :svg="getCategoryIcon(item.category)" /></div>
                   <div class="card-body">
                     <div class="card-title">{{ item.title || t('travel.viewer.untitled') }}</div>
-                    <div v-if="getCardTime(item) || getCardCity(item) || item.budget" class="card-meta">
+                    <div v-if="getCardTime(item) || getCardCity(item) || hasAgendaBudget(item.budget)" class="card-meta">
                       <span v-if="getCardTime(item)" class="card-time">{{ getCardTime(item) }}</span>
                       <span v-if="getCardCity(item)" class="card-city"><template v-if="getCardTime(item)"> · </template>{{ getCardCity(item) }}</span>
-                      <template v-if="item.budget">
+                      <template v-if="hasAgendaBudget(item.budget)">
                         <span class="card-sep" v-if="getCardTime(item) || getCardCity(item)"> · </span>
                         <span class="card-budget"><el-icon><Money /></el-icon> {{ item.budget.toLocaleString() }}</span>
                       </template>
