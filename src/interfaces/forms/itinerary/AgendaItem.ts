@@ -27,10 +27,12 @@ interface AgendaItem {
   durationTimingRaw?: string[]
   startTime?: string
   endTime?: string
-  durationInHours?: number
+  /** 0 is a real value; null = not set / cleared. */
+  durationInHours?: number | null
   unknownTime: boolean
   files: FileWithPreview[]
-  budget?: number
+  /** 0 is a real amount (see hasAgendaBudget); null = not set / cleared (el-input-number emits null). */
+  budget?: number | null
   day?: number
   date?: string
   _fileIdsToDelete: string[]
